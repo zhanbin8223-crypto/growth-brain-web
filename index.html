@@ -1,0 +1,60 @@
+<!doctype html>
+<html lang="zh-Hant">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <meta name="theme-color" content="#0b1020" />
+  <title>Growth Brain</title>
+  <link rel="stylesheet" href="styles.css" />
+</head>
+<body>
+  <div class="app-shell">
+    <aside class="sidebar" aria-label="主要導覽">
+      <div class="brand">
+        <div class="brand-mark">G</div>
+        <div>
+          <div class="brand-title">Growth Brain</div>
+          <div class="brand-subtitle">Personal Growth OS</div>
+        </div>
+      </div>
+
+      <nav class="nav" id="nav">
+        <button class="nav-item active" data-view="home"><span>⌂</span><b>首頁</b></button>
+        <button class="nav-item" data-view="learn"><span>◫</span><b>學習陪伴</b></button>
+        <button class="nav-item" data-view="synapse"><span>◉</span><b>Synapse</b></button>
+        <button class="nav-item" data-view="ceo"><span>◇</span><b>系統</b></button>
+      </nav>
+
+      <div class="side-note">
+        <div class="side-note-title">現在模式</div>
+        <div class="status-row"><span class="dot amber"></span><span>Single-user private</span></div>
+        <p>首頁與系統建置分離；登入後首頁只讀 Personal Home，系統頁才讀 Cockpit。</p>
+      </div>
+    </aside>
+
+    <main class="main">
+      <header class="topbar">
+        <div>
+          <div class="eyebrow">PERSONAL GROWTH SYSTEM</div>
+          <h1 id="pageTitle">今天只做一件最值得做的事</h1>
+        </div>
+        <div class="top-actions">
+          <button class="ghost-btn" id="refreshBtn">重新整理</button>
+          <div class="avatar">劉</div>
+        </div>
+      </header>
+
+      <section class="view active" id="view-home"></section>
+      <section class="view" id="view-learn"></section>
+      <section class="view" id="view-synapse"></section>
+      <section class="view" id="view-ceo"></section>
+    </main>
+  </div>
+
+  <script src="data.js"></script>
+  <script src="config.js"></script>
+  <script src="auth.js"></script>
+  <script src="adapter.js"></script>
+  <script src="app.js"></script>
+</body>
+</html>
