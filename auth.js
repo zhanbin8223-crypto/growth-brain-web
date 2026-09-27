@@ -67,6 +67,41 @@
     return true;
     }finally{sendingLogin=false;}
   }
+  async function consumeMagicLinkUrl(rawLink){
+    const value=(rawLink||'').trim();
+    if(!value) throw new Error('請貼上登入信裡的完整連結。');
+    let url;
+    try{url=new URL(value);}catch{throw new Error('這不是有效的登入連結。');}
+    const expected=new URL(C.supabaseUrl);
+    if(url.origin!==expected.origin || !url.pathname.endsWith('/auth/v1/verify')){
+      throw new Error('這不是這個 Growth Brain 專案的 Supabase 登入連結。');
+    }
+    const tokenHash=url.searchParams.get('token_hash')||url.searchParams.get('token');
+    const type=url.searchParams.get('type')||'email';
+    const allowedTypes=new Set(['email','magiclink','signup','invite','recovery','email_change']);
+    if(!tokenHash || !allowedTypes.has(type)) throw new Error('登入連結缺少可驗證 token，或登入類型不支援。');
+    const res=await fetch(`${C.supabaseUrl}/auth/v1/verify`,{
+      method:'POST',
+      headers:{apikey:C.publishableKey,'Content-Type':'application/json'},
+      body:JSON.stringify({token_hash:tokenHash,type})
+    });
+    const text=await res.text();
+    let data={};
+    try{data=text?JSON.parse(text):{};}catch{}
+    if(!res.ok) throw new Error(data?.msg||data?.message||data?.error_description||`登入連結驗證失敗（${res.status}）`);
+    const s=data?.session||data;
+    if(!s?.access_token || !s?.refresh_token) throw new Error('登入已驗證，但沒有取得可保存的 session。');
+    const session={
+      access_token:s.access_token,
+      refresh_token:s.refresh_token,
+      expires_in:Number(s.expires_in||3600),
+      created_at:Date.now()
+    };
+    saveSession(session);
+    if(data?.user?.email) localStorage.setItem(EMAIL_KEY,data.user.email);
+    return {session,user:data?.user||null};
+  }
+
   async function refreshSession(session){
     if(!session?.refresh_token) return null;
     const res=await fetch(`${C.supabaseUrl}/auth/v1/token?grant_type=refresh_token`,{
@@ -107,5 +142,5 @@
     localStorage.removeItem(EMAIL_KEY);
   }
 
-  window.GROWTH_BRAIN_AUTH={requestMagicLink,getValidSession,fetchUser,signOut,readSession};
+  window.GROWTH_BRAIN_AUTH={requestMagicLink,consumeMagicLinkUrl,getValidSession,fetchUser,signOut,readSession};
 })();
