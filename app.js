@@ -109,6 +109,28 @@ function setView(name){
   const t={home:'今天只做一件最值得做的事',projects:'把候選方向變成可驗證的個人主線',learn:'把複雜內容變成可以理解的東西',synapse:'看見知識與經驗如何連起來',ceo:'系統建置與 AI 團隊狀態'};$('#pageTitle').textContent=t[name]||t.home;if(name==='ceo')renderSystem();
 }
 
+function detectSessionLifecycleProbe(){
+  const session=window.GROWTH_BRAIN_AUTH?.readSession?.();
+  if(!session) return null;
+  const nav=performance.getEntriesByType?.('navigation')?.[0]?.type||'navigate';
+  const tabKey='growth-brain-auth-tab-seen-v1';
+  const everKey='growth-brain-auth-ever-seen-v1';
+  const tabSeen=sessionStorage.getItem(tabKey)==='1';
+  const everSeen=localStorage.getItem(everKey)==='1';
+  let kind=null;
+  if(nav==='reload') kind='reload_session';
+  else if(everSeen && !tabSeen) kind='reopen_session';
+  sessionStorage.setItem(tabKey,'1');
+  localStorage.setItem(everKey,'1');
+  return kind;
+}
+
+async function sendSessionLifecycleProbe(){
+  const kind=detectSessionLifecycleProbe();
+  if(!kind || A.liveStatus!=='live') return;
+  try{await A.probeSession(kind);}catch{}
+}
+
 function authBar(){
   $('#authBox')?.remove();const box=document.createElement('div');box.id='authBox';box.className='auth-box';box.innerHTML=A.liveStatus==='live'?'<span class="pill success">Live</span><button class="ghost-btn small" id="signOut">登出</button>':'<button class="ghost-btn small" id="openLogin">登入</button>';$('.top-actions').prepend(box);$('#openLogin')?.addEventListener('click',loginModal);$('#signOut')?.addEventListener('click',async()=>{await A.signOut();location.reload()});
 }
@@ -140,7 +162,7 @@ function loginModal(){
 }
 
 async function init(){
-  try{await A.initialize();D=await A.getSnapshot();renderHome();renderProjects();renderLearn();renderSynapse();authBar();$$('.nav-item').forEach(b=>b.onclick=()=>setView(b.dataset.view));document.addEventListener('click',e=>{const j=e.target.closest('[data-jump]');if(j)setView(j.dataset.jump);if(e.target.closest('[data-auth]'))loginModal()});$('#refreshBtn').onclick=()=>location.reload();}
+  try{await A.initialize();D=await A.getSnapshot();renderHome();renderProjects();renderLearn();renderSynapse();authBar();await sendSessionLifecycleProbe();$('.nav-item').forEach(b=>b.onclick=()=>setView(b.dataset.view));document.addEventListener('click',e=>{const j=e.target.closest('[data-jump]');if(j)setView(j.dataset.jump);if(e.target.closest('[data-auth]'))loginModal()});$('#refreshBtn').onclick=()=>location.reload();}
   catch(e){$('.main').innerHTML=`<div class="empty">Growth Brain 初始化失敗：${esc(e.message||e)}</div>`}
 }
 init();
