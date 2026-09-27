@@ -64,6 +64,21 @@
       }
       return this;
     },
+    async probeSession(kind){
+      const session=await Auth.getValidSession();
+      if(!session) throw Object.assign(new Error('not_signed_in'),{code:'not_signed_in'});
+      const url=new URL(C.edgeFunctionUrl);
+      url.searchParams.set('surface','personal_home');
+      url.searchParams.set('probe',kind);
+      const res=await fetch(url.toString(),{
+        headers:{
+          apikey:C.publishableKey,
+          Authorization:`Bearer ${session.access_token}`
+        }
+      });
+      if(!res.ok) throw Object.assign(new Error(`probe_http_${res.status}`),{code:`probe_http_${res.status}`,status:res.status});
+      return {ok:true,kind,status:res.status};
+    },
     async getSnapshot(){
       const out=clone(D);
       if(this.personalHome) out.personalHome=clone(this.personalHome);
