@@ -100,6 +100,7 @@
       store.attempts.push(attempt);writeStore(store);return attempt;
     },
     async requestMagicLink(email){return Auth.requestMagicLink(email);},
+    async consumeMagicLinkUrl(link){return Auth.consumeMagicLinkUrl(link);},
     async signOut(){
       Auth.signOut();
       this.mode='cached-private';this.liveStatus='signed_out';this.liveUser=null;this.personalHome=null;this.systemCockpit=null;
