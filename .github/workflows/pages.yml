@@ -24,6 +24,16 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
 
+      - name: Validate frontend logic
+        run: |
+          node --check app.js
+          node --check adapter.js
+          node --check auth.js
+          node --check config.js
+          node --check data.js
+          test -f index.html
+          test -f styles.css
+
       - name: Configure Pages
         uses: actions/configure-pages@v5
 
