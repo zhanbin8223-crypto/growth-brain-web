@@ -10,6 +10,10 @@ const pill=s=>{const k=String(s||'unknown').toLowerCase();const c=['completed','
 const human=s=>String(s||'').replace(/^concept:/,'').replace(/^logic:/,'').replaceAll('_',' ');
 const home=()=>D?.personalHome||{};
 const attempt=u=>A.latestAttempt(u.id);
+const PROJECT_DRAFT_KEY='growth-brain-personal-project-draft-v1';
+const readProjectDraft=()=>{try{return JSON.parse(localStorage.getItem(PROJECT_DRAFT_KEY)||'null');}catch{return null;}};
+const writeProjectDraft=d=>localStorage.setItem(PROJECT_DRAFT_KEY,JSON.stringify(d));
+const clearProjectDraft=()=>localStorage.removeItem(PROJECT_DRAFT_KEY);
 
 function modeStrip(){
   const live=A.liveStatus==='live';
@@ -18,7 +22,8 @@ function modeStrip(){
 
 function renderHome(){
   const H=home(),dir=H.primary_direction||{},action=H.primary_action||{},learn=H.learning_support||{},summary=learn.summary||{},nodes=(H.synapse_highlights?.nodes||[]).slice(0,4),sys=H.system_health||{};
-  const cta=A.liveStatus==='signed_out'?'<button class="primary-btn" data-auth>登入同步我的 Growth Brain</button>':'<button class="primary-btn" disabled>等待選定個人主線</button>';
+  const needsRoute=action.status==='needs_personal_outcome_route';
+  const cta=needsRoute?'<button class="primary-btn" data-jump="projects">建立候選主線</button>':(A.liveStatus==='signed_out'?'<button class="primary-btn" data-auth>登入同步我的 Growth Brain</button>':'<button class="primary-btn" disabled>目前主線已由後端提供</button>');
   $('#view-home').innerHTML=`${modeStrip()}
   <div class="hero-grid">
     <article class="hero-card"><span class="kicker">NOW</span><h2>${esc(action.title||'先選一個真實下一步')}</h2><p>${esc(action.why||'目前還沒有足夠 evidence 替你自動選唯一主線。')}</p><div class="evidence-box"><b>做到什麼算完成</b><span>${esc(action.success_evidence||'產生一個真實作品或行動證據。')}</span></div>${cta}</article>
@@ -28,6 +33,50 @@ function renderHome(){
   <section><div class="section-head"><div><h2>Learning Support</h2><p>學習支援主線，不搶主線。</p></div>${pill(learn.role||'supporting_only')}</div><div class="surface"><b>${esc(learn.primary_card?.label||'未驗證')}</b><p>${esc(learn.primary_card?.description||'先留下可驗證 evidence。')}</p><small>${esc(learn.primary_card?.next_action||'完成一次回答或實作')}</small></div></section>
   <section><div class="section-head"><div><h2>Synapse Highlights</h2><p>首頁只看重點，完整關係圖在 Synapse。</p></div></div><div class="highlight-grid">${nodes.map(n=>`<div class="highlight"><b>${esc(n.label||human(n.k))}</b><span>${esc(n.n??0)} 個訊號 · ${pct(n.c)}</span></div>`).join('')||'<div class="empty">目前沒有重點節點。</div>'}</div></section>
   <section><div class="section-head"><div><h2>System Health</h2><p>只顯示摘要，不把系統建置當成你的個人 CTA。</p></div></div><div class="surface row-between"><div><b>${sys.build_in_progress?'系統仍在建置':'系統穩定'}</b><p>${esc(sys.parallel_blocker_count??0)} 個平行 blocker</p></div><button class="ghost-btn" data-jump="ceo">查看系統</button></div></section>`;
+}
+
+function renderProjects(){
+  const H=home(),dir=H.primary_direction||{},draft=readProjectDraft()||{};
+  $('#view-projects').innerHTML=`
+    <div class="section-head"><div><h2>Personal Goal / Projects</h2><p>先建立候選，不替你自動決定唯一人生主線。</p></div>${pill('candidate_only')}</div>
+    <div class="hero-grid">
+      <article class="surface">
+        <span class="kicker">CANDIDATE DIRECTION</span>
+        <h3>${esc(dir.key?human(dir.key):'尚無方向候選')}</h3>
+        <p>${esc(dir.goal||'目前沒有足夠 evidence 自動建立方向。')}</p>
+        <small class="muted">這只是方向參考，不等於已承諾的個人 outcome route。</small>
+      </article>
+      <article class="surface">
+        <span class="kicker">ROUTE STATUS</span>
+        <h3>${draft.title?'候選草稿已存在':'尚未建立候選草稿'}</h3>
+        <p>${draft.title?'草稿只存在你的瀏覽器，尚未升格為正式主線。':'先定義想完成什麼，以及什麼證據代表完成。'}</p>
+      </article>
+    </div>
+    <div class="section-head"><div><h2>建立候選主線</h2><p>最小欄位只有 outcome 與 success evidence；why now 可選填。</p></div></div>
+    <form class="surface project-form" id="projectForm">
+      <label><b>我想完成什麼</b><input id="projectTitle" value="${esc(draft.title||'')}" placeholder="例如：完成一個可被真實使用的作品"></label>
+      <label><b>什麼證據代表完成</b><textarea id="projectEvidence" placeholder="例如：真實使用者完成一次核心流程">${esc(draft.success_evidence||'')}</textarea></label>
+      <label><b>為什麼現在做</b><textarea id="projectWhy" placeholder="可選填">${esc(draft.why_now||'')}</textarea></label>
+      <div class="row-between">
+        <div id="projectMsg" class="muted">儲存後仍是 candidate，不會自動改成正式人生目標。</div>
+        <div class="project-actions">
+          <button type="button" class="ghost-btn" id="clearProjectDraft">清除</button>
+          <button type="submit" class="primary-btn">儲存候選草稿</button>
+        </div>
+      </div>
+    </form>`;
+  $('#projectForm')?.addEventListener('submit',e=>{
+    e.preventDefault();
+    const title=$('#projectTitle').value.trim();
+    const success_evidence=$('#projectEvidence').value.trim();
+    const why_now=$('#projectWhy').value.trim();
+    const msg=$('#projectMsg');
+    if(title.length<3||success_evidence.length<3){msg.textContent='請至少填入「想完成什麼」與「完成證據」。';return;}
+    writeProjectDraft({title,success_evidence,why_now,status:'candidate_only',saved_at:new Date().toISOString()});
+    msg.textContent='已儲存候選草稿；尚未升格為正式 personal outcome route。';
+    renderProjects();
+  });
+  $('#clearProjectDraft')?.addEventListener('click',()=>{clearProjectDraft();renderProjects();});
 }
 
 function renderLearn(){
@@ -57,7 +106,7 @@ async function renderSystem(){
 function setView(name){
   $$('.view').forEach(v=>v.classList.toggle('active',v.id===`view-${name}`));
   $$('.nav-item').forEach(n=>n.classList.toggle('active',n.dataset.view===name));
-  const t={home:'今天只做一件最值得做的事',learn:'把複雜內容變成可以理解的東西',synapse:'看見知識與經驗如何連起來',ceo:'系統建置與 AI 團隊狀態'};$('#pageTitle').textContent=t[name]||t.home;if(name==='ceo')renderSystem();
+  const t={home:'今天只做一件最值得做的事',projects:'把候選方向變成可驗證的個人主線',learn:'把複雜內容變成可以理解的東西',synapse:'看見知識與經驗如何連起來',ceo:'系統建置與 AI 團隊狀態'};$('#pageTitle').textContent=t[name]||t.home;if(name==='ceo')renderSystem();
 }
 
 function authBar(){
@@ -68,7 +117,7 @@ function loginModal(){
 }
 
 async function init(){
-  try{await A.initialize();D=await A.getSnapshot();renderHome();renderLearn();renderSynapse();authBar();$$('.nav-item').forEach(b=>b.onclick=()=>setView(b.dataset.view));document.addEventListener('click',e=>{const j=e.target.closest('[data-jump]');if(j)setView(j.dataset.jump);if(e.target.closest('[data-auth]'))loginModal()});$('#refreshBtn').onclick=()=>location.reload();}
+  try{await A.initialize();D=await A.getSnapshot();renderHome();renderProjects();renderLearn();renderSynapse();authBar();$$('.nav-item').forEach(b=>b.onclick=()=>setView(b.dataset.view));document.addEventListener('click',e=>{const j=e.target.closest('[data-jump]');if(j)setView(j.dataset.jump);if(e.target.closest('[data-auth]'))loginModal()});$('#refreshBtn').onclick=()=>location.reload();}
   catch(e){$('.main').innerHTML=`<div class="empty">Growth Brain 初始化失敗：${esc(e.message||e)}</div>`}
 }
 init();
