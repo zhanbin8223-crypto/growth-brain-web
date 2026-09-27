@@ -113,7 +113,30 @@ function authBar(){
   $('#authBox')?.remove();const box=document.createElement('div');box.id='authBox';box.className='auth-box';box.innerHTML=A.liveStatus==='live'?'<span class="pill success">Live</span><button class="ghost-btn small" id="signOut">登出</button>':'<button class="ghost-btn small" id="openLogin">登入</button>';$('.top-actions').prepend(box);$('#openLogin')?.addEventListener('click',loginModal);$('#signOut')?.addEventListener('click',async()=>{await A.signOut();location.reload()});
 }
 function loginModal(){
-  let m=$('#loginModal');if(!m){m=document.createElement('div');m.id='loginModal';m.className='modal-backdrop';m.innerHTML='<div class="modal-card"><button class="modal-close" id="closeLogin">×</button><span class="kicker">SINGLE-USER PRIVATE</span><h2>登入 Growth Brain</h2><p>只允許既有帳號登入，不建立新帳號。</p><input id="loginEmail" type="email" placeholder="your@email.com"><button class="primary-btn" id="sendLogin">寄登入連結</button><div id="loginMsg" class="muted"></div></div>';document.body.appendChild(m);$('#closeLogin').onclick=()=>m.classList.remove('show');$('#sendLogin').onclick=async()=>{const msg=$('#loginMsg');try{msg.textContent='寄送中…';await A.requestMagicLink($('#loginEmail').value);msg.textContent='已送出，請從信箱回到網站。'}catch(e){msg.textContent=e.message||'失敗'}}}m.classList.add('show');
+  let m=$('#loginModal');
+  if(!m){
+    m=document.createElement('div');
+    m.id='loginModal';
+    m.className='modal-backdrop';
+    m.innerHTML='<div class="modal-card"><button class="modal-close" id="closeLogin">×</button><span class="kicker">SINGLE-USER PRIVATE</span><h2>登入 Growth Brain</h2><p>只允許既有帳號登入，不建立新帳號。</p><input id="loginEmail" type="email" placeholder="your@email.com"><button class="primary-btn" id="sendLogin">寄登入連結</button><div id="loginMsg" class="muted"></div><div class="evidence-box"><b>如果登入信點開後跑到錯的網址</b><span>不要再點舊連結。從最新、尚未使用的登入信複製完整連結，貼在下面；Growth Brain 會直接驗證 token，不經過 redirect。</span></div><input id="loginLink" type="text" autocomplete="off" placeholder="貼上最新登入信的完整連結"><button class="ghost-btn" id="verifyLoginLink">直接驗證登入連結</button><div id="verifyLoginMsg" class="muted"></div></div>';
+    document.body.appendChild(m);
+    $('#closeLogin').onclick=()=>m.classList.remove('show');
+    $('#sendLogin').onclick=async()=>{
+      const msg=$('#loginMsg');
+      try{msg.textContent='寄送中…';await A.requestMagicLink($('#loginEmail').value);msg.textContent='已送出。請只使用最新一封登入信；若點開仍回錯位置，可改用下方直接驗證。';}
+      catch(e){msg.textContent=e.message||'失敗';}
+    };
+    $('#verifyLoginLink').onclick=async()=>{
+      const msg=$('#verifyLoginMsg');
+      try{
+        msg.textContent='驗證中…';
+        await A.consumeMagicLinkUrl($('#loginLink').value);
+        msg.textContent='登入成功，正在載入正式資料…';
+        setTimeout(()=>location.reload(),250);
+      }catch(e){msg.textContent=e.message||'驗證失敗';}
+    };
+  }
+  m.classList.add('show');
 }
 
 async function init(){
