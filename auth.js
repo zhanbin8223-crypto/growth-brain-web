@@ -2,6 +2,18 @@
   const C=window.GROWTH_BRAIN_CONFIG;
   const SESSION_KEY='growth-brain-single-user-auth-v1';
   const EMAIL_KEY='growth-brain-auth-email-v1';
+  const SEND_KEY='growth-brain-auth-send-v1';
+  let sendingLogin=false;
+
+  function remainingLoginWait(email){
+    try{
+      const last=JSON.parse(localStorage.getItem(SEND_KEY)||'null');
+      return last?.email===email ? Math.max(0,Math.ceil((last.until-Date.now())/1000)) : 0;
+    }catch{return 0;}
+  }
+  function holdLoginSend(email,seconds){
+    localStorage.setItem(SEND_KEY,JSON.stringify({email,until:Date.now()+seconds*1000}));
+  }
 
   function readSession(){
     try{return JSON.parse(localStorage.getItem(SESSION_KEY)||'null');}catch{return null;}
@@ -29,18 +41,31 @@
   async function requestMagicLink(email){
     const clean=(email||'').trim();
     if(!/^\S+@\S+\.\S+$/.test(clean)) throw new Error('請輸入有效信箱。');
-    const redirectTo=location.protocol.startsWith('http') ? location.href.split('#')[0] : undefined;
+    if(sendingLogin) throw new Error('登入信正在寄送，請勿重複點擊。');
+    const wait=remainingLoginWait(clean.toLowerCase());
+    if(wait) throw new Error(`登入信已寄送或仍在冷卻中，請先查看最新一封；需重寄請等 ${wait} 秒。`);
+    const redirectTo=location.protocol.startsWith('http') ? location.origin+location.pathname : undefined;
     const body={email:clean,create_user:false};
-    if(redirectTo) body.redirect_to=redirectTo;
-    const res=await fetch(`${C.supabaseUrl}/auth/v1/otp`,{
+    const endpoint=new URL(`${C.supabaseUrl}/auth/v1/otp`);
+    if(redirectTo) endpoint.searchParams.set('redirect_to',redirectTo);
+    sendingLogin=true;
+    try{
+    const res=await fetch(endpoint.toString(),{
       method:'POST',
       headers:{apikey:C.publishableKey,'Content-Type':'application/json'},
       body:JSON.stringify(body)
     });
     const text=await res.text();
+    if(res.status===429){
+      const seconds=Number(text.match(/after\s+(\d+)\s+seconds/i)?.[1]||res.headers?.get('Retry-After'))||60;
+      holdLoginSend(clean.toLowerCase(),seconds);
+      throw new Error(`寄信暫時受到限制，請等 ${seconds} 秒後再試一次，或先查看最新一封登入信。`);
+    }
     if(!res.ok) throw new Error(`登入信件送出失敗（${res.status}）：${text.slice(0,160)}`);
+    holdLoginSend(clean.toLowerCase(),60);
     localStorage.setItem(EMAIL_KEY,clean);
     return true;
+    }finally{sendingLogin=false;}
   }
   async function refreshSession(session){
     if(!session?.refresh_token) return null;
