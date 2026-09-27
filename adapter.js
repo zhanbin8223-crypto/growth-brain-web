@@ -43,6 +43,7 @@
     liveStatus:'signed_out',
     liveUser:null,
     personalHome:null,
+    personalOutcome:null,
     systemCockpit:null,
     lastLiveError:null,
     async initialize(){
@@ -78,6 +79,43 @@
       });
       if(!res.ok) throw Object.assign(new Error(`probe_http_${res.status}`),{code:`probe_http_${res.status}`,status:res.status});
       return {ok:true,kind,status:res.status};
+    },
+    async refreshPersonalHome(){
+      if(this.mode!=='live') return null;
+      const result=await liveRequest('GET',undefined,'personal_home');
+      this.personalHome=extractSurface(result);
+      return clone(this.personalHome);
+    },
+    async getPersonalOutcome(){
+      if(this.personalOutcome) return clone(this.personalOutcome);
+      if(this.mode!=='live') return {selected_route:null,candidate_route:null,policy:{candidate_is_commitment:false}};
+      const result=await liveRequest('GET',undefined,'personal_outcome');
+      this.personalOutcome=extractSurface(result);
+      return clone(this.personalOutcome);
+    },
+    async savePersonalOutcomeCandidate({title,successEvidence,whyNow,directionKey}){
+      if(this.mode!=='live') throw Object.assign(new Error('請先登入，候選主線才會正式保存。'),{code:'not_signed_in'});
+      const result=await liveRequest('POST',{
+        action:'save_personal_outcome_candidate',
+        title,
+        success_evidence:successEvidence,
+        why_now:whyNow||null,
+        direction_key:directionKey||null
+      });
+      this.personalOutcome=result?.data?.snapshot||null;
+      await this.refreshPersonalHome();
+      return clone(this.personalOutcome);
+    },
+    async decidePersonalOutcomeCandidate({routeId,decision}){
+      if(this.mode!=='live') throw Object.assign(new Error('請先登入。'),{code:'not_signed_in'});
+      const result=await liveRequest('POST',{
+        action:'decide_personal_outcome_candidate',
+        route_id:routeId,
+        decision
+      });
+      this.personalOutcome=result?.data?.snapshot||null;
+      await this.refreshPersonalHome();
+      return clone(this.personalOutcome);
     },
     async getSnapshot(){
       const out=clone(D);
@@ -118,7 +156,7 @@
     async consumeMagicLinkUrl(link){return Auth.consumeMagicLinkUrl(link);},
     async signOut(){
       Auth.signOut();
-      this.mode='cached-private';this.liveStatus='signed_out';this.liveUser=null;this.personalHome=null;this.systemCockpit=null;
+      this.mode='cached-private';this.liveStatus='signed_out';this.liveUser=null;this.personalHome=null;this.personalOutcome=null;this.systemCockpit=null;
     },
     async resetLocalEvidence(){writeStore({attempts:[]});},
     latestAttempt,candidateEvidenceCount
