@@ -4,6 +4,12 @@
   const esc=s=>String(s??'').replace(/[&<>'"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;',"'":'&#39;','"':'&quot;'}[c]));
   const classLabel={knowledge:'知識',learning:'學習',project:'專案',action:'行動'};
   const kindLabel={text:'文字',link:'連結',idea:'想法'};
+  const targetLabel={
+    personal_outcome_candidate:'候選主線',
+    learning_session:'學習來源',
+    growth_action:'可追蹤行動',
+    synapse_ingestion_candidate:'知識候選'
+  };
 
   function classificationButtons(item){
     return ['knowledge','learning','project','action'].map(key=>{
@@ -12,13 +18,41 @@
     }).join('');
   }
 
+  function routeControls(item){
+    if(item.routing){
+      const label=targetLabel[item.routing.target_kind]||item.routing.target_kind||'目標流程';
+      return `<div class="evidence-box"><b>已轉入：${esc(label)}</b><span>原始收件匣內容仍保留；路由時間 ${esc(item.routing.routed_at?new Date(item.routing.routed_at).toLocaleString('zh-TW'):'')}</span></div>`;
+    }
+    if(!item.classification) return `<div class="project-actions">${classificationButtons(item)}</div>`;
+    if(item.classification==='project'){
+      return `<div class="route-box">
+        <label><b>候選主線名稱</b><input data-route-title value="${esc((item.raw_content||'').slice(0,120))}"></label>
+        <label><b>什麼證據代表完成</b><textarea data-route-evidence placeholder="例如：可以從一筆輸入一路走到可驗證成果"></textarea></label>
+        <label><b>為什麼現在做（可選）</b><textarea data-route-why></textarea></label>
+        <button class="primary-btn" data-route-item="${esc(item.id)}">建立候選主線</button>
+      </div>`;
+    }
+    if(item.classification==='learning'){
+      return `<div class="route-box">
+        <label><b>學習目標（可選）</b><input data-route-goal placeholder="例如：能用自己的話解釋並實作"></label>
+        <button class="primary-btn" data-route-item="${esc(item.id)}">建立正式學習來源</button>
+      </div>`;
+    }
+    if(item.classification==='action'){
+      return `<button class="primary-btn" data-route-item="${esc(item.id)}">建立可追蹤行動</button>`;
+    }
+    return `<button class="primary-btn" data-route-item="${esc(item.id)}">送入知識候選</button>`;
+  }
+
   function itemHtml(item){
     const source=item.source_url?`<a href="${esc(item.source_url)}" target="_blank" rel="noopener">查看原始來源</a>`:'未提供外部網址';
     const status=item.classification?`已分類：${classLabel[item.classification]||esc(item.classification)}`:'尚未分類';
-    return `<article class="surface">
+    return `<article class="surface" data-inbox-item="${esc(item.id)}">
       <div class="row-between"><div><span class="kicker">${esc(kindLabel[item.source_kind]||item.source_kind||'文字')}</span><b>${esc(status)}</b></div><small class="muted">${esc(item.created_at?new Date(item.created_at).toLocaleString('zh-TW'):'')}</small></div>
       <p>${esc(item.raw_content||'')}</p>
-      <div class="row-between"><small class="muted">${source}</small><div class="project-actions">${classificationButtons(item)}</div></div>
+      <div class="row-between"><small class="muted">${source}</small>${item.routing?'':(!item.classification?`<div class="project-actions">${classificationButtons(item)}</div>`:'')}</div>
+      ${routeControls(item)}
+      <div class="muted" data-route-msg></div>
     </article>`;
   }
 
@@ -70,8 +104,41 @@
       btn.disabled=true;
       try{
         await A.classifyInbox({itemId:btn.dataset.itemId,classification:btn.dataset.classify});
-        await renderInbox('分類已更新，原始內容與來源仍保留。');
+        await renderInbox('分類已更新。下一步要由你明確按下轉入流程，系統不會偷偷自動路由。');
       }catch(err){btn.disabled=false;const msg=$('#inboxMsg');if(msg)msg.textContent=err.message||'分類失敗';}
+    }));
+
+    root.querySelectorAll('[data-route-item]').forEach(btn=>btn.addEventListener('click',async()=>{
+      const card=btn.closest('[data-inbox-item]');
+      const item=items.find(x=>x.id===btn.dataset.routeItem);
+      const msg=card?.querySelector('[data-route-msg]');
+      if(!item||item.routing) return;
+      btn.disabled=true;
+      try{
+        if(msg) msg.textContent='正在建立正式路由…';
+        const options={};
+        if(item.classification==='project'){
+          options.title=card.querySelector('[data-route-title]')?.value?.trim()||item.raw_content;
+          options.successEvidence=card.querySelector('[data-route-evidence]')?.value?.trim()||'';
+          options.whyNow=card.querySelector('[data-route-why]')?.value?.trim()||'';
+          if(options.successEvidence.length<3){
+            throw Object.assign(new Error('請先填「什麼證據代表完成」。'),{code:'project_success_evidence_required'});
+          }
+        }else if(item.classification==='learning'){
+          options.title=(item.raw_content||'').slice(0,160);
+          options.goal=card.querySelector('[data-route-goal]')?.value?.trim()||'';
+          options.sourceLanguage='unknown';
+        }
+        const routed=await A.routeInbox({item,options});
+        const label=targetLabel[routed?.route?.target_kind||routed?.target_kind]||'對應流程';
+        await renderInbox(`已轉入${label}，原始 Inbox 內容與來源仍保留。`);
+      }catch(err){
+        btn.disabled=false;
+        const reason=err.code||err.message||'路由失敗';
+        if(msg) msg.textContent=reason==='personal_candidate_already_exists'
+          ?'目前已有另一筆候選主線待確認，先處理它，避免新內容覆蓋原候選。'
+          :(err.message||'路由失敗');
+      }
     }));
   }
 
