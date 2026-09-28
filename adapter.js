@@ -44,7 +44,8 @@
     liveUser:null,
     personalHome:null,
     personalOutcome:null,
-    systemCockpit:null,
+    inbox:null,
+    systemCockpit:null;
     lastLiveError:null,
     async initialize(){
       const user=await Auth.fetchUser().catch(()=>null);
@@ -117,6 +118,34 @@
       await this.refreshPersonalHome();
       return clone(this.personalOutcome);
     },
+    async getInbox(){
+      if(this.mode!=='live') throw Object.assign(new Error('請先登入，收件匣只顯示正式資料。'),{code:'not_signed_in'});
+      const result=await liveRequest('GET',undefined,'inbox');
+      this.inbox=extractSurface(result);
+      return clone(this.inbox);
+    },
+    async captureInbox({rawContent,sourceKind,sourceUrl}){
+      if(this.mode!=='live') throw Object.assign(new Error('請先登入。'),{code:'not_signed_in'});
+      const result=await liveRequest('POST',{
+        action:'capture_inbox',
+        raw_content:rawContent,
+        source_kind:sourceKind||'text',
+        source_url:sourceUrl||null,
+        source_metadata:{capture_surface:'growth_brain_web'}
+      });
+      this.inbox=result?.data?.snapshot||null;
+      return clone(this.inbox);
+    },
+    async classifyInbox({itemId,classification}){
+      if(this.mode!=='live') throw Object.assign(new Error('請先登入。'),{code:'not_signed_in'});
+      const result=await liveRequest('POST',{
+        action:'classify_inbox',
+        item_id:itemId,
+        classification
+      });
+      this.inbox=result?.data?.snapshot||null;
+      return clone(this.inbox);
+    },
     async getSnapshot(){
       const out=clone(D);
       if(this.personalHome) out.personalHome=clone(this.personalHome);
@@ -156,7 +185,7 @@
     async consumeMagicLinkUrl(link){return Auth.consumeMagicLinkUrl(link);},
     async signOut(){
       Auth.signOut();
-      this.mode='cached-private';this.liveStatus='signed_out';this.liveUser=null;this.personalHome=null;this.personalOutcome=null;this.systemCockpit=null;
+      this.mode='cached-private';this.liveStatus='signed_out';this.liveUser=null;this.personalHome=null;this.personalOutcome=null;this.inbox=null;this.systemCockpit=null;
     },
     async resetLocalEvidence(){writeStore({attempts:[]});},
     latestAttempt,candidateEvidenceCount
