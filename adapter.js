@@ -146,6 +146,28 @@
       this.inbox=result?.data?.snapshot||null;
       return clone(this.inbox);
     },
+
+    async routeInbox({item,options={}}){
+      if(this.mode!=='live') throw Object.assign(new Error('請先登入。'),{code:'not_signed_in'});
+      if(!item?.id||!item?.classification) throw Object.assign(new Error('請先完成分類。'),{code:'classification_required'});
+      const result=await liveRequest('POST',{
+        action:'route_inbox',
+        item_id:item.id,
+        options:{
+          title:options.title||null,
+          success_evidence:options.successEvidence||null,
+          why_now:options.whyNow||null,
+          goal:options.goal||null,
+          source_language:options.sourceLanguage||'unknown'
+        }
+      });
+      this.inbox=result?.data?.snapshot||null;
+      if(item.classification==='project'){
+        this.personalOutcome=null;
+        await this.refreshPersonalHome().catch(()=>null);
+      }
+      return clone(result?.data||result);
+    },
     async getSnapshot(){
       const out=clone(D);
       if(this.personalHome) out.personalHome=clone(this.personalHome);
