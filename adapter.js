@@ -45,7 +45,7 @@
     personalHome:null,
     personalOutcome:null,
     inbox:null,
-    systemCockpit:null;
+    systemCockpit:null,
     lastLiveError:null,
     async initialize(){
       const user=await Auth.fetchUser().catch(()=>null);
