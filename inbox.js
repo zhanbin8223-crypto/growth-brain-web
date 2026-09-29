@@ -6,10 +6,26 @@
   const kindLabel={text:'文字',link:'連結',idea:'想法'};
 
   function classificationButtons(item){
+    const routed=Boolean(item.routing);
     return ['knowledge','learning','project','action'].map(key=>{
       const active=item.classification===key;
-      return `<button class="ghost-btn small" data-classify="${key}" data-item-id="${esc(item.id)}" ${active?'disabled':''}>${active?'✓ ':''}${classLabel[key]}</button>`;
+      return `<button class="ghost-btn small" data-classify="${key}" data-item-id="${esc(item.id)}" ${(active||routed)?'disabled':''}>${active?'✓ ':''}${classLabel[key]}</button>`;
     }).join('');
+  }
+
+  function routeControls(item){
+    if(item.routing){
+      const labels={personal_outcome_candidate:'候選主線',learning_session:'學習流程',growth_action:'可追蹤行動',synapse_ingestion_candidate:'知識連結候選'};
+      return `<div class="muted">已送往：${esc(labels[item.routing.target_kind]||item.routing.target_kind||'對應流程')}。原始 Inbox item 仍保留。</div>`;
+    }
+    if(!item.classification) return '<div class="muted">先分類，再送往正式流程。</div>';
+    if(item.classification==='project'){
+      return `<div class="project-form" data-route-panel><label><b>完成標準</b><input data-project-success placeholder="例如：做出一個可以實際檢查的成果"></label><label><b>候選名稱（可選）</b><input data-route-title placeholder="未填會使用原始內容"></label><button class="primary-btn" data-route data-item-id="${esc(item.id)}">建立候選主線</button><small class="muted">只建立候選；仍要由你明確確認才會成為主線。</small></div>`;
+    }
+    if(item.classification==='learning'){
+      return `<div class="project-form" data-route-panel><label><b>這次想學會什麼（可選）</b><input data-learning-goal></label><button class="primary-btn" data-route data-item-id="${esc(item.id)}">送到學習流程</button></div>`;
+    }
+    return `<button class="primary-btn" data-route data-item-id="${esc(item.id)}">${item.classification==='action'?'建立可追蹤行動':'送到知識連結候選'}</button>`;
   }
 
   function itemHtml(item){
@@ -19,6 +35,7 @@
       <div class="row-between"><div><span class="kicker">${esc(kindLabel[item.source_kind]||item.source_kind||'文字')}</span><b>${esc(status)}</b></div><small class="muted">${esc(item.created_at?new Date(item.created_at).toLocaleString('zh-TW'):'')}</small></div>
       <p>${esc(item.raw_content||'')}</p>
       <div class="row-between"><small class="muted">${source}</small><div class="project-actions">${classificationButtons(item)}</div></div>
+      <div style="margin-top:12px">${routeControls(item)}</div>
     </article>`;
   }
 
@@ -70,8 +87,33 @@
       btn.disabled=true;
       try{
         await A.classifyInbox({itemId:btn.dataset.itemId,classification:btn.dataset.classify});
-        await renderInbox('分類已更新，原始內容與來源仍保留。');
+        await renderInbox('分類已更新；尚未送到其他流程。');
       }catch(err){btn.disabled=false;const msg=$('#inboxMsg');if(msg)msg.textContent=err.message||'分類失敗';}
+    }));
+
+    root.querySelectorAll('[data-route]').forEach(btn=>btn.addEventListener('click',async()=>{
+      const itemId=btn.dataset.itemId;
+      const card=btn.closest('article');
+      const item=(snapshot?.items||[]).find(x=>x.id===itemId);
+      if(!item) return;
+      btn.disabled=true;
+      try{
+        const args={itemId};
+        if(item.classification==='project'){
+          args.title=card?.querySelector('[data-route-title]')?.value?.trim()||null;
+          args.successEvidence=card?.querySelector('[data-project-success]')?.value?.trim()||'';
+          if(!args.successEvidence) throw new Error('請先填完成標準。');
+        }else if(item.classification==='learning'){
+          args.goal=card?.querySelector('[data-learning-goal]')?.value?.trim()||null;
+          args.sourceLanguage='unknown';
+        }
+        await A.routeInbox(args);
+        await renderInbox('已送到對應正式流程；原始 Inbox item 仍保留。');
+      }catch(err){
+        btn.disabled=false;
+        const msg=$('#inboxMsg');
+        if(msg) msg.textContent=err.message||'路由失敗';
+      }
     }));
   }
 

@@ -146,6 +146,22 @@
       this.inbox=result?.data?.snapshot||null;
       return clone(this.inbox);
     },
+    async routeInbox({itemId,title,successEvidence,whyNow,goal,sourceLanguage}){
+      if(this.mode!=='live') throw Object.assign(new Error('請先登入。'),{code:'not_signed_in'});
+      const result=await liveRequest('POST',{
+        action:'route_inbox',
+        item_id:itemId,
+        title:title||null,
+        success_evidence:successEvidence||null,
+        why_now:whyNow||null,
+        goal:goal||null,
+        source_language:sourceLanguage||'unknown'
+      });
+      this.inbox=result?.data?.snapshot||null;
+      if(result?.data?.personal_outcome) this.personalOutcome=result.data.personal_outcome;
+      await this.refreshPersonalHome();
+      return clone(result?.data||null);
+    },
     async getSnapshot(){
       const out=clone(D);
       if(this.personalHome) out.personalHome=clone(this.personalHome);
