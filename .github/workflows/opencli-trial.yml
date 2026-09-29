@@ -1,0 +1,97 @@
+name: Isolated OpenCLI trial
+
+on:
+  push:
+    branches: ["trial/opencli-evaluation-20260930"]
+    paths: [".github/workflows/opencli-trial.yml"]
+
+permissions: {}
+
+jobs:
+  public-read-and-boundaries:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 8
+    steps:
+      - name: Install pinned OpenCLI without lifecycle scripts
+        shell: bash
+        run: |
+          set -euo pipefail
+          ROOT="$RUNNER_TEMP/growth-brain-opencli-trial"
+          mkdir -p "$ROOT/runtime" "$ROOT/home" "$ROOT/results"
+          node --version
+          npm --version
+          npm install --prefix "$ROOT/runtime" --ignore-scripts --no-audit --no-fund --save-exact @jackwener/opencli@1.8.8
+          sha256sum "$ROOT/runtime/package-lock.json"
+      - name: Run public live-read, normalization, replay and missing-browser tests
+        shell: bash
+        env:
+          OPENCLI_BROWSER_CONNECT_TIMEOUT: "4"
+          OPENCLI_BROWSER_COMMAND_TIMEOUT: "4"
+        run: |
+          set -euo pipefail
+          export TRIAL_ROOT="$RUNNER_TEMP/growth-brain-opencli-trial"
+          export HOME="$TRIAL_ROOT/home"
+          python3 - <<'PY'
+          import datetime, hashlib, json, os, pathlib, subprocess, sys, time
+          root = pathlib.Path(os.environ['TRIAL_ROOT'])
+          cli = str(root / 'runtime/node_modules/.bin/opencli')
+          results = root / 'results'
+          checks = []
+          def run(name, args, timeout=40):
+              start = time.monotonic()
+              try:
+                  p = subprocess.run([cli, *args], capture_output=True, text=True, timeout=timeout)
+                  code, out, err = p.returncode, p.stdout, p.stderr
+              except subprocess.TimeoutExpired as e:
+                  code, out, err = 124, '', 'harness_timeout'
+              (results / (name + '.json')).write_text(json.dumps({'exit': code, 'stdout': out, 'stderr': err, 'seconds': round(time.monotonic()-start,3)}, indent=2))
+              print('COMMAND', name, 'exit=', code)
+              return code, out, err
+          def check(name, ok, detail=''):
+              checks.append({'test': name, 'passed': bool(ok), 'detail': detail})
+              print('CHECK', name, 'PASS' if ok else 'FAIL', detail)
+          code, out, err = run('version', ['--version'])
+          check('pinned_runtime_starts', code == 0 and '1.8.8' in out, out.strip())
+          code, out, err = run('registry', ['list', '-f', 'json'])
+          try:
+              data = json.loads(out)
+              commands = data if isinstance(data, list) else data.get('commands', data.get('data', []))
+              assert isinstance(commands, list)
+          except Exception:
+              commands = []
+          hn = [x for x in commands if isinstance(x,dict) and x.get('site')=='hackernews' and x.get('name')=='top']
+          chat = [x for x in commands if isinstance(x,dict) and x.get('site')=='chatgpt']
+          check('public_adapter_registered', code == 0 and bool(hn), json.dumps(hn[:1]))
+          check('chatgpt_capability_discovered_not_assumed', bool(chat), ','.join(x.get('name','') for x in chat))
+          run('hn-help', ['hackernews','top','--help'])
+          code, out, err = run('public-live-read', ['hackernews','top','--limit','3','-f','json'], timeout=90)
+          try:
+              rows = json.loads(out)
+              if isinstance(rows,dict): rows = rows.get('data', rows.get('items', []))
+              assert isinstance(rows, list)
+          except Exception:
+              rows = []
+          valid = code == 0 and len(rows) == 3 and all(isinstance(x,dict) and x.get('id') and x.get('title') for x in rows)
+          check('three_actual_public_records_read', valid, 'count='+str(len(rows)))
+          # This is external reference data, NOT user interest, action or learning evidence.
+          normalized = []
+          fetched = datetime.datetime.now(datetime.timezone.utc).isoformat()
+          for row in rows:
+              if not isinstance(row,dict) or not row.get('id'): continue
+              source_ref = 'https://news.ycombinator.com/item?id=' + str(row['id'])
+              normalized.append({'schema_version':1,'source_ref':source_ref,'source_kind':'public_reference','captured_at':fetched,'data_scope':'validation','subject_scope':'external','inference_performed':False,'user_confirmed':False,'content_hash':hashlib.sha256(json.dumps(row,sort_keys=True).encode()).hexdigest(),'raw':row})
+          ledger = {}
+          for batch in (normalized, normalized):
+              for row in batch: ledger[row['source_ref']] = row
+          check('raw_and_source_preserved', valid and all(n['raw']==r and n['source_ref'] for n,r in zip(normalized,rows)))
+          check('same_batch_replay_not_duplicated', valid and len(ledger)==len(rows))
+          check('no_personal_evidence_promoted', valid and all(n['data_scope']=='validation' and not n['user_confirmed'] and not n['inference_performed'] for n in normalized))
+          (results/'normalized.json').write_text(json.dumps(normalized,ensure_ascii=False,indent=2))
+          (results/'summary.json').write_text(json.dumps({'checks':checks,'normalization_is_local_test_adapter':True,'production_db_writes':0,'paid_model_calls':0,'chatgpt_inference_tested':False},indent=2))
+          # Only a readiness probe; do not submit prompts, log in, or extract ChatGPT output.
+          code, out, err = run('browser-readiness', ['doctor'], timeout=20)
+          print('BROWSER_READINESS', json.dumps({'exit':code,'stdout':out[-2500:],'stderr':err[-1500:]}))
+          print('SUMMARY_JSON', (results/'summary.json').read_text())
+          print('PUBLIC_RECORDS_JSON', (results/'normalized.json').read_text())
+          sys.exit(0 if all(c['passed'] for c in checks) else 1)
+          PY
