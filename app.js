@@ -145,12 +145,112 @@ async function renderProjects(notice=''){
   });
 }
 
-function renderLearn(){
-  const units=D.video?.units||[],src=D.video?.source||{};
-  $('#view-learn').innerHTML=`<div class="section-head"><div><h2>學習陪伴</h2><p>把內容轉成可理解、可作答、可留下 evidence 的單元。</p></div><div>${pill(src.transcript_status)} ${pill(src.language)}</div></div><div class="provenance">${src.exact_timestamps?'已有可定位 transcript。':'目前只有可追溯 fallback，沒有精確時間軸。'}</div><div class="lesson-layout"><div class="lesson-list">${units.map((u,i)=>`<button class="lesson-item ${i===0?'active':''}" data-unit="${esc(u.id)}"><span>${esc(u.mode)}</span><b>${esc(u.title)}</b><small>${attempt(u)?'已作答':'未作答'}</small></button>`).join('')}</div><article class="lesson-detail" id="lessonDetail"></article></div>`;
-  let active=units[0];
-  const draw=()=>{const u=active;if(!u){$('#lessonDetail').innerHTML='<div class="empty">沒有 Learning Unit。</div>';return;}const at=attempt(u);$('#lessonDetail').innerHTML=`<span class="kicker">${esc(u.mode)}</span><h2>${esc(u.title)}</h2><p class="teach">${esc(u.zh)}</p>${u.flow?`<div class="flow">${u.flow.map(x=>`<span>${esc(x)}</span>`).join('<i>→</i>')}</div>`:''}<details><summary>看原文</summary><p>${esc(u.original)}</p></details><div class="answer"><b>你的驗證題</b><p>${esc(u.prompt)}</p><textarea id="answerInput">${esc(at?.response||'')}</textarea><button class="primary-btn" id="submitAnswer">${A.mode==='live'?'送出候選證據':'先存候選證據'}</button><div id="answerMsg" class="muted"></div></div>`;$('#submitAnswer')?.addEventListener('click',async()=>{const m=$('#answerMsg');try{m.textContent='處理中…';await A.submitAttempt({unitId:u.id,response:$('#answerInput').value,evidenceType:u.expected_evidence_type});m.textContent=A.mode==='live'?'已送出，等待審核。':'已存此瀏覽器。';draw();renderHome();}catch(e){m.textContent=e.message||'失敗';}})};
-  $$('.lesson-item').forEach(el=>el.addEventListener('click',()=>{$$('.lesson-item').forEach(x=>x.classList.remove('active'));el.classList.add('active');active=units.find(x=>x.id===el.dataset.unit);draw();}));draw();
+async function renderLearn(notice=''){
+  const root=$('#view-learn');
+  if(!root) return;
+
+  if(A.liveStatus!=='live'){
+    root.innerHTML='<div class="section-head"><div><h2>學習陪伴</h2><p>登入後，真實文字才能進入正式學習流程。</p></div></div><div class="surface"><b>目前沒有讀取正式學習資料</b><p>這裡不會用示範內容或 localStorage 冒充你的正式學習紀錄。</p><button class="primary-btn" data-auth>登入</button></div>';
+    return;
+  }
+
+  root.innerHTML='<div class="empty">正在載入正式學習資料…</div>';
+  let learning;
+  try{learning=await A.getLearning();}
+  catch(e){root.innerHTML=`<div class="empty">學習資料載入失敗：${esc(e.message||e)}</div>`;return;}
+
+  const sessions=learning?.sessions||[];
+  const units=sessions.flatMap(s=>(s.units||[]).map(u=>({...u,session:s})));
+
+  root.innerHTML=`
+    <div class="section-head">
+      <div><h2>學習陪伴</h2><p>貼入真實文字後，系統先保留原文，再讓你用自己的話回答；AI 尚未接上時不會假裝已產生解釋。</p></div>
+      <span class="pill success">正式資料</span>
+    </div>
+
+    <form class="surface project-form" id="learningInputForm">
+      <label><b>學習內容</b><textarea id="learningText" placeholder="貼入你真的想理解的一段文字"></textarea></label>
+      <div class="hero-grid">
+        <label><b>標題（可選）</b><input id="learningTitle" placeholder="例如：文章中的核心概念"></label>
+        <label><b>學習目標（可選）</b><input id="learningGoal" placeholder="例如：能用自己的話說明並應用"></label>
+      </div>
+      <div class="row-between">
+        <div id="learningInputMsg" class="muted">${esc(notice||'建立後會進正式 Learning；目前不會把 AI 生成內容當成你已學會。')}</div>
+        <button class="primary-btn" type="submit">建立學習單元</button>
+      </div>
+    </form>
+
+    <div class="section-head">
+      <div><h2>我的正式學習</h2><p>只顯示 data_scope=real 的個人學習資料。</p></div>
+      <span>${sessions.length} 個來源 · ${units.length} 個單元</span>
+    </div>
+
+    <div class="lesson-layout">
+      <div class="lesson-list" id="liveLessonList">
+        ${units.length?units.map((u,i)=>`<button class="lesson-item ${i===0?'active':''}" data-live-unit="${esc(u.id)}"><span>${esc(u.session?.title||'學習來源')}</span><b>${esc(u.presentation?.title||u.session?.title||'學習單元')}</b><small>${esc(u.latest_submission?.status?statusText(u.latest_submission.status):'未作答')}</small></button>`).join(''):'<div class="empty">目前還沒有正式學習單元。把一段真實文字貼進上方即可開始。</div>'}
+      </div>
+      <article class="lesson-detail" id="liveLessonDetail"></article>
+    </div>`;
+
+  $('#learningInputForm')?.addEventListener('submit',async e=>{
+    e.preventDefault();
+    const text=$('#learningText').value.trim();
+    const title=$('#learningTitle').value.trim();
+    const goal=$('#learningGoal').value.trim();
+    const msg=$('#learningInputMsg');
+    if(text.length<6){msg.textContent='請至少貼入一小段真實內容。';return;}
+    try{
+      msg.textContent='正在建立正式學習單元…';
+      await A.createLearningText({rawContent:text,title,goal,sourceLanguage:'zh-Hant'});
+      D=await A.getSnapshot();
+      renderHome();
+      await renderLearn('已建立正式學習單元；原文已保留，AI 解釋目前仍標示為尚未產生。');
+    }catch(err){msg.textContent=err.message||'建立失敗';}
+  });
+
+  let active=units[0]||null;
+  const draw=()=>{
+    const detail=$('#liveLessonDetail');
+    if(!detail) return;
+    if(!active){
+      detail.innerHTML='<div class="empty">目前沒有正式 Learning Unit。</div>';
+      return;
+    }
+    const sub=active.latest_submission||null;
+    const pending=sub?.status==='pending';
+    const promoted=sub?.status==='promoted'&&sub?.promoted_learning_evidence_id;
+    detail.innerHTML=`
+      <span class="kicker">正式來源</span>
+      <h2>${esc(active.presentation?.title||active.session?.title||'學習單元')}</h2>
+      <p class="teach">${esc(active.zh_explanation||'尚未產生 AI 解釋。')}</p>
+      <details open><summary>原始內容</summary><p>${esc(active.original_text||'')}</p></details>
+      <div class="provenance">來源：${esc(active.session?.source_ref||'未記錄')} · 範圍：real</div>
+      <div class="answer">
+        <b>你的驗證題</b>
+        <p>${esc(active.interaction_prompt||'請用自己的話說明你理解到的重點。')}</p>
+        <textarea id="answerInput">${esc(sub?.response_text||'')}</textarea>
+        <button class="primary-btn" id="submitAnswer" ${pending?'disabled':''}>${pending?'等待審核':'送出可審核回答'}</button>
+        <div id="answerMsg" class="muted">${promoted?'這筆回答已通過審核並形成學習證據。':sub?.status==='rejected'?'上一筆回答未通過審核，可修改後再提交。':sub?.status==='reviewed'?'上一筆只完成審核，沒有升成個人學習證據。':'回答送出後只會先進待審核，不會直接算已學會。'}</div>
+      </div>`;
+    $('#submitAnswer')?.addEventListener('click',async()=>{
+      const m=$('#answerMsg');
+      try{
+        m.textContent='正在送出…';
+        await A.submitAttempt({unitId:active.id,response:$('#answerInput').value,evidenceType:active.expected_evidence_type});
+        D=await A.getSnapshot();
+        renderHome();
+        await renderLearn('回答已送出等待審核；目前不會直接升級學習狀態。');
+      }catch(e){m.textContent=e.message||'送出失敗';}
+    });
+  };
+
+  root.querySelectorAll('[data-live-unit]').forEach(el=>el.addEventListener('click',()=>{
+    root.querySelectorAll('[data-live-unit]').forEach(x=>x.classList.remove('active'));
+    el.classList.add('active');
+    active=units.find(x=>x.id===el.dataset.liveUnit)||null;
+    draw();
+  }));
+  draw();
 }
 
 function renderSynapse(){
@@ -172,7 +272,7 @@ async function renderSystem(){
 function setView(name){
   $$('.view').forEach(v=>v.classList.toggle('active',v.id===`view-${name}`));
   $$('.nav-item').forEach(n=>n.classList.toggle('active',n.dataset.view===name));
-  const t={home:'今天只做一件最值得做的事',projects:'把候選方向變成可驗證的個人主線',learn:'把複雜內容變成可以理解的東西',synapse:'看見知識與經驗如何連起來',ceo:'系統建置與 AI 團隊狀態'};$('#pageTitle').textContent=t[name]||t.home;if(name==='projects')renderProjects();if(name==='ceo')renderSystem();
+  const t={home:'今天只做一件最值得做的事',projects:'把候選方向變成可驗證的個人主線',learn:'把複雜內容變成可以理解的東西',synapse:'看見知識與經驗如何連起來',ceo:'系統建置與 AI 團隊狀態'};$('#pageTitle').textContent=t[name]||t.home;if(name==='projects')renderProjects();if(name==='learn')renderLearn();if(name==='ceo')renderSystem();
 }
 
 function detectSessionLifecycleProbe(){
@@ -228,7 +328,7 @@ function loginModal(){
 }
 
 async function init(){
-  try{await A.initialize();D=await A.getSnapshot();renderHome();await renderProjects();renderLearn();renderSynapse();authBar();await sendSessionLifecycleProbe();$('.nav-item').forEach(b=>b.onclick=()=>setView(b.dataset.view));document.addEventListener('click',e=>{const j=e.target.closest('[data-jump]');if(j)setView(j.dataset.jump);if(e.target.closest('[data-auth]'))loginModal()});$('#refreshBtn').onclick=()=>location.reload();}
+  try{await A.initialize();D=await A.getSnapshot();renderHome();await renderProjects();await renderLearn();renderSynapse();authBar();await sendSessionLifecycleProbe();$('.nav-item').forEach(b=>b.onclick=()=>setView(b.dataset.view));document.addEventListener('click',e=>{const j=e.target.closest('[data-jump]');if(j)setView(j.dataset.jump);if(e.target.closest('[data-auth]'))loginModal()});$('#refreshBtn').onclick=()=>location.reload();}
   catch(e){$('.main').innerHTML=`<div class="empty">第二大腦 初始化失敗：${esc(e.message||e)}</div>`}
 }
 init();
