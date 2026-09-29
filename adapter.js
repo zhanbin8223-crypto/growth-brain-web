@@ -45,6 +45,7 @@
     personalHome:null,
     personalOutcome:null,
     inbox:null,
+    learning:null,
     systemCockpit:null,
     lastLiveError:null,
     async initialize(){
@@ -162,6 +163,27 @@
       await this.refreshPersonalHome();
       return clone(result?.data||null);
     },
+    async getLearning(){
+      if(this.mode!=='live') throw Object.assign(new Error('請先登入，學習頁只顯示正式資料。'),{code:'not_signed_in'});
+      const result=await liveRequest('GET',undefined,'learning');
+      this.learning=extractSurface(result);
+      return clone(this.learning);
+    },
+    async createLearningText({rawContent,title,goal,sourceLanguage,clientRequestId}){
+      if(this.mode!=='live') throw Object.assign(new Error('請先登入。'),{code:'not_signed_in'});
+      const requestId=clientRequestId||crypto.randomUUID();
+      const result=await liveRequest('POST',{
+        action:'create_learning_text',
+        raw_content:rawContent,
+        title:title||null,
+        goal:goal||null,
+        source_language:sourceLanguage||'unknown',
+        client_request_id:requestId
+      });
+      this.learning=result?.data?.learning||null;
+      await this.refreshPersonalHome();
+      return clone(result?.data||null);
+    },
     async getSnapshot(){
       const out=clone(D);
       if(this.personalHome) out.personalHome=clone(this.personalHome);
@@ -185,13 +207,9 @@
       if(clean.length<6) throw new Error('請至少寫一小句，讓系統有足夠內容判斷。');
       if(this.mode==='live'){
         const result=await liveRequest('POST',{action:'submit_attempt',unit_id:unitId,response_text:clean});
-        const store=readStore();
-        const attempt={
-          id:'server-mirror-'+Date.now(),unitId,response:clean,evidenceType:evidenceType||'candidate',
-          state:'pending_server_review',serverSubmissionId:result?.data?.submission_id||null,createdAt:Date.now()
-        };
-        store.attempts.push(attempt);writeStore(store);
-        return {...result,localMirror:attempt};
+        await this.getLearning();
+        await this.refreshPersonalHome();
+        return result;
       }
       const store=readStore();
       const attempt={id:'local-'+Date.now(),unitId,response:clean,evidenceType:evidenceType||'candidate',state:'candidate_local_only',createdAt:Date.now()};
@@ -201,7 +219,7 @@
     async consumeMagicLinkUrl(link){return Auth.consumeMagicLinkUrl(link);},
     async signOut(){
       Auth.signOut();
-      this.mode='cached-private';this.liveStatus='signed_out';this.liveUser=null;this.personalHome=null;this.personalOutcome=null;this.inbox=null;this.systemCockpit=null;
+      this.mode='cached-private';this.liveStatus='signed_out';this.liveUser=null;this.personalHome=null;this.personalOutcome=null;this.inbox=null;this.learning=null;this.systemCockpit=null;
     },
     async resetLocalEvidence(){writeStore({attempts:[]});},
     latestAttempt,candidateEvidenceCount
