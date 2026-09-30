@@ -266,7 +266,76 @@ async function renderSystem(){
   if(!SYSTEM){try{SYSTEM=await A.getSystemCockpit();}catch(e){SYSTEM={error:e.code||e.message}}}
   if(SYSTEM?.error){root.innerHTML=`<div class="empty">系統控制台 無法讀取：${esc(SYSTEM.error)}</div>`;return}
   const ceo=SYSTEM?.ceo||{},cur=ceo.current||{},blockers=ceo.parallel_blockers||[],pkgs=SYSTEM?.work_queue?.packages||[],roles=SYSTEM?.skill_team?.executable_roles||[];
-  root.innerHTML=`<div class="section-head"><div><h2>系統控制台</h2><p>系統建置、Work、技能員工與 blocker 都留在這裡。</p></div>${pill(cur.status)}</div><div class="hero-grid"><article class="surface"><span class="kicker">目前建置</span><h3>${esc(cur.stage||'')} · ${esc(cur.title||'')}</h3><p>${esc(cur.objective||'')}</p></article><article class="surface"><span class="kicker">執行狀態</span><div class="metrics compact"><div><strong>${pkgs.length}</strong><span>Work</span></div><div><strong>${roles.length}</strong><span>角色</span></div><div><strong>${blockers.length}</strong><span>阻塞項目</span></div></div></article></div><div class="section-head"><div><h2>阻塞項目</h2><p>只處理系統問題，不污染 Personal Home。</p></div></div><div class="stack">${blockers.map(b=>`<div class="surface"><b>${esc(b.stage)} · ${esc(b.title)}</b><p>${esc(b.blocker?.reason||b.blocker||'')}</p></div>`).join('')||'<div class="empty">目前沒有平行 blocker。</div>'}</div>`;
+  const logic=pkgs.find(p=>p.package_key==='logic-core-loop-v1')||{};
+  const steps=Array.isArray(logic.steps)?logic.steps:[];
+  const byKey=Object.fromEntries(steps.map(s=>[s.key,s]));
+  const capabilityDefs=[
+    ['personal-outcome-live-loop','主線候選與確認','建立候選主線，由你明確確認或拒絕；AI 不會自己把候選升成正式目標。'],
+    ['inbox-quick-capture','收件匣','保存文字、連結或想法，保留原始來源，再進行分類。'],
+    ['routing-from-inbox','四類路由','把收件內容導向主線／專案、學習、行動或知識候選，並保留來源鏈。'],
+    ['learning-input-live','真實文字學習','真實文字可建立學習單元、保留原文並提交回答；回答需審核才形成證據。'],
+    ['real-progress-ledger','真實進展','只顯示使用者確認或已驗證的真實行動／成果；系統建置與測試資料不算。'],
+    ['synapse-real-data-only','個人知識連結','只用可追溯的真實個人資料形成知識連結；目前仍在完善。'],
+    ['ai-execution-queue','AI 任務執行層','把需要推理的工作交給正式 AI 任務層，而不是前端假裝會思考。'],
+    ['core-loop-acceptance','完整核心閉環','以一筆真實輸入走完收件、路由、行動／學習、證據、進展與知識更新。']
+  ];
+  const capStatus=s=>{
+    const st=String(s?.status||'planned');
+    const pending=String(s?.evidence?.real_world_acceptance||'').startsWith('pending')||st.includes('pending');
+    if(st==='completed'&&pending)return {label:'已實作，待真實驗收',cls:'warn'};
+    if(st==='completed')return {label:'已實作',cls:'success'};
+    if(st==='current')return {label:'正在完善',cls:'warn'};
+    if(st.startsWith('implemented'))return {label:'已實作，待真實驗收',cls:'warn'};
+    if(st==='blocked')return {label:'受阻但不阻塞其他工作',cls:'danger'};
+    return {label:'尚未完成',cls:''};
+  };
+  const caps=capabilityDefs.map(([key,title,desc])=>{
+    const s=byKey[key]||{},x=capStatus(s);
+    return `<article class="surface"><div class="row-between"><b>${esc(title)}</b><span class="pill ${x.cls}">${esc(x.label)}</span></div><p>${esc(desc)}</p><small class="muted">來源：logic-core-loop-v1 / ${esc(key)}</small></article>`;
+  }).join('');
+
+  root.innerHTML=`
+    <div class="section-head"><div><h2>系統控制台</h2><p>系統建置、技能員工與阻塞項目留在這裡，不污染個人首頁。</p></div>${pill(cur.status)}</div>
+    <div class="hero-grid">
+      <article class="surface"><span class="kicker">目前建置</span><h3>${esc(cur.stage||'')} · ${esc(cur.title||'')}</h3><p>${esc(cur.objective||'')}</p></article>
+      <article class="surface"><span class="kicker">執行狀態</span><div class="metrics compact"><div><strong>${pkgs.length}</strong><span>工作包</span></div><div><strong>${roles.length}</strong><span>可用角色</span></div><div><strong>${blockers.length}</strong><span>阻塞項目</span></div></div></article>
+    </div>
+
+    <div class="section-head"><div><h2>目前能做到什麼</h2><p>狀態直接依目前核心工作包顯示；「已實作」和「真實使用已驗收」分開，不把測試成功冒充正式完成。</p></div></div>
+    <div class="stack">${caps||'<div class="empty">目前還讀不到核心能力狀態。</div>'}</div>
+
+    <div class="section-head"><div><h2>不儲存模擬路徑</h2><p>用假設案例檢查流程是否合理。內容只存在這個頁面的記憶體，重新整理就消失，不寫入個人資料庫、學習證據、進展或知識連結。</p></div><span class="pill warn">測試，不算真實驗收</span></div>
+    <article class="surface project-form">
+      <label><b>假設輸入</b><textarea id="simulationInput" placeholder="例如：我看到一篇文章，想知道它是否值得學；或我想到一個想做的專案。"></textarea></label>
+      <div class="project-actions">
+        <button class="ghost-btn" type="button" data-sim-route="project">模擬成主線／專案</button>
+        <button class="ghost-btn" type="button" data-sim-route="learning">模擬成學習</button>
+        <button class="ghost-btn" type="button" data-sim-route="action">模擬成行動</button>
+        <button class="ghost-btn" type="button" data-sim-route="knowledge">模擬成知識</button>
+      </div>
+      <div id="simulationResult" class="empty">尚未執行模擬。這裡只顯示路徑，不會呼叫儲存 API。</div>
+    </article>
+
+    <div class="section-head"><div><h2>阻塞項目</h2><p>同一問題有限次診斷後仍受阻，就保存恢復點並去完善其他不衝突部分；有新證據再回來。</p></div></div>
+    <div class="stack">${blockers.map(b=>`<div class="surface"><b>${esc(b.stage)} · ${esc(b.title)}</b><p>${esc(b.blocker?.reason||b.blocker||'')}</p></div>`).join('')||'<div class="empty">目前沒有平行 blocker。</div>'}</div>`;
+
+  const routeLabels={
+    project:['主線／專案','形成候選主線預覽','需要你確認後才可能成為正式主線'],
+    learning:['學習','形成學習來源／單元預覽','回答仍需真實提交與審核才可能形成學習證據'],
+    action:['行動','形成可追蹤行動預覽','只有真實完成並留下證據才會進 Recent Progress'],
+    knowledge:['知識','形成知識候選預覽','只有正式來源與關係成立後才會進個人知識連結']
+  };
+  root.querySelectorAll('[data-sim-route]').forEach(btn=>btn.addEventListener('click',()=>{
+    const raw=$('#simulationInput')?.value.trim()||'（未提供內容，僅測試結構）';
+    const route=btn.dataset.simRoute;
+    const meta=routeLabels[route]||routeLabels.knowledge;
+    const path=['假設輸入（記憶體）','收件格式檢查',`人工指定測試路由：${meta[0]}`,meta[1],meta[2]];
+    $('#simulationResult').innerHTML=`
+      <b>模擬結果：不會儲存</b>
+      <p>${esc(raw)}</p>
+      <div class="flow">${path.map((x,i)=>`${i?'<i>→</i>':''}<span>${esc(x)}</span>`).join('')}</div>
+      <small class="muted">這只驗證通用狀態轉移，不做關鍵字猜測、不寫入資料庫，也不代表真實使用已通過。</small>`;
+  }));
 }
 
 function setView(name){
