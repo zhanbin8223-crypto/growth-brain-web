@@ -375,7 +375,7 @@ async function renderSystem(){
 function setView(name){
   $$('.view').forEach(v=>v.classList.toggle('active',v.id===`view-${name}`));
   $$('.nav-item').forEach(n=>n.classList.toggle('active',n.dataset.view===name));
-  const t={home:'今天只做一件最值得做的事',projects:'把候選方向變成可驗證的個人主線',learn:'把複雜內容變成可以理解的東西',synapse:'看見知識與經驗如何連起來',ceo:'系統建置與 AI 團隊狀態'};$('#pageTitle').textContent=t[name]||t.home;if(name==='projects')renderProjects();if(name==='learn')renderLearn();if(name==='ceo')renderSystem();
+  const t={home:'今天只做一件最值得做的事',projects:'把候選方向變成可驗證的個人主線',learn:'把複雜內容變成可以理解的東西',synapse:'看見知識與經驗如何連起來',ceo:'系統建置與 AI 團隊狀態'};$('#pageTitle').textContent=t[name]||t.home;if(name==='projects')renderProjects();if(name==='learn')renderLearn();if(name==='synapse')renderSynapse();if(name==='ceo')renderSystem();
 }
 
 function detectSessionLifecycleProbe(){
