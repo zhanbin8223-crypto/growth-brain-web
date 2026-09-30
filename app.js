@@ -431,7 +431,7 @@ function loginModal(){
 }
 
 async function init(){
-  try{await A.initialize();D=await A.getSnapshot();renderHome();await renderProjects();await renderLearn();renderSynapse();authBar();await sendSessionLifecycleProbe();$('.nav-item').forEach(b=>b.onclick=()=>setView(b.dataset.view));document.addEventListener('click',e=>{const j=e.target.closest('[data-jump]');if(j)setView(j.dataset.jump);if(e.target.closest('[data-auth]'))loginModal()});$('#refreshBtn').onclick=()=>location.reload();}
+  try{await A.initialize();D=await A.getSnapshot();renderHome();await renderProjects();await renderLearn();renderSynapse();authBar();await sendSessionLifecycleProbe();$$('.nav-item').forEach(b=>b.onclick=()=>setView(b.dataset.view));document.addEventListener('click',e=>{const j=e.target.closest('[data-jump]');if(j)setView(j.dataset.jump);if(e.target.closest('[data-auth]'))loginModal()});$('#refreshBtn').onclick=()=>location.reload();}
   catch(e){$('.main').innerHTML=`<div class="empty">第二大腦 初始化失敗：${esc(e.message||e)}</div>`}
 }
 init();
