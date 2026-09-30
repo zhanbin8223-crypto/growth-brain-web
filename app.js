@@ -304,37 +304,71 @@ async function renderSystem(){
     <div class="section-head"><div><h2>目前能做到什麼</h2><p>狀態直接依目前核心工作包顯示；「已實作」和「真實使用已驗收」分開，不把測試成功冒充正式完成。</p></div></div>
     <div class="stack">${caps||'<div class="empty">目前還讀不到核心能力狀態。</div>'}</div>
 
-    <div class="section-head"><div><h2>不儲存模擬路徑</h2><p>用假設案例檢查流程是否合理。內容只存在這個頁面的記憶體，重新整理就消失，不寫入個人資料庫、學習證據、進展或知識連結。</p></div><span class="pill warn">測試，不算真實驗收</span></div>
+    <div class="section-head"><div><h2>路徑／作品試跑</h2><p>先試看一個方向會長成什麼作品，再決定要不要投入。這裡不會把假設結果寫成你的正式目標或個人資料。</p></div><span class="pill warn">試跑，不算正式驗收</span></div>
     <article class="surface project-form">
-      <label><b>假設輸入</b><textarea id="simulationInput" placeholder="例如：我看到一篇文章，想知道它是否值得學；或我想到一個想做的專案。"></textarea></label>
+      <label><b>你看到的內容、想法，或已經有的目標</b><textarea id="simulationInput" placeholder="例如：我看到一個 AI Agent 專案，想知道值不值得深入；或：我想做一個會自己整理知識的第二大腦。"></textarea></label>
       <div class="project-actions">
-        <button class="ghost-btn" type="button" data-sim-route="project">模擬成主線／專案</button>
-        <button class="ghost-btn" type="button" data-sim-route="learning">模擬成學習</button>
-        <button class="ghost-btn" type="button" data-sim-route="action">模擬成行動</button>
-        <button class="ghost-btn" type="button" data-sim-route="knowledge">模擬成知識</button>
+        <button class="ghost-btn" type="button" data-path-mode="curiosity">看到一個東西，試看值得往哪裡走</button>
+        <button class="ghost-btn" type="button" data-path-mode="goal">我已有目標，試看怎麼做成作品</button>
       </div>
-      <div id="simulationResult" class="empty">尚未執行模擬。這裡只顯示路徑，不會呼叫儲存 API。</div>
+      <div id="simulationResult" class="empty">尚未試跑。系統會先給「階段目標 → 作品 → 下一階段」，而不是一次把整條路線寫死。</div>
     </article>
 
     <div class="section-head"><div><h2>阻塞項目</h2><p>同一問題有限次診斷後仍受阻，就保存恢復點並去完善其他不衝突部分；有新證據再回來。</p></div></div>
     <div class="stack">${blockers.map(b=>`<div class="surface"><b>${esc(b.stage)} · ${esc(b.title)}</b><p>${esc(b.blocker?.reason||b.blocker||'')}</p></div>`).join('')||'<div class="empty">目前沒有平行 blocker。</div>'}</div>`;
 
-  const routeLabels={
-    project:['主線／專案','形成候選主線預覽','需要你確認後才可能成為正式主線'],
-    learning:['學習','形成學習來源／單元預覽','回答仍需真實提交與審核才可能形成學習證據'],
-    action:['行動','形成可追蹤行動預覽','只有真實完成並留下證據才會進 Recent Progress'],
-    knowledge:['知識','形成知識候選預覽','只有正式來源與關係成立後才會進個人知識連結']
+  const trialTemplates={
+    curiosity:[
+      {
+        goal:'先找出這個主題最值得追的問題',
+        artifact:'一張「問題／價值地圖」：它是什麼、可能有什麼用、你目前最不懂哪一段、值得驗證什麼。',
+        next:'從地圖中只挑一個最有價值的問題，做最小實作。'
+      },
+      {
+        goal:'把一個問題變成可碰得到的東西',
+        artifact:'一個最小作品：小原型、比較表、流程、短實驗或可重複操作的範例。',
+        next:'看作品結果與你的反應：有價值就深入，沒價值就轉向或停止。'
+      },
+      {
+        goal:'驗證這條方向是否值得成為正式路徑',
+        artifact:'一份短驗證紀錄：作品結果、你實際會不會再用、遇到的缺口、下一個值得做的作品。',
+        next:'只有有真實結果與你的確認，才升成個人正式路徑。'
+      }
+    ],
+    goal:[
+      {
+        goal:'把目標縮成第一個可交付成果',
+        artifact:'一個最小可用作品，不要求完整，但要能看、能操作或能被驗證。',
+        next:'用作品找真正問題，不先補齊所有功能。'
+      },
+      {
+        goal:'用真實使用或明確測試找出下一個缺口',
+        artifact:'一次測試結果＋修正版作品，保留「哪裡有效／哪裡卡住」的證據。',
+        next:'只針對真正暴露出的缺口決定下一階段。'
+      },
+      {
+        goal:'把已證明有價值的部分做成可持續使用',
+        artifact:'較完整作品＋使用紀錄／成果證據，足以判斷要繼續擴大、轉向或停止。',
+        next:'下一階段由真實資料決定，不預先固定。'
+      }
+    ]
   };
-  root.querySelectorAll('[data-sim-route]').forEach(btn=>btn.addEventListener('click',()=>{
-    const raw=$('#simulationInput')?.value.trim()||'（未提供內容，僅測試結構）';
-    const route=btn.dataset.simRoute;
-    const meta=routeLabels[route]||routeLabels.knowledge;
-    const path=['假設輸入（記憶體）','收件格式檢查',`人工指定測試路由：${meta[0]}`,meta[1],meta[2]];
+  root.querySelectorAll('[data-path-mode]').forEach(btn=>btn.addEventListener('click',()=>{
+    const raw=$('#simulationInput')?.value.trim()||'（尚未提供內容，先看通用路徑骨架）';
+    const mode=btn.dataset.pathMode==='goal'?'goal':'curiosity';
+    const stages=trialTemplates[mode];
+    const modeLabel=mode==='goal'?'已有目標':'看到內容／主題';
     $('#simulationResult').innerHTML=`
-      <b>模擬結果：不會儲存</b>
+      <b>試跑路徑：${esc(modeLabel)} · 不會儲存</b>
       <p>${esc(raw)}</p>
-      <div class="flow">${path.map((x,i)=>`${i?'<i>→</i>':''}<span>${esc(x)}</span>`).join('')}</div>
-      <small class="muted">這只驗證通用狀態轉移，不做關鍵字猜測、不寫入資料庫，也不代表真實使用已通過。</small>`;
+      <div class="stack">${stages.map((s,i)=>`
+        <div class="surface">
+          <span class="kicker">第 ${i+1} 階段</span>
+          <p><b>目標：</b>${esc(s.goal)}</p>
+          <p><b>要產出的作品：</b>${esc(s.artifact)}</p>
+          <small class="muted">完成後：${esc(s.next)}</small>
+        </div>`).join('')}</div>
+      <div class="provenance">目前這是通用作品骨架，不靠關鍵字替你下結論。未來 AI 任務層接上後，會用你的真實 Inbox、作品、行動與回饋，把每一階段改成更貼近你的候選方向；仍需真實結果才能升成正式路徑。</div>`;
   }));
 }
 
