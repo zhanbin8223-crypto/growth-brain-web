@@ -1,0 +1,77 @@
+{
+  "schema_version": "pre-real-usability-runtime-check-v2",
+  "project_key": "growth-brain",
+  "scope": "system",
+  "branch": "automation/usability-hardening-resume-20261001-0520",
+  "source_observed": {
+    "app_js_blob_sha": "f2aa1193ba02b3255ca28dc44e79424692a3c224",
+    "defects": [
+      {
+        "key": "path_trial_current_stage_only",
+        "observed": false,
+        "evidence": "renderSystem maps every trialTemplates[mode] stage into simulationResult"
+      },
+      {
+        "key": "blocked_external_localized",
+        "observed": false,
+        "evidence": "statusText and capability status do not handle blocked_external"
+      },
+      {
+        "key": "public_terms_zh_hant",
+        "observed": false,
+        "evidence": [
+          "data_scope=real",
+          "Learning Unit",
+          "Live",
+          "Synapse"
+        ]
+      },
+      {
+        "key": "signed_out_knowledge_truthful",
+        "observed": false,
+        "evidence": "adapter getSnapshot clones demo data and renderSynapse renders D.synapse without liveStatus guard"
+      }
+    ]
+  },
+  "target_behavior": {
+    "path_trial": {
+      "current_stage_only": true,
+      "future_stage_precompute": false,
+      "persist_personal_state": false,
+      "next_stage_after_real_artifact_result_only": true,
+      "no_dynamic_ai_claim_until_provider_connected": true
+    },
+    "status_labels": {
+      "blocked_external": "外部能力受阻，其他工作繼續",
+      "live": "正式資料已連線"
+    },
+    "terminology": {
+      "synapse": "知識連結",
+      "learning_unit": "學習單元",
+      "real_scope": "真實資料"
+    },
+    "knowledge_surface": {
+      "states": [
+        "loading",
+        "empty",
+        "error",
+        "ready"
+      ],
+      "signed_out_cached_personal_graph_allowed": false,
+      "demo_may_impersonate_personal_data": false
+    }
+  },
+  "blocked_mutations_this_run": [
+    {
+      "surface": "github_app_js",
+      "result": "runtime_safety_denial"
+    },
+    {
+      "surface": "supabase_ai_job_transition_migration",
+      "result": "runtime_safety_denial"
+    }
+  ],
+  "independent_work_completed": "runtime-check contract persisted for deterministic next-run verification",
+  "real_acceptance": "pending",
+  "formal_personal_state_changed": false
+}
