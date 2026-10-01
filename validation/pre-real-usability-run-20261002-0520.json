@@ -1,0 +1,35 @@
+{
+  "schema_version": "pre-real-usability-run-v1",
+  "data_scope": "system",
+  "real_acceptance": "pending_only",
+  "target_app_blob_sha": "f2aa1193ba02b3255ca28dc44e79424692a3c224",
+  "verified_defects": [
+    "signed-out home can still render cached personal-home derived values",
+    "signed-out knowledge view can still read cached synapse data",
+    "primary UI still contains internal English terms",
+    "path/artifact trial reveals all future stages before artifact evidence"
+  ],
+  "required_patch": [
+    "signed-out state must use an empty personal snapshot and zero personal counters",
+    "signed-out knowledge view must show an explicit login/empty state and render zero cached nodes or edges",
+    "primary UI uses Traditional Chinese labels for connected state, knowledge links, learning units and real-data scope",
+    "path/artifact trial renders only the current stage; a non-empty artifact result is required before the next generic stage is revealed",
+    "when no AI provider is connected, label the trial as a generic non-persistent skeleton rather than dynamic reasoning"
+  ],
+  "executable_write_attempt": {
+    "surface": "github app.js",
+    "result": "runtime_safety_denial",
+    "same_hypothesis_attempts_this_run": 1
+  },
+  "independent_mutation": {
+    "surface": "supabase work_packages",
+    "result": "checkpoint_written_and_read_back"
+  },
+  "next_checkpoint": [
+    "retry app.js when executable JavaScript write becomes available",
+    "authenticated personal_synapse route",
+    "ai_job_transition_v1",
+    "Synapse RPC ACL hardening",
+    "RLS policy decision and enablement"
+  ]
+}
