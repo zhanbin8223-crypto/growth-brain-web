@@ -1,0 +1,45 @@
+{
+  "schema": "growth-brain.backend-hardening-plan.v1",
+  "scope": "validation",
+  "real_acceptance": "pending_only",
+  "sequence": [
+    {
+      "order": 1,
+      "artifact": "growth-home",
+      "requirement": "Add authenticated personal_synapse read surface that resolves the already-verified user JWT, then calls growth_personal_synapse_snapshot_service_v1 server-side.",
+      "verify": [
+        "surface allowlist includes personal_synapse",
+        "verified user id is passed server-side",
+        "authorized=false becomes 403",
+        "read-back edge version contains the route"
+      ]
+    },
+    {
+      "order": 2,
+      "artifact": "growth_control core tables",
+      "requirement": "Enable row-level security on work_packages, knowledge_ingestion_candidates, and ai_jobs without adding permissive anon/authenticated policies.",
+      "preconditions_verified": {
+        "non_bypass_client_direct_grants": false,
+        "service_role_can_bypass_rls": true
+      },
+      "verify": [
+        "relrowsecurity=true on all three tables",
+        "security advisor no longer reports RLS disabled for these tables"
+      ]
+    },
+    {
+      "order": 3,
+      "artifact": "Synapse RPC access",
+      "requirement": "Only after the authenticated Edge route works, remove direct public/anon/authenticated execute access from the two Synapse RPC entry points while preserving server-side access.",
+      "currently_verified": {
+        "growth_personal_synapse_snapshot_service_v1": "PUBLIC + anon + authenticated + service_role execute",
+        "growth_synapse_snapshot_v1": "PUBLIC + anon + authenticated + service_role execute"
+      },
+      "verify": [
+        "browser roles no longer execute Synapse RPCs directly",
+        "Edge route still returns authorized personal Synapse data"
+      ]
+    }
+  ],
+  "stop_rule": "Do not claim any step applied until it is written and read back from the live Supabase project."
+}
