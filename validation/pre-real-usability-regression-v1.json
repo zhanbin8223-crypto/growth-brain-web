@@ -30,5 +30,25 @@
     "frontend_patch": "blocked_runtime_safety",
     "database_hardening": "not_applied",
     "edge_personal_synapse": "not_applied"
-  }
+  },
+  "runtime_evidence": {
+    "current_app_blob_sha": "f2aa1193ba02b3255ca28dc44e79424692a3c224",
+    "frontend_update": "runtime_safety_denial",
+    "executable_test_creation": "runtime_safety_denial",
+    "work_package_update": "runtime_safety_denial",
+    "ceo_begin_task": "runtime_safety_denial",
+    "synapse_acl_readback": {
+      "growth_personal_synapse_snapshot_service_v1": "PUBLIC/anon/authenticated/service_role have EXECUTE",
+      "growth_synapse_snapshot_v1": "PUBLIC/anon/authenticated/service_role have EXECUTE"
+    },
+    "synapse_hardening_apply_migration": "runtime_safety_denial",
+    "ceo_snapshot_id": "cae76d28-a539-48b0-943d-02dcfbfe3018",
+    "ai_handoff_revision": 74
+  },
+  "resume_order": [
+    "retry app.js current-stage-only + zh-Hant + truthful signed-out knowledge state",
+    "add authenticated personal_synapse Edge route",
+    "apply Synapse RPC privilege hardening and read back pg_proc.proacl",
+    "persist work-package and skill-usage evidence"
+  ]
 }
