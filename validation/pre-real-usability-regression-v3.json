@@ -1,0 +1,50 @@
+{
+  "schema": "growth-brain.pre-real-usability-regression.v3",
+  "recorded_at": "2026-10-01T21:14:45+08:00",
+  "scope": "validation",
+  "real_acceptance": "pending_only",
+  "target": {
+    "branch": "automation/usability-hardening-20261001-2017",
+    "file": "app.js"
+  },
+  "checks": [
+    {
+      "key": "signed_out_home_no_cached_personal_state",
+      "required": true,
+      "expected": "When not live, home personal direction, progress, learning summary and knowledge highlights must render from an empty personal state rather than cached personal data."
+    },
+    {
+      "key": "signed_out_knowledge_no_cached_graph",
+      "required": true,
+      "expected": "The knowledge page must show a signed-out state and must not render cached personal nodes or edges."
+    },
+    {
+      "key": "zh_hant_primary_terms",
+      "required": true,
+      "expected": [
+        "正式資料已連線",
+        "知識連結",
+        "正式資料",
+        "學習單元",
+        "外部服務受阻"
+      ]
+    },
+    {
+      "key": "path_trial_current_stage_only",
+      "required": true,
+      "expected": "A trial renders only the current stage goal and one deliverable artifact."
+    },
+    {
+      "key": "future_stage_hidden_until_artifact_result",
+      "required": true,
+      "expected": "No future stage cards are rendered before a result from the current artifact exists."
+    },
+    {
+      "key": "provider_disconnected_truthfulness",
+      "required": true,
+      "expected": "When the AI provider is not connected, the trial is explicitly a generic non-persistent skeleton and does not claim dynamic reasoning."
+    }
+  ],
+  "persistence_rule": "Validation contract only; simulated personal outputs must not be persisted.",
+  "pass_rule": "All required checks must pass before this frontend hardening artifact can be marked complete."
+}
