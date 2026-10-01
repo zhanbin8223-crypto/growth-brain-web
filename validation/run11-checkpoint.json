@@ -1,0 +1,22 @@
+{
+  "schema_version": "growth-brain-run11-checkpoint-v1",
+  "project_key": "growth-brain",
+  "work_package": "logic-core-loop-v1",
+  "data_scope": "system",
+  "real_acceptance": "pending_only",
+  "production_defects_remaining": 4,
+  "frontend_write_applied": false,
+  "personal_synapse_edge_route_applied": false,
+  "database_hardening_write_applied": false,
+  "rls_advisory_pending": [
+    "growth_control.work_packages",
+    "growth_control.knowledge_ingestion_candidates",
+    "growth_control.ai_jobs"
+  ],
+  "next": [
+    "patch current-stage-only + zh-Hant + truthful signed-out knowledge state",
+    "add authenticated personal_synapse route",
+    "harden Synapse RPC execute grants after service route verification",
+    "design RLS policies before enabling RLS"
+  ]
+}
