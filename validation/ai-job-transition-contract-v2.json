@@ -1,0 +1,48 @@
+{
+  "schema_version": "ai-job-transition-contract-v2",
+  "project": "growth-brain",
+  "data_scope": "system",
+  "provider_neutral": true,
+  "provider_connection": "not_connected",
+  "execution_boundary": "service_role_only",
+  "expected_state_compare_and_set": true,
+  "allowed_transitions": [
+    "queued->claimed",
+    "queued->cancelled",
+    "claimed->running",
+    "claimed->failed",
+    "claimed->queued",
+    "claimed->cancelled",
+    "running->succeeded",
+    "running->failed",
+    "running->cancelled",
+    "failed->queued",
+    "failed->cancelled"
+  ],
+  "invariants": {
+    "claim_or_running_requires_worker_identity": true,
+    "running_worker_must_match_claimed_worker": true,
+    "succeeded_requires_result": true,
+    "succeeded_requires_nonempty_result_evidence": true,
+    "failed_requires_error_payload": true,
+    "retry_to_queued_clears_worker_runtime_result_and_error_fields": true,
+    "claim_increments_attempt_no": true,
+    "terminal_state_sets_completed_at": true
+  },
+  "response_contract": [
+    "id",
+    "status",
+    "attempt_no",
+    "claimed_by",
+    "claimed_at",
+    "started_at",
+    "completed_at",
+    "has_result",
+    "has_evidence",
+    "has_error",
+    "updated_at"
+  ],
+  "implementation_status": "source_artifact_blocked_by_runtime_safety",
+  "production_migration_applied": false,
+  "real_acceptance": "pending_only"
+}
