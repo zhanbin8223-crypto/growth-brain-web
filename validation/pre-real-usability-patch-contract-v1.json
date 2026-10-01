@@ -1,0 +1,69 @@
+{
+  "version": "pre-real-usability-patch-contract-v1",
+  "scope": "system",
+  "source_branch": "automation/usability-hardening-20261001-2017",
+  "target_file": "app.js",
+  "target_blob_sha": "f2aa1193ba02b3255ca28dc44e79424692a3c224",
+  "real_acceptance": "pending_only",
+  "patch_targets": [
+    {
+      "key": "path_trial_current_stage_only",
+      "current_marker": "stages.map((s,i)=>",
+      "required_behavior": [
+        "首次只顯示目前階段",
+        "未輸入目前作品結果前不得顯示下一階段",
+        "作品結果只存在目前瀏覽器記憶，不寫正式個人資料",
+        "AI provider 未接上時明確標示為通用骨架，不宣稱動態個人化推理"
+      ],
+      "verify": [
+        "頁面不得同時出現第 1/2/3 階段",
+        "輸入作品結果後才可前進一階段"
+      ]
+    },
+    {
+      "key": "signed_out_knowledge_truthfulness",
+      "current_marker": "const nodes=D.synapse?.nodes||[]",
+      "required_behavior": [
+        "登出時知識連結頁不得讀取或顯示 D.synapse 快取個人圖",
+        "登出只顯示登入需求或空狀態",
+        "不得以 demo/cached graph 冒充個人知識連結"
+      ],
+      "verify": [
+        "signed_out 狀態下 graph node count 為 0",
+        "頁面提供登入入口"
+      ]
+    },
+    {
+      "key": "zh_hant_public_terms",
+      "required_mappings": {
+        "blocked_external": "外部服務受阻",
+        "live": "已連線",
+        "synapse": "知識連結",
+        "learning_unit": "學習單元",
+        "real_scope": "正式資料"
+      },
+      "forbidden_primary_ui_terms": [
+        "Live",
+        "Synapse",
+        "Learning Unit",
+        "data_scope=real"
+      ],
+      "verify": [
+        "主要頁面不出現 forbidden_primary_ui_terms"
+      ]
+    },
+    {
+      "key": "loading_states",
+      "required_behavior": [
+        "每個核心 view 初始都有繁中 loading 狀態",
+        "載入失敗顯示繁中 error/empty state，不留空白"
+      ]
+    }
+  ],
+  "execution_boundary": {
+    "github_js_write": "currently_runtime_safety_denied",
+    "fallback_rule": "when code write is denied, preserve this exact patch contract and continue non-conflicting surfaces",
+    "same_root_cause_retry_limit": 3
+  },
+  "generated_at": "2026-10-01T22:16:56+08:00"
+}
