@@ -1,0 +1,56 @@
+{
+  "schema_version": "pre-real-usability-run-v1",
+  "project": "growth-brain",
+  "data_scope": "system",
+  "real_acceptance": "pending_only",
+  "target_branch": "automation/usability-hardening-20261002-0116",
+  "target_app_blob_sha": "f2aa1193ba02b3255ca28dc44e79424692a3c224",
+  "verified_findings": {
+    "signed_out_home_uses_cached_personal_home": true,
+    "signed_out_synapse_uses_cached_graph": true,
+    "primary_ui_forbidden_terms": [
+      "Live",
+      "Synapse",
+      "Learning Unit",
+      "data_scope=real"
+    ],
+    "path_trial_renders_future_stages_immediately": true,
+    "blocked_external_status_needs_distinct_label": true
+  },
+  "executable_patch_contract": {
+    "signed_out_home_cache_forbidden": true,
+    "signed_out_synapse_cache_forbidden": true,
+    "primary_terms_zh_hant": [
+      "已連線",
+      "知識連結",
+      "學習單元",
+      "正式資料"
+    ],
+    "blocked_external_label": "外部服務受阻",
+    "path_trial_current_stage_only": true,
+    "advance_requires_nonempty_artifact_result": true,
+    "provider_disconnected_behavior": "通用、非持久化作品骨架；不得宣稱依內容動態推理",
+    "persistence": "none"
+  },
+  "attempted_writes": [
+    {
+      "surface": "github_app_js",
+      "result": "runtime_safety_denial"
+    },
+    {
+      "surface": "supabase_growth_home_edge",
+      "result": "runtime_safety_denial_after_parse_fix"
+    },
+    {
+      "surface": "supabase_work_package_dml",
+      "result": "runtime_safety_denial"
+    }
+  ],
+  "next_resume_order": [
+    "apply app.js patch if JavaScript write surface is available",
+    "add authenticated personal_synapse route to growth-home",
+    "implement ai_job_transition_v1 from persisted provider-neutral contract",
+    "harden personal_synapse RPC EXECUTE privileges after route verification",
+    "decide RLS policies before enabling RLS"
+  ]
+}
