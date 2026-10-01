@@ -6,7 +6,7 @@ let SYSTEM=null;
 
 const esc=s=>String(s??'').replace(/[&<>'"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;',"'":'&#39;','"':'&quot;'}[c]));
 const pct=v=>`${Math.round((Number(v)||0)*100)}%`;
-const pill=s=>{const k=String(s||'unknown').toLowerCase();const cls=['completed','available','live','active','selected'].includes(k)?'success':['blocked','danger','rejected'].includes(k)?'danger':['current','planned','pending','supporting_only','candidate','candidate_only','paused'].includes(k)?'warn':'';return `<span class="pill ${cls}">${esc(statusText(s||'unknown'))}</span>`};
+const pill=s=>{const k=String(s||'unknown').toLowerCase();const cls=['completed','available','live','active','selected'].includes(k)?'success':['blocked','blocked_external','danger','rejected'].includes(k)?'danger':['current','planned','pending','supporting_only','candidate','candidate_only','paused'].includes(k)?'warn':'';return `<span class="pill ${cls}">${esc(statusText(s||'unknown'))}</span>`};
 const human=s=>{
   const raw=String(s||'');
   const labels={remote_income:'遠端收入',synapse_graph:'知識連結圖',repeated_core_logic:'重複核心邏輯',unified_stream:'統一資訊流',spec_kit_workflow:'規格優先工作流'};
@@ -20,7 +20,7 @@ const statusText=s=>({
   blocked:'受阻',danger:'異常',current:'目前進行',planned:'規劃中',
   pending:'等待中',supporting_only:'支援用途',candidate:'候選',
   selected:'已選定',rejected:'已拒絕',paused:'暫停',
-  candidate_only:'僅候選',unknown:'未驗證',confirmed:'使用者已確認',verified:'已驗證',
+  blocked_external:'外部服務尚未接通',candidate_only:'僅候選',unknown:'未驗證',confirmed:'使用者已確認',verified:'已驗證',
   personal_outcome_route_selected:'已選定個人主線',
   personal_outcome_candidate_available:'有候選主線待確認',
   needs_personal_outcome_route:'尚未選定個人主線'
@@ -28,7 +28,7 @@ const statusText=s=>({
 
 function modeStrip(){
   const live=A.liveStatus==='live';
-  return `<div class="system-strip"><div><span class="system-kicker">資料狀態</span><b>${live?'已連線正式資料':'顯示可信快取'}</b><span>私人單人模式</span></div><p>${live?'首頁正在讀取登入後的正式個人資料；系統資料只有進入系統頁才載入。':'目前顯示可信快取，不把快取冒充即時資料。'}</p></div>`;
+  return `<div class="system-strip"><div><span class="system-kicker">資料狀態</span><b>${live?'已連線正式資料':'尚未讀取正式個人資料'}</b><span>私人單人模式</span></div><p>${live?'首頁正在讀取登入後的正式個人資料；系統資料只有進入系統頁才載入。':'登出時不顯示快取或示範個人資料；登入後才讀取正式內容。'}</p></div>`;
 }
 
 function renderHome(){
@@ -181,7 +181,7 @@ async function renderLearn(notice=''){
     </form>
 
     <div class="section-head">
-      <div><h2>我的正式學習</h2><p>只顯示 data_scope=real 的個人學習資料。</p></div>
+      <div><h2>我的正式學習</h2><p>只顯示正式個人資料（data_scope=real：代表真實使用資料，不包含測試與系統資料）。</p></div>
       <span>${sessions.length} 個來源 · ${units.length} 個單元</span>
     </div>
 
@@ -213,7 +213,7 @@ async function renderLearn(notice=''){
     const detail=$('#liveLessonDetail');
     if(!detail) return;
     if(!active){
-      detail.innerHTML='<div class="empty">目前沒有正式 Learning Unit。</div>';
+      detail.innerHTML='<div class="empty">目前沒有正式學習單元（Learning Unit：一次要理解或練習的一小段內容）。</div>';
       return;
     }
     const sub=active.latest_submission||null;
@@ -224,7 +224,7 @@ async function renderLearn(notice=''){
       <h2>${esc(active.presentation?.title||active.session?.title||'學習單元')}</h2>
       <p class="teach">${esc(active.zh_explanation||'尚未產生 AI 解釋。')}</p>
       <details open><summary>原始內容</summary><p>${esc(active.original_text||'')}</p></details>
-      <div class="provenance">來源：${esc(active.session?.source_ref||'未記錄')} · 範圍：real</div>
+      <div class="provenance">來源：${esc(active.session?.source_ref||'未記錄')} · 資料範圍：正式個人資料（real）</div>
       <div class="answer">
         <b>你的驗證題</b>
         <p>${esc(active.interaction_prompt||'請用自己的話說明你理解到的重點。')}</p>
@@ -253,12 +253,36 @@ async function renderLearn(notice=''){
   draw();
 }
 
-function renderSynapse(){
-  const nodes=D.synapse?.nodes||[],edges=D.synapse?.edges||[];
-  $('#view-synapse').innerHTML=`<div class="section-head"><div><h2>Synapse</h2><p>完整圖只顯示已有 明確關係類型 的連結。</p></div>${pill('有證據支持')}</div><div class="graph" id="graph"></div>`;
+async function renderSynapse(){
+  const root=$('#view-synapse');
+  if(A.liveStatus!=='live'){
+    root.innerHTML='<div class="section-head"><div><h2>知識連結（Synapse）</h2><p>把你的來源、概念與學習證據串成可追溯的關係圖。</p></div></div><div class="empty">目前未讀取正式知識連結；不會用快取或示範資料冒充個人結果。登入後才讀取正式個人資料。</div>';
+    return;
+  }
+
+  root.innerHTML='<div class="empty">正在讀取正式個人知識連結…</div>';
+  let synapse=D?.synapse||null;
+  if(!synapse?.nodes){
+    try{synapse=await A.getPersonalSynapse();D.synapse=synapse;}
+    catch(e){root.innerHTML=`<div class="empty">知識連結載入失敗：${esc(e.message||e)}</div>`;return;}
+  }
+
+  const rawNodes=Array.isArray(synapse?.nodes)?synapse.nodes:[];
+  const edges=Array.isArray(synapse?.edges)?synapse.edges:[];
+  if(!rawNodes.length){
+    root.innerHTML='<div class="section-head"><div><h2>知識連結（Synapse）</h2><p>Synapse 是把相關來源、概念與證據串起來的知識關係圖。</p></div></div><div class="empty">目前還沒有足夠的正式個人來源形成知識連結。</div>';
+    return;
+  }
+
+  const sources=rawNodes.filter(n=>n.type==='source');
+  const concepts=rawNodes.filter(n=>n.type!=='source');
+  const spread=(items,x)=>items.map((n,i)=>({...n,x,y:items.length===1?50:15+(70*i/Math.max(items.length-1,1))}));
+  const nodes=[...spread(sources,20),...spread(concepts,75)];
+
+  root.innerHTML=`<div class="section-head"><div><h2>知識連結（Synapse）</h2><p>Synapse 是把正式來源、概念與學習證據串成可追溯關係圖；連結只在已有來源證據時顯示。</p></div><span class="pill success">正式個人資料</span></div><div class="graph" id="graph"></div><div class="provenance">目前資料：${esc(synapse?.summary?.source_count??sources.length)} 個來源 · ${esc(synapse?.summary?.concept_count??concepts.length)} 個概念 · ${esc(synapse?.summary?.edge_count??edges.length)} 條關係。這些連結代表來源與概念的關聯，不等於你已經熟練。</div>`;
   const g=$('#graph');
   edges.forEach(e=>{const a=nodes.find(n=>n.id===e.source),b=nodes.find(n=>n.id===e.target);if(!a||!b)return;const line=document.createElement('div');line.className='edge';const dx=b.x-a.x,dy=b.y-a.y;line.style.left=a.x+'%';line.style.top=a.y+'%';line.style.width=Math.hypot(dx,dy)+'%';line.style.transform=`rotate(${Math.atan2(dy,dx)*180/Math.PI}deg)`;g.appendChild(line)});
-  nodes.forEach(n=>{const b=document.createElement('button');b.className='node '+(n.center?'center':'');b.style.left=n.x+'%';b.style.top=n.y+'%';b.textContent=n.label;g.appendChild(b)});
+  nodes.forEach(n=>{const b=document.createElement('button');b.className='node '+(n.type==='source'?'center':'');b.style.left=n.x+'%';b.style.top=n.y+'%';b.textContent=n.label||human(n.id);b.title=n.type==='source'?'正式個人來源':'概念節點；不代表已熟練';g.appendChild(b)});
 }
 
 async function renderSystem(){
@@ -286,7 +310,7 @@ async function renderSystem(){
     if(st==='completed')return {label:'已實作',cls:'success'};
     if(st==='current')return {label:'正在完善',cls:'warn'};
     if(st.startsWith('implemented'))return {label:'已實作，待真實驗收',cls:'warn'};
-    if(st==='blocked')return {label:'受阻但不阻塞其他工作',cls:'danger'};
+    if(st==='blocked'||st==='blocked_external')return {label:'外部服務尚未接通',cls:'danger'};
     return {label:'尚未完成',cls:''};
   };
   const caps=capabilityDefs.map(([key,title,desc])=>{
@@ -311,7 +335,7 @@ async function renderSystem(){
         <button class="ghost-btn" type="button" data-path-mode="curiosity">看到一個東西，試看值得往哪裡走</button>
         <button class="ghost-btn" type="button" data-path-mode="goal">我已有目標，試看怎麼做成作品</button>
       </div>
-      <div id="simulationResult" class="empty">尚未試跑。系統會先給「階段目標 → 作品 → 下一階段」，而不是一次把整條路線寫死。</div>
+      <div id="simulationResult" class="empty">尚未試跑。系統只先顯示「目前階段目標 → 一件作品 → 完成後怎麼判斷」，並保留可能的延伸方向；真正下一階段要等作品結果再決定。</div>
     </article>
 
     <div class="section-head"><div><h2>阻塞項目</h2><p>同一問題有限次診斷後仍受阻，就保存恢復點並去完善其他不衝突部分；有新證據再回來。</p></div></div>
@@ -357,18 +381,19 @@ async function renderSystem(){
     const raw=$('#simulationInput')?.value.trim()||'（尚未提供內容，先看通用路徑骨架）';
     const mode=btn.dataset.pathMode==='goal'?'goal':'curiosity';
     const stages=trialTemplates[mode];
+    const current=stages[0];
     const modeLabel=mode==='goal'?'已有目標':'看到內容／主題';
     $('#simulationResult').innerHTML=`
       <b>試跑路徑：${esc(modeLabel)} · 不會儲存</b>
       <p>${esc(raw)}</p>
-      <div class="stack">${stages.map((s,i)=>`
-        <div class="surface">
-          <span class="kicker">第 ${i+1} 階段</span>
-          <p><b>目標：</b>${esc(s.goal)}</p>
-          <p><b>要產出的作品：</b>${esc(s.artifact)}</p>
-          <small class="muted">完成後：${esc(s.next)}</small>
-        </div>`).join('')}</div>
-      <div class="provenance">目前這是通用作品骨架，不靠關鍵字替你下結論。未來 AI 任務層接上後，會用你的真實 Inbox、作品、行動與回饋，把每一階段改成更貼近你的候選方向；仍需真實結果才能升成正式路徑。</div>`;
+      <div class="surface">
+        <span class="kicker">目前階段</span>
+        <p><b>階段目標：</b>${esc(current.goal)}</p>
+        <p><b>這一階段只做一件作品：</b>${esc(current.artifact)}</p>
+        <p><b>作品完成後怎麼判斷：</b>${esc(current.next)}</p>
+      </div>
+      <div class="evidence-box"><b>延伸性</b><span>後面仍有可延伸方向，但現在不先把第 2、3 階段寫死。等這件作品有結果後，再依「有效／無效／卡住／產生新問題」決定下一階段。</span></div>
+      <div class="provenance">目前這是通用作品骨架。AI 任務執行層已具備佇列與狀態機，但 provider（真正執行 AI 推理的服務）尚未接上，因此這裡不假裝已做個人化動態推理。</div>`;
   }));
 }
 
@@ -401,7 +426,7 @@ async function sendSessionLifecycleProbe(){
 }
 
 function authBar(){
-  $('#authBox')?.remove();const box=document.createElement('div');box.id='authBox';box.className='auth-box';box.innerHTML=A.liveStatus==='live'?'<span class="pill success">Live</span><button class="ghost-btn small" id="signOut">登出</button>':'<button class="ghost-btn small" id="openLogin">登入</button>';$('.top-actions').prepend(box);$('#openLogin')?.addEventListener('click',loginModal);$('#signOut')?.addEventListener('click',async()=>{await A.signOut();location.reload()});
+  $('#authBox')?.remove();const box=document.createElement('div');box.id='authBox';box.className='auth-box';box.innerHTML=A.liveStatus==='live'?'<span class="pill success">正式資料已連線（Live）</span><button class="ghost-btn small" id="signOut">登出</button>':'<button class="ghost-btn small" id="openLogin">登入</button>';$('.top-actions').prepend(box);$('#openLogin')?.addEventListener('click',loginModal);$('#signOut')?.addEventListener('click',async()=>{await A.signOut();location.reload()});
 }
 function loginModal(){
   let m=$('#loginModal');
@@ -431,7 +456,7 @@ function loginModal(){
 }
 
 async function init(){
-  try{await A.initialize();D=await A.getSnapshot();renderHome();await renderProjects();await renderLearn();renderSynapse();authBar();await sendSessionLifecycleProbe();$$('.nav-item').forEach(b=>b.onclick=()=>setView(b.dataset.view));document.addEventListener('click',e=>{const j=e.target.closest('[data-jump]');if(j)setView(j.dataset.jump);if(e.target.closest('[data-auth]'))loginModal()});$('#refreshBtn').onclick=()=>location.reload();}
+  try{await A.initialize();D=await A.getSnapshot();renderHome();await renderProjects();await renderLearn();await renderSynapse();authBar();await sendSessionLifecycleProbe();$$('.nav-item').forEach(b=>b.onclick=()=>setView(b.dataset.view));document.addEventListener('click',e=>{const j=e.target.closest('[data-jump]');if(j)setView(j.dataset.jump);if(e.target.closest('[data-auth]'))loginModal()});$('#refreshBtn').onclick=()=>location.reload();}
   catch(e){$('.main').innerHTML=`<div class="empty">第二大腦 初始化失敗：${esc(e.message||e)}</div>`}
 }
 init();
