@@ -1,0 +1,34 @@
+{
+  "schema_version": "growth-brain-pre-real-usability-regression-v1",
+  "source_work_package": "logic-core-loop-v1",
+  "data_scope": "system",
+  "formal_personal_state_changed": false,
+  "real_acceptance": "pending_only",
+  "checks": [
+    {
+      "key": "path_trial_current_stage_only",
+      "expected": "render exactly one current stage before a real artifact result exists"
+    },
+    {
+      "key": "blocked_external_zh_hant",
+      "expected": "blocked_external displays as 外部服務受阻，其他工作繼續"
+    },
+    {
+      "key": "public_terms_zh_hant",
+      "expected": "no public-facing Learning Unit, data_scope=real, Live, or Synapse labels"
+    },
+    {
+      "key": "signed_out_synapse_truthful_state",
+      "expected": "signed-out knowledge-link view never renders cached/demo personal nodes"
+    },
+    {
+      "key": "simulation_nonpersistent",
+      "expected": "trial does not write Learning evidence, Recent Progress, personal route, or personal Synapse"
+    }
+  ],
+  "implementation_status": {
+    "frontend_patch": "blocked_runtime_safety",
+    "database_hardening": "not_applied",
+    "edge_personal_synapse": "not_applied"
+  }
+}
