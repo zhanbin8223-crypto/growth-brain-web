@@ -1,0 +1,34 @@
+{
+  "schema_version": "stage-preview-terminology-contract-v1",
+  "project": "growth-brain",
+  "data_scope": "system",
+  "decisions": {
+    "stage_progression": {
+      "multi_stage_extension_desired": true,
+      "current_stage_is_active_commitment": true,
+      "future_stages_are_preview_only": true,
+      "preview_purpose": "讓使用者看見可能延伸方向，但不把後續階段當成已決定路線",
+      "next_stage_rule": "依目前作品結果、使用者回饋與新增真實資料重新產生下一階段",
+      "execution_rule": "目前只執行當前階段與一件可交付作品"
+    },
+    "terminology": {
+      "language": "zh-Hant",
+      "first_use_format": "中文名稱（English）＋一行白話解釋",
+      "no_raw_internal_terms": true,
+      "examples": {
+        "Synapse": "知識連結（Synapse）：把相關概念、來源與學習證據串起來",
+        "RLS": "資料列安全（RLS）：限制誰可以讀寫哪一筆資料",
+        "Learning Unit": "學習單元（Learning Unit）：一次要理解或練習的一小段內容"
+      }
+    }
+  },
+  "real_acceptance": "pending_only",
+  "production_status": "contract_only_not_deployed",
+  "resume_order": [
+    "growth-home personal_synapse route",
+    "ai_job_transition_v1",
+    "Synapse ACL hardening",
+    "RLS policy decision",
+    "frontend app.js stage preview + terminology rendering"
+  ]
+}
