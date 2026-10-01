@@ -1,0 +1,43 @@
+{
+  "schema_version": "pre-real-hardening-runtime-v1",
+  "purpose": "把前端真實性、個人知識路由與後端安全邊界固定成可直接實作與回歸的契約",
+  "frontend": {
+    "signed_out_personal_home": "empty_no_cached_personal_state",
+    "signed_out_synapse": "empty_no_cached_personal_graph",
+    "public_terms": {
+      "live": "正式資料已連線",
+      "synapse": "知識連結",
+      "real_scope": "正式資料",
+      "learning_unit": "學習單元"
+    },
+    "path_trial": {
+      "visible_stage_count": 1,
+      "next_stage_requires_artifact_result": true,
+      "disconnected_provider": "generic_nonpersistent_skeleton_only"
+    }
+  },
+  "personal_synapse": {
+    "edge_function": "growth-home",
+    "get_surface": "personal_synapse",
+    "auth_identity_source": "verified_user_jwt_only",
+    "service_rpc": "growth_personal_synapse_snapshot_service_v1",
+    "browser_may_supply_person_id": false,
+    "acl_hardening_after_route_verification": true
+  },
+  "rls": {
+    "tables": [
+      "growth_control.work_packages",
+      "growth_control.knowledge_ingestion_candidates",
+      "growth_control.ai_jobs"
+    ],
+    "intended_access": "service_role_or_postgres_only",
+    "anon_authenticated_direct_table_access": false,
+    "enable_after_policy_preconditions_verified": true
+  },
+  "acceptance": [
+    "signed-out browser never renders cached personal home or graph",
+    "path trial shows only current stage until a real artifact result exists",
+    "personal_synapse resolves identity server-side",
+    "RLS readback confirms relrowsecurity=true before closing hardening"
+  ]
+}
