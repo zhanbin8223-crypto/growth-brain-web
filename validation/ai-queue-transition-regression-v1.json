@@ -1,0 +1,44 @@
+{
+  "schema": "growth-brain.ai-queue-transition-regression.v1",
+  "scope": "system",
+  "real_acceptance": "pending_only",
+  "provider_required": false,
+  "target_function": "growth_control.ai_job_transition_v1",
+  "allowed": [
+    "queued->claimed",
+    "queued->cancelled",
+    "claimed->running",
+    "claimed->failed",
+    "claimed->queued",
+    "claimed->cancelled",
+    "running->succeeded",
+    "running->failed",
+    "running->cancelled",
+    "failed->queued",
+    "failed->cancelled"
+  ],
+  "rejected": [
+    "queued->running",
+    "queued->succeeded",
+    "queued->failed",
+    "claimed->succeeded",
+    "running->queued",
+    "succeeded->queued",
+    "cancelled->queued"
+  ],
+  "invariants": [
+    "expected_from_status must equal current status",
+    "claimed/running requires worker identity",
+    "succeeded requires non-null result and non-empty result_evidence",
+    "failed requires non-empty error payload",
+    "retry to queued clears worker/runtime/result/error fields",
+    "browser roles must not receive execute privilege"
+  ],
+  "verification": [
+    "create one system-scope disposable job only when function exists",
+    "exercise one success path and one failure/retry path",
+    "delete disposable validation row after assertions",
+    "do not claim provider execution from this regression"
+  ],
+  "implementation_status": "migration write blocked by runtime safety; test contract ready"
+}
