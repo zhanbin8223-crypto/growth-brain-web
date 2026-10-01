@@ -18,5 +18,26 @@
     "add authenticated personal_synapse route",
     "harden Synapse RPC execute grants after service route verification",
     "design RLS policies before enabling RLS"
+  ],
+  "evidence_write_attempts": {
+    "work_package": "runtime_safety_denial",
+    "ceo_snapshot": "runtime_safety_denial",
+    "skill_usage": "runtime_safety_denial",
+    "ai_handoff": "not_retried_same_db_write_boundary"
+  },
+  "skill_preflight": {
+    "risk": "medium",
+    "executable_roles": [],
+    "capability_gaps": [],
+    "registry_verified_builtin": [
+      "logic-reality-analyst",
+      "goal-closure-operator",
+      "github-operator"
+    ]
+  },
+  "actual_mutations": [
+    "created branch automation/usability-hardening-run11-checkpoint",
+    "created validation/run11-checkpoint.json",
+    "created patches/run11-frontend-hardening.md"
   ]
 }
