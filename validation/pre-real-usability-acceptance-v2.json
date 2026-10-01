@@ -1,0 +1,32 @@
+{
+  "version": "pre-real-usability-acceptance-v2",
+  "scope": "system",
+  "real_acceptance": "pending_only",
+  "requirements": {
+    "path_trial": {
+      "current_stage_only": true,
+      "reveal_next_only_after_artifact_result": true,
+      "provider_disconnected_behavior": "generic_nonpersistent_skeleton_only",
+      "must_not_claim_dynamic_reasoning": true
+    },
+    "signed_out_knowledge": {
+      "show_cached_personal_graph": false,
+      "allowed_states": ["sign_in_required", "empty"]
+    },
+    "language": {
+      "traditional_chinese_first": true,
+      "blocked_external": "外部服務受阻",
+      "learning_unit": "學習單元",
+      "real_scope": "正式資料",
+      "live": "已連線",
+      "synapse": "知識連結"
+    }
+  },
+  "observed_current_defects": [
+    "trial renders multiple future stages before artifact evidence",
+    "signed-out knowledge can still render cached personal graph data",
+    "blocked_external has no public zh-Hant label",
+    "primary UI still exposes internal English terms"
+  ],
+  "note": "This contract does not mark production behavior fixed; it is the exact acceptance target for the next executable frontend patch."
+}
