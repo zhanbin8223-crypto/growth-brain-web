@@ -46,8 +46,10 @@
     personalOutcome:null,
     inbox:null,
     learning:null,
+    personalSynapse:null,
     systemCockpit:null,
     lastLiveError:null,
+    lastSynapseError:null,
     async initialize(){
       const user=await Auth.fetchUser().catch(()=>null);
       this.liveUser=user;
@@ -56,6 +58,14 @@
         try{
           const result=await liveRequest('GET',undefined,'personal_home');
           this.personalHome=extractSurface(result);
+          try{
+            const synapseResult=await liveRequest('GET',undefined,'personal_synapse');
+            this.personalSynapse=extractSurface(synapseResult);
+            this.lastSynapseError=null;
+          }catch(synapseError){
+            this.personalSynapse=null;
+            this.lastSynapseError={code:synapseError.code||'unknown',status:synapseError.status||null};
+          }
           this.liveStatus='live';
           this.mode='live';
           this.lastLiveError=null;
@@ -184,13 +194,23 @@
       await this.refreshPersonalHome();
       return clone(result?.data||null);
     },
+    async getPersonalSynapse(){
+      if(this.mode!=='live') throw Object.assign(new Error('請先登入，知識連結只顯示正式個人資料。'),{code:'not_signed_in'});
+      const result=await liveRequest('GET',undefined,'personal_synapse');
+      this.personalSynapse=extractSurface(result);
+      this.lastSynapseError=null;
+      return clone(this.personalSynapse);
+    },
     async getSnapshot(){
       const out=clone(D);
-      if(this.personalHome) out.personalHome=clone(this.personalHome);
+      out.personalHome=this.personalHome?clone(this.personalHome):null;
+      out.synapse=this.personalSynapse?clone(this.personalSynapse):{nodes:[],edges:[],status:this.mode==='live'?'not_loaded_or_empty':'signed_out'};
       out.meta={
         ...(out.meta||{}),
-        home_source:this.personalHome?'live authenticated Personal Home':'cached Personal Home fallback',
-        home_live:Boolean(this.personalHome)
+        home_source:this.personalHome?'正式登入個人首頁':'未載入正式個人首頁',
+        home_live:Boolean(this.personalHome),
+        synapse_live:Boolean(this.personalSynapse),
+        synapse_error:this.lastSynapseError?.code||null
       };
       return out;
     },
@@ -219,7 +239,7 @@
     async consumeMagicLinkUrl(link){return Auth.consumeMagicLinkUrl(link);},
     async signOut(){
       Auth.signOut();
-      this.mode='cached-private';this.liveStatus='signed_out';this.liveUser=null;this.personalHome=null;this.personalOutcome=null;this.inbox=null;this.learning=null;this.systemCockpit=null;
+      this.mode='cached-private';this.liveStatus='signed_out';this.liveUser=null;this.personalHome=null;this.personalOutcome=null;this.inbox=null;this.learning=null;this.personalSynapse=null;this.systemCockpit=null;this.lastLiveError=null;this.lastSynapseError=null;
     },
     async resetLocalEvidence(){writeStore({attempts:[]});},
     latestAttempt,candidateEvidenceCount
