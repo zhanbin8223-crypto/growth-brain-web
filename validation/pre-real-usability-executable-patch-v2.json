@@ -1,0 +1,50 @@
+{
+  "schema": "growth-brain.pre-real-usability-executable-patch.v2",
+  "scope": "system",
+  "branch": "automation/usability-hardening-20261001-2017",
+  "target_file": "app.js",
+  "target_blob_sha": "f2aa1193ba02b3255ca28dc44e79424692a3c224",
+  "recorded_at": "2026-10-01T23:16:34+08:00",
+  "real_acceptance": "pending_only",
+  "mutation_status": "patch_spec_persisted_code_write_blocked",
+  "attempted_code_write": "runtime_safety_denial",
+  "transformations": [
+    {
+      "key": "signed_out_home_empty_personal_state",
+      "from": "const home=()=>D?.personalHome||{};",
+      "to": "const home=()=>A.liveStatus==='live'?(D?.personalHome||{}):{};"
+    },
+    {
+      "key": "signed_out_knowledge_empty_state",
+      "behavior": "renderSynapse returns a login/empty state before reading D.synapse whenever liveStatus is not live"
+    },
+    {
+      "key": "zh_hant_primary_terms",
+      "replacements": {
+        "Live": "已連線",
+        "Synapse": "知識連結",
+        "Learning Unit": "學習單元",
+        "data_scope=real": "正式資料"
+      }
+    },
+    {
+      "key": "path_trial_current_stage_only",
+      "behavior": [
+        "render only stages[0] at first",
+        "require a non-empty current artifact result before incrementing stageIndex",
+        "keep artifact result only in current browser memory",
+        "do not persist simulated output",
+        "when provider is disconnected, explicitly label the path as a generic non-persistent skeleton"
+      ]
+    }
+  ],
+  "verification": [
+    "signed-out home contains no cached personal direction/progress/learning/knowledge values",
+    "signed-out knowledge page renders zero personal graph nodes and offers login",
+    "primary UI contains none of: Live, Synapse, Learning Unit, data_scope=real",
+    "trial view renders exactly one current stage before artifact result",
+    "next stage is shown only after a non-empty artifact result",
+    "simulation result is not persisted to Growth Brain data"
+  ],
+  "resume_condition": "When GitHub JS writes are permitted, re-fetch app.js and apply these transformations against the recorded blob SHA or rebase the markers if SHA changed."
+}
