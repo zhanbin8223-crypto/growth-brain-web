@@ -221,7 +221,7 @@ async function renderProjects(notice=''){
         <div class="section-head"><div><h2>作品做完時，提交真實結果</h2><p>這一步才會把作品標成完成。只有你勾選、且這件作品真的驗證到的技能，才會記成「已在真實作品驗證」。</p></div></div>
         <form class="surface project-form" id="completeArtifactForm">
           <label><b>實際做出了什麼／結果如何</b><textarea id="artifactResultText" placeholder="例如：已完成商品資料進入評分、人工審核與影片任務的閉環，實際跑過 3 筆商品"></textarea></label>
-          <label><b>完成證據（每行一項）</b><textarea id="artifactEvidenceItems" placeholder="例如：&#10;重新整理後資料仍存在&#10;同一商品重跑不會重複建立任務&#10;影片任務可追到原商品"></textarea></label>
+          <label><b>補充證據（可選，每行一項）</b><textarea id="artifactEvidenceItems" placeholder="上方逐項 checklist 已是主要證據；這裡只補充額外資訊"></textarea></label>
           ${(currentArtifact.skills||[]).length?`
             <div><b>這次作品真的驗證到哪些技能</b><p class="muted">沒有把握就不要勾；未勾選的技能維持原本證據狀態。</p>
               <div class="stack" style="margin-top:8px">
@@ -230,7 +230,7 @@ async function renderProjects(notice=''){
             </div>`:''}
           <div class="row-between">
             <div id="completeArtifactMsg" class="muted">完成後會保留結果與證據，並自動排入「下一件候選作品」規劃；不會一次固定後面整條路。</div>
-            <button type="submit" class="primary-btn">確認完成並重新規劃</button>
+            <button type="submit" class="primary-btn" ${allEvidenceConfirmed?'':'disabled'}>${allEvidenceConfirmed?'確認完成並重新規劃':'先完成上方證據清單'}</button>
           </div>
         </form>
       </section>
@@ -369,6 +369,40 @@ async function renderProjects(notice=''){
     }catch(e){btn.disabled=false;const msg=$('#projectMsg');if(msg)msg.textContent=e.message||'拒絕失敗';}
   });
 
+  $('#artifactEvidenceProgressForm')?.addEventListener('submit',async e=>{
+    e.preventDefault();
+    if(!currentArtifact||!nextEvidence) return;
+    const evidenceText=$('#artifactEvidenceProgressText')?.value?.trim()||'';
+    const evidenceRefs=($('#artifactEvidenceProgressRefs')?.value||'')
+      .split(/\r?\n/)
+      .map(x=>x.trim())
+      .filter(Boolean);
+    const msg=$('#artifactEvidenceProgressMsg');
+    const submit=e.currentTarget.querySelector('button[type="submit"]');
+
+    if(evidenceText.length<3){
+      if(msg) msg.textContent='請寫下這一步真的取得了什麼資料或結果。';
+      return;
+    }
+
+    submit.disabled=true;
+    try{
+      if(msg) msg.textContent='正在保存正式作品證據…';
+      await A.recordPersonalArtifactEvidence({
+        artifactId:currentArtifact.id,
+        criterionNo:nextEvidence.criterion_no,
+        evidenceText,
+        evidenceRefs,
+        metadata:{capture_surface:'projects'}
+      });
+      D=await A.getSnapshot();
+      renderHome();
+      await renderProjects('這一步的證據已保存，現在前進到下一個完成條件。');
+    }catch(err){
+      submit.disabled=false;
+      if(msg) msg.textContent=err.message||'作品證據保存失敗';
+    }
+  });
   $('#completeArtifactForm')?.addEventListener('submit',async e=>{
     e.preventDefault();
     if(!currentArtifact) return;
@@ -387,11 +421,6 @@ async function renderProjects(notice=''){
       if(msg) msg.textContent='請先寫下這件作品實際做出了什麼。';
       return;
     }
-    if(!evidenceItems.length){
-      if(msg) msg.textContent='至少需要一項可觀察的完成證據，才能把作品標成完成。';
-      return;
-    }
-
     submit.disabled=true;
     try{
       if(msg) msg.textContent='正在保存作品結果、證據，並建立下一件候選作品規劃…';
@@ -602,7 +631,7 @@ async function renderSynapse(){
   const artifactConceptIds=new Set(
     artifactLinks.filter(x=>x.link_kind==='synapse_concept').map(x=>String(x.target_ref))
   );
-  const artifactEvidenceCount=artifactLinks.filter(x=>x.link_kind==='learning_evidence').length;
+  const artifactEvidenceCount=artifactLinks.filter(x=>['learning_evidence','artifact_evidence'].includes(x.link_kind)).length;
 
   const rawNodes=Array.isArray(synapse?.nodes)?synapse.nodes:[];
   const edges=Array.isArray(synapse?.edges)?synapse.edges:[];
