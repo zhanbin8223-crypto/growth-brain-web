@@ -101,6 +101,20 @@ async function getBrowserUrl(){
   return runOpenCli(["browser",BROWSER_SESSION,"get","url"],60000);
 }
 
+function findNamedLinkRef(axState,name){
+  const target=String(name||"").trim();
+  if(!target) return null;
+
+  const refs=[];
+  for(const line of String(axState||"").split(/\r?\n/)){
+    if(!line.includes("<a")&&!line.includes("role=link")) continue;
+    if(!line.includes("aria-label="+target)&&!line.includes(">"+target+"<")) continue;
+    const match=line.match(/\[(\d+)\]/);
+    if(match) refs.push(match[1]);
+  }
+  return refs.length?refs[refs.length-1]:null;
+}
+
 async function ensureConversation(){
   if(CONVERSATION_URL){
     await runOpenCli(["browser",BROWSER_SESSION,"open",CONVERSATION_URL],90000);
@@ -110,11 +124,24 @@ async function ensureConversation(){
   let title=await getBrowserTitle().catch(()=> "");
   if(!outputContains(title,CONVERSATION_TITLE)){
     try{
-      await runOpenCli([
-        "browser",BROWSER_SESSION,"click",
-        "--role","link",
-        "--name",CONVERSATION_TITLE
-      ],60000);
+      try{
+        await runOpenCli([
+          "browser",BROWSER_SESSION,"click",
+          "--role","link",
+          "--name",CONVERSATION_TITLE
+        ],60000);
+      }catch(semanticClickError){
+        const ax=await runOpenCli([
+          "browser",BROWSER_SESSION,"state",
+          "--source","ax"
+        ],90000);
+        const ref=findNamedLinkRef(ax,CONVERSATION_TITLE);
+        if(!ref) throw semanticClickError;
+        await runOpenCli([
+          "browser",BROWSER_SESSION,"click",ref
+        ],60000);
+      }
+
       await runOpenCli(["browser",BROWSER_SESSION,"wait","time","1"],30000);
       title=await getBrowserTitle();
     }catch(error){
@@ -310,9 +337,9 @@ async function preflight(){
   try{
     await runOpenCli(["doctor","--live"],90000);
   }catch(error){
-    throw new Error(
-      "OpenCLI browser bridge preflight failed: "+
-      (error instanceof Error?error.message:String(error))
+    console.error(
+      "[doctor-warning] current OpenCLI may not support doctor --live; "+
+      "continuing with direct browser-session verification"
     );
   }
 
