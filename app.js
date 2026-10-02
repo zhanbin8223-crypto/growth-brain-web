@@ -189,6 +189,8 @@ async function renderProjects(notice=''){
     const progressItems=Array.isArray(currentArtifact.evidence_progress)?currentArtifact.evidence_progress:[];
     const progress=currentArtifact.progress_summary||{total:progressItems.length,confirmed:progressItems.filter(x=>x.status==='confirmed').length,remaining:progressItems.filter(x=>x.status!=='confirmed').length};
     const nextEvidence=currentArtifact.next_evidence_item||progressItems.find(x=>x.status!=='confirmed')||null;
+    const latestUnblock=currentArtifact.latest_unblock||null;
+    const activeUnblock=latestUnblock&&nextEvidence&&Number(latestUnblock.criterion_no)===Number(nextEvidence.criterion_no)?latestUnblock:null;
     const allEvidenceConfirmed=Number(progress.total||0)>0&&Number(progress.remaining||0)===0;
     const learning=Array.isArray(currentArtifact.learning_focus)?currentArtifact.learning_focus:[];
     const branches=Array.isArray(currentArtifact.next_branch_candidates)?currentArtifact.next_branch_candidates:[];
@@ -204,6 +206,25 @@ async function renderProjects(notice=''){
     const nextEvidenceHtml=nextEvidence
       ?'<form class="surface project-form" id="artifactEvidenceProgressForm"><span class="kicker">現在只做第 '+esc(nextEvidence.criterion_no)+' 項</span><h3>'+esc(nextEvidence.criterion_text)+'</h3><p class="muted">'+esc(evidenceHint)+'</p><label><b>這一步的真實結果／證據</b><textarea id="artifactEvidenceProgressText" placeholder="寫下實際資料、結果或可驗證紀錄"></textarea></label><label><b>參考連結（可選，每行一個）</b><textarea id="artifactEvidenceProgressRefs" placeholder="https://..."></textarea></label><div class="row-between"><div id="artifactEvidenceProgressMsg" class="muted">保存後才會前進到下一個完成條件。</div><button type="submit" class="primary-btn">保存這一步的證據</button></div></form>'
       :'<div class="surface"><div class="row-between"><div><b>所有完成條件都有證據</b><p>現在才進入整件作品的完成確認與技能驗證。</p></div><span class="pill success">可完成作品</span></div></div>';
+    const unblockStateLabel={
+      reported:'已收到卡點',
+      diagnosing:'達案執行官正在拆解',
+      reviewing:'邏輯／真實性分析員正在複核',
+      ready:'拆解完成',
+      failed:'這次拆解失敗',
+      resolved:'已解決',
+      dismissed:'已略過'
+    };
+    const guidance=activeUnblock?.final_guidance||{};
+    const learningNeed=guidance?.learning_needed||{};
+    const unblockResultHtml=activeUnblock
+      ?activeUnblock.status==='ready'
+        ?'<article class="surface" style="margin-top:12px"><div class="row-between"><div><span class="kicker">AI 團隊拆解結果</span><h3>'+esc(guidance.problem_summary||'已找到目前卡點')+'</h3></div><span class="pill success">已複核</span></div><div class="evidence-box"><b>你現在只做這一步</b><span>'+esc(guidance.smallest_next_action||'先完成目前階段最小可執行動作')+'</span></div>'+(Array.isArray(guidance.micro_steps)&&guidance.micro_steps.length?'<details><summary><b>如果還是太大，再拆成 '+guidance.micro_steps.length+' 小步</b></summary><p>'+guidance.micro_steps.map((x,i)=>(i+1)+'. '+esc(typeof x==='string'?x:(x.title||x.step||''))).join('<br>')+'</p></details>':'')+(learningNeed?.needed?'<p><b>這次只需要補的學習：</b>'+esc(learningNeed.minimum||learningNeed.target||'目前階段最低必要內容')+'</p>':'')+'<small class="muted">卡住是診斷訊號，不會直接降低能力狀態，也不會自動重做整條路徑。</small></article>'
+        :'<article class="surface" style="margin-top:12px"><div class="row-between"><div><b>'+esc(unblockStateLabel[activeUnblock.status]||'AI 團隊正在處理')+'</b><p>先由達案執行官拆目前這一步，再由邏輯／真實性分析員複核。</p></div><span class="pill warn">'+esc(activeUnblock.signal_count||1)+' 次卡點訊號</span></div><small class="muted">這不會改變你的能力等級。</small></article>'
+      :'';
+    const unblockFormHtml=nextEvidence
+      ?'<details class="surface" style="margin-top:12px"><summary><b>卡住了？讓 AI 團隊拆目前這一步</b></summary><p>只描述你現在卡在哪裡。系統先嘗試解釋或拆小步驟；同一階段反覆卡住時，才考慮重切這個階段。</p><form class="project-form" id="artifactUnblockForm"><label><b>我卡在</b><textarea id="artifactUnblockNote" placeholder="例如：我不知道 X、Threads、IG 要用什麼標準選；或我看懂概念但不知道下一個實際動作"></textarea></label><div class="row-between"><div id="artifactUnblockMsg" class="muted">卡住不等於能力下降；AI 團隊只處理目前這一步。</div><button type="submit" class="ghost-btn">幫我拆這一步</button></div></form></details>'
+      :'';
     return `
       <section>
         <div class="section-head"><div><h2>現在只做這一件作品</h2><p>學習、知識連結與技能驗證都應該回到這件作品，而不是另外長出一堆支線。</p></div><span class="pill success">進行中</span></div>
@@ -221,6 +242,8 @@ async function renderProjects(notice=''){
 
         ${progressHtml}
         ${nextEvidenceHtml}
+        ${unblockResultHtml}
+        ${unblockFormHtml}
 
         <details class="surface" style="margin-top:18px">
           <summary><b>這件作品會驗證哪些能力（${(currentArtifact.skills||[]).length}）</b></summary>
@@ -420,6 +443,32 @@ async function renderProjects(notice=''){
       if(msg) msg.textContent=err.message||'作品證據保存失敗';
     }
   });
+  $('#artifactUnblockForm')?.addEventListener('submit',async e=>{
+    e.preventDefault();
+    if(!currentArtifact||!nextEvidence) return;
+    const note=$('#artifactUnblockNote')?.value?.trim()||'';
+    const msg=$('#artifactUnblockMsg');
+    const submit=e.currentTarget.querySelector('button[type="submit"]');
+    if(note.length<2){
+      if(msg) msg.textContent='至少寫一句你現在卡在哪裡。';
+      return;
+    }
+    submit.disabled=true;
+    try{
+      if(msg) msg.textContent='正在交給達案執行官拆解目前這一步…';
+      await A.requestArtifactStageUnblock({
+        artifactId:currentArtifact.id,
+        userNote:note
+      });
+      D=await A.getSnapshot();
+      renderHome();
+      await renderProjects('卡點已送進 AI 團隊：先由達案執行官拆解，再由邏輯／真實性分析員複核。');
+    }catch(err){
+      submit.disabled=false;
+      if(msg) msg.textContent=err.message||'卡點拆解任務建立失敗';
+    }
+  });
+
   $('#completeArtifactForm')?.addEventListener('submit',async e=>{
     e.preventDefault();
     if(!currentArtifact) return;
