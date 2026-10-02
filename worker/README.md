@@ -1,34 +1,110 @@
 # Growth Brain 本機 AI Worker
 
-用途：從 Growth Brain 的 `ai_jobs` 取出待處理任務，交給你 Mac 上的 ChatGPT Web bridge，再把結果與 evidence 寫回 Supabase。
+目前正式推薦的 Worker：
+
+- `chatgpt-opencli-worker.mjs` — **主線**。直接使用 OpenCLI 內建 ChatGPT Web adapter，沿用你已登入的 ChatGPT 網頁版。
+- `chatgpt-web-worker.mjs` — 備援。需要另外存在 localhost OpenAI-compatible HTTP bridge；不是目前已驗證主線。
+
+## 正式資料流
+
+```text
+Supabase ai_jobs
+  ↓
+chatgpt-opencli-worker.mjs
+  ↓
+OpenCLI ChatGPT Web adapter
+  ↓
+固定「Growth Brain Worker」對話
+  ↓
+ChatGPT 回覆
+  ↓
+result + result_evidence
+  ↓
+Supabase
+```
+
+OpenCLI Worker 啟動前會先確認：
+
+1. OpenCLI 可執行。
+2. ChatGPT Web 已登入。
+3. 能找到標題為 `Growth Brain Worker` 的固定對話，或已設定固定 conversation URL。
+4. preflight 通過後才會 claim AI 任務。
+
+每次任務都會重新打開固定 conversation，並檢查回覆仍屬於同一對話；如果跑到錯對話，不會把結果寫回正式資料。
 
 ## 安全邊界
 
-- ChatGPT 登入狀態只留在本機瀏覽器／bridge。
-- `SUPABASE_SECRET_KEY` 只放本機環境變數，不可提交 GitHub，也不可放網站前端。
-- Worker 預設只接受 `localhost / 127.0.0.1 / ::1` 的 bridge URL；遠端網址會直接拒絕。
-- AI 回覆只是一筆輔助結果，不會自動升級 Learning evidence 或個人進展。
+- ChatGPT 登入狀態只留在本機 Chrome / OpenCLI。
+- `SUPABASE_SECRET_KEY` 只放本機環境檔，不可提交 GitHub，也不可放網站前端。
+- AI 回覆只是一筆候選推理結果，不會自動升級技能 evidence state（證據狀態）或作品完成狀態。
+- Worker preflight 失敗時不 claim 任務，所以 pending 任務會安全留在 Supabase。
 
-## 建議 bridge
+## 本機環境檔
 
-目前評估採用 `Octo-Lex/ChatGPT-Web2API` 作為第一個實驗 bridge。它提供 OpenAI-compatible 的 `POST /v1/chat/completions`，預設可跑在 `http://localhost:8080`。
+建立：
 
-安裝與第一次登入依上游專案說明進行。這是第三方 bridge，ChatGPT Web 介面改版時可能需要更新。
-
-## 啟動
-
-1. 複製 `.env.example` 為本機自己的 `.env`，填入 Supabase URL、server-side secret、既有 Auth user UUID。
-2. 啟動本機 ChatGPT Web bridge，確認它只監聽 localhost。
-3. 載入環境變數後執行：
-
-```bash
-node worker/chatgpt-web-worker.mjs
+```text
+~/.config/growth-brain/worker.env
 ```
 
-只測一次：
+內容範例：
 
 ```bash
-GROWTH_RUN_ONCE=1 node worker/chatgpt-web-worker.mjs
+SUPABASE_URL="https://<project-ref>.supabase.co"
+SUPABASE_SECRET_KEY="<server-secret>"
+GROWTH_AUTH_USER_ID="<primary-auth-user-uuid>"
+
+GROWTH_CHATGPT_CONVERSATION_TITLE="Growth Brain Worker"
+
+# 若要完全鎖死特定 conversation，可額外設定：
+# GROWTH_CHATGPT_CONVERSATION_URL="https://chatgpt.com/c/<conversation-id>"
+
+GROWTH_WORKER_ID="mac-opencli-growthbrain"
+GROWTH_PROVIDER_KEY="chatgpt_web_opencli"
+GROWTH_POLL_MS="4000"
+GROWTH_HEARTBEAT_MS="15000"
+GROWTH_CHATGPT_TIMEOUT="240"
 ```
 
-狀態流：`pending → claimed → processing → completed / failed`。失敗任務可由 Learning 頁重新排回 pending。
+建議權限：
+
+```bash
+chmod 600 ~/.config/growth-brain/worker.env
+```
+
+## 手動啟動
+
+```bash
+./worker/run-opencli-worker.command
+```
+
+只跑一筆：
+
+```bash
+GROWTH_RUN_ONCE=1 ./worker/run-opencli-worker.command
+```
+
+## macOS 自動啟動
+
+先確認手動版能成功處理一筆任務，再執行：
+
+```bash
+./worker/install-macos-launchd.command
+```
+
+LaunchAgent 不保存 Supabase secret；它只呼叫 runner，而 runner 再讀取 `~/.config/growth-brain/worker.env`。
+
+## 驗收
+
+AI 團隊頁應看到：
+
+- 本機執行器：在線
+- 最後心跳在 30 秒內
+- pending 任務被 claim
+- 狀態依序 `claimed → processing → completed`
+- result / result_evidence 回寫 Supabase
+- path_plan 完成後形成候選作品，而不是直接變成正式能力
+
+## 備援 HTTP bridge Worker
+
+`chatgpt-web-worker.mjs` 仍保留，方便未來使用 OpenAI-compatible localhost bridge。但目前不要把它當作已驗證主線。
