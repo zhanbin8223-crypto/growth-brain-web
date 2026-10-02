@@ -151,6 +151,22 @@
       await this.refreshPersonalHome();
       return clone(latest);
     },
+    async recordPersonalArtifactEvidence({artifactId,criterionNo,evidenceText,evidenceRefs,metadata}){
+      if(this.mode!=='live') throw Object.assign(new Error('請先登入。'),{code:'not_signed_in'});
+      const result=await liveRequest('POST',{
+        action:'record_personal_artifact_evidence',
+        artifact_id:artifactId,
+        criterion_no:Number(criterionNo),
+        evidence_text:evidenceText,
+        evidence_refs:Array.isArray(evidenceRefs)?evidenceRefs:[],
+        metadata:metadata&&typeof metadata==='object'?metadata:{}
+      });
+      this.personalArtifacts=null;
+      this.personalSynapse=null;
+      const latest=await this.getPersonalArtifacts({force:true});
+      await this.refreshPersonalHome();
+      return clone({evidence:result?.data?.evidence||null,artifacts:latest});
+    },
     async completePersonalArtifact({artifactId,resultText,evidenceItems,demonstratedSkillKeys}){
       if(this.mode!=='live') throw Object.assign(new Error('請先登入。'),{code:'not_signed_in'});
       const result=await liveRequest('POST',{
