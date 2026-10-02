@@ -151,6 +151,23 @@
       await this.refreshPersonalHome();
       return clone(latest);
     },
+    async completePersonalArtifact({artifactId,resultText,evidenceItems,demonstratedSkillKeys}){
+      if(this.mode!=='live') throw Object.assign(new Error('請先登入。'),{code:'not_signed_in'});
+      const result=await liveRequest('POST',{
+        action:'complete_personal_artifact',
+        artifact_id:artifactId,
+        result_text:resultText,
+        evidence_items:Array.isArray(evidenceItems)?evidenceItems:[],
+        demonstrated_skill_keys:Array.isArray(demonstratedSkillKeys)?demonstratedSkillKeys:[]
+      });
+      this.personalArtifacts=null;
+      this.learning=null;
+      this.personalSynapse=null;
+      this.systemCockpit=null;
+      const latest=await this.getPersonalArtifacts({force:true});
+      await this.refreshPersonalHome();
+      return clone({completion:result?.data?.completion||null,artifacts:latest});
+    },
     async getInbox(){
       if(this.mode!=='live') throw Object.assign(new Error('請先登入，收件匣只顯示正式資料。'),{code:'not_signed_in'});
       const result=await liveRequest('GET',undefined,'inbox');
