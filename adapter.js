@@ -44,6 +44,7 @@
     liveUser:null,
     personalHome:null,
     personalOutcome:null,
+    personalArtifacts:null,
     inbox:null,
     learning:null,
     personalSynapse:null,
@@ -128,6 +129,25 @@
       });
       this.personalOutcome=null;
       const latest=await this.getPersonalOutcome();
+      await this.refreshPersonalHome();
+      return clone(latest);
+    },
+    async getPersonalArtifacts({force=false}={}){
+      if(!force && this.personalArtifacts) return clone(this.personalArtifacts);
+      if(this.mode!=='live') return {current:null,candidate:null,history:[],policy:{}};
+      const result=await liveRequest('GET',undefined,'personal_artifacts');
+      this.personalArtifacts=extractSurface(result);
+      return clone(this.personalArtifacts);
+    },
+    async decidePersonalArtifact({artifactId,decision}){
+      if(this.mode!=='live') throw Object.assign(new Error('請先登入。'),{code:'not_signed_in'});
+      await liveRequest('POST',{
+        action:'decide_personal_artifact',
+        artifact_id:artifactId,
+        decision
+      });
+      this.personalArtifacts=null;
+      const latest=await this.getPersonalArtifacts({force:true});
       await this.refreshPersonalHome();
       return clone(latest);
     },
@@ -250,7 +270,7 @@
     async consumeMagicLinkUrl(link){return Auth.consumeMagicLinkUrl(link);},
     async signOut(){
       Auth.signOut();
-      this.mode='cached-private';this.liveStatus='signed_out';this.liveUser=null;this.personalHome=null;this.personalOutcome=null;this.inbox=null;this.learning=null;this.personalSynapse=null;this.systemCockpit=null;this.lastLiveError=null;this.lastSynapseError=null;
+      this.mode='cached-private';this.liveStatus='signed_out';this.liveUser=null;this.personalHome=null;this.personalOutcome=null;this.personalArtifacts=null;this.inbox=null;this.learning=null;this.personalSynapse=null;this.systemCockpit=null;this.lastLiveError=null;this.lastSynapseError=null;
     },
     async resetLocalEvidence(){writeStore({attempts:[]});},
     latestAttempt,candidateEvidenceCount
