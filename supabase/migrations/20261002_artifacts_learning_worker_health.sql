@@ -1423,6 +1423,9 @@ with base as (
 ),
 artifacts as (
   select growth_control.personal_artifacts_snapshot_v1(p_person_id,p_project_key) as j
+),
+system_state as (
+  select growth_control.ceo_project_state_v1(p_person_id,p_project_key) as j
 )
 select
   (select j from base)
@@ -1435,6 +1438,17 @@ select
         'current',(select j->'current' from artifacts),
         'candidate',(select j->'candidate' from artifacts),
         'next_plan_job',(select j->'next_plan_job' from artifacts)
+      ),
+    'system_health',
+      jsonb_build_object(
+        'location','system_cockpit',
+        'show_build_details_on_personal_home',false,
+        'build_in_progress',coalesce((select j->'current' is not null from system_state),false),
+        'current_stage',(select j#>>'{current,stage}' from system_state),
+        'current_title',(select j#>>'{current,title}' from system_state),
+        'current_status',(select j#>>'{current,status}' from system_state),
+        'current_blocked',coalesce((select j#>>'{current,status}' from system_state)='blocked',false),
+        'parallel_blocker_count',coalesce((select jsonb_array_length(j->'parallel_blockers') from system_state),0)
       ),
     'primary_action',
       case
@@ -1483,3 +1497,4 @@ select
       end
   );
 $function$;
+
