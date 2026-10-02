@@ -132,8 +132,7 @@ async function ensureConversation(){
         ],60000);
       }catch(semanticClickError){
         const ax=await runOpenCli([
-          "browser",BROWSER_SESSION,"state",
-          "--source","ax"
+          "browser",BROWSER_SESSION,"state"
         ],90000);
         const ref=findNamedLinkRef(ax,CONVERSATION_TITLE);
         if(!ref) throw semanticClickError;
@@ -193,8 +192,7 @@ async function fillPrompt(prompt){
     ],60000);
   }catch(semanticError){
     const ax=await runOpenCli([
-      "browser",BROWSER_SESSION,"state",
-      "--source","ax"
+      "browser",BROWSER_SESSION,"state"
     ],90000);
 
     const ref=findTextboxRef(ax);
@@ -283,8 +281,7 @@ async function readMarkedResponse(markers){
       "--selector","body"
     ],90000),
     async()=>runOpenCli([
-      "browser",BROWSER_SESSION,"state",
-      "--source","ax"
+      "browser",BROWSER_SESSION,"state"
     ],90000)
   ];
 
