@@ -441,6 +441,7 @@ async function processJob(job){
 
     console.log("[completed] "+job.id+" "+job.task_type);
     await heartbeat("idle",job.id,true);
+    return true;
   }catch(error){
     const message=error instanceof Error?error.message:String(error);
     console.error("[failed] "+job.id+": "+message);
@@ -463,6 +464,7 @@ async function processJob(job){
     }catch(transitionError){
       console.error("[failed-to-record-error]",transitionError);
     }
+    return false;
   }
 }
 
@@ -510,10 +512,11 @@ async function main(){
       }
 
       console.log("[claimed] "+job.id+" "+job.task_type);
-      await processJob(job);
+      const jobSucceeded=await processJob(job);
 
       if(RUN_ONCE){
         await heartbeat("stopping",job.id,true);
+        if(!jobSucceeded) process.exit(3);
         return;
       }
     }catch(error){
