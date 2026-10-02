@@ -31,6 +31,10 @@ jobs:
           node --check auth.js
           node --check config.js
           node --check data.js
+          node --check inbox.js
+          for file in worker/*.mjs; do
+            node --check "$file"
+          done
           test -f index.html
           test -f styles.css
 
