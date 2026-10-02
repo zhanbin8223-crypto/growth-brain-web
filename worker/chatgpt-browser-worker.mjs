@@ -346,6 +346,31 @@ async function preflight(){
   return ensureConversation();
 }
 
+async function verifySupabaseWorkerAccess(){
+  const result=await rpc("growth_ai_worker_heartbeat_service_v1",{
+    p_auth_user_id:AUTH_USER_ID,
+    p_worker_id:WORKER_ID,
+    p_provider_key:PROVIDER_KEY,
+    p_status:"online",
+    p_last_job_id:null,
+    p_metadata:{
+      runtime:"opencli_browser_chatgpt_web",
+      opencli_version:opencliVersion,
+      browser_session:BROWSER_SESSION,
+      conversation_title:CONVERSATION_TITLE,
+      permission_probe:true
+    }
+  });
+
+  if(!result?.accepted){
+    throw new Error(
+      "Supabase worker permission probe was rejected: "+JSON.stringify(result)
+    );
+  }
+  lastHeartbeatAt=Date.now();
+  return result;
+}
+
 async function heartbeat(status="online",lastJobId=null,force=false){
   const now=Date.now();
   if(!force&&now-lastHeartbeatAt<HEARTBEAT_MS) return null;
@@ -479,14 +504,14 @@ async function main(){
     const conversation=await preflight();
     console.log("opencli="+opencliVersion);
     console.log("conversation="+conversation.url);
+
+    await verifySupabaseWorkerAccess();
+    console.log("supabase=server-side worker access OK");
   }catch(error){
     const message=error instanceof Error?error.message:String(error);
     console.error("[preflight-failed]",message);
-    await heartbeat("error",null,true);
     process.exit(2);
   }
-
-  await heartbeat("online",null,true);
 
   while(true){
     try{
