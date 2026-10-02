@@ -565,7 +565,7 @@ async function renderSynapse(){
   const graphNodes=[...spread(sources,12),...spread(concepts,55),...(artifactNode?[artifactNode]:[])];
   const graphEdges=[
     ...edges,
-    ...(artifactNode?[...artifactConceptIds].map(id=>({source:id,target:artifactNode.id,relation:'supports_artifact'})):[]
+    ...(artifactNode?[...artifactConceptIds].map(id=>({source:id,target:artifactNode.id,relation:'supports_artifact'})):[])
   ];
 
   root.innerHTML=`
