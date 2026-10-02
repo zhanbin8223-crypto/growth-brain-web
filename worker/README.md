@@ -75,7 +75,7 @@ chmod 600 ~/.config/growth-brain/worker.env
 ## 手動啟動
 
 ```bash
-./worker/run-opencli-worker.command
+zsh worker/run-opencli-worker.command
 ```
 
 只跑一筆：
@@ -89,7 +89,7 @@ GROWTH_RUN_ONCE=1 ./worker/run-opencli-worker.command
 先確認手動版能成功處理一筆任務，再執行：
 
 ```bash
-./worker/install-macos-launchd.command
+zsh worker/install-macos-launchd.command
 ```
 
 LaunchAgent 不保存 Supabase secret；它只呼叫 runner，而 runner 再讀取 `~/.config/growth-brain/worker.env`。
