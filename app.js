@@ -203,7 +203,7 @@ async function renderProjects(notice=''){
     const progressRows=progressItems.length
       ?progressItems.map(item=>'<div class="row-between" style="gap:14px"><div><b>'+(item.status==='confirmed'?'✓ ':'○ ')+esc(item.criterion_text)+'</b>'+(item.status==='confirmed'&&item.evidence?.text?'<p class="muted">'+esc(item.evidence.text)+'</p>':'')+'</div><span class="pill '+(item.status==='confirmed'?'success':'')+'">'+(item.status==='confirmed'?'已留證據':'待完成')+'</span></div>').join('')
       :'<div class="empty">正在建立作品證據清單…</div>';
-    const progressHtml='<div class="section-head"><div><h2>作品進度與真實證據</h2><p>完成一項就留下證據；未留下證據的條件不會被當成完成。</p></div><span class="pill '+(allEvidenceConfirmed?'success':'warn')+'">'+esc(progress.confirmed||0)+'/'+esc(progress.total||0)+'</span></div><div class="surface"><div class="stack">'+progressRows+'</div></div>';
+    const progressHtml='<details class="surface" style="margin-top:18px"><summary><b>作品進度 '+esc(progress.confirmed||0)+'/'+esc(progress.total||0)+'</b><span class="muted"> · 展開查看全部完成條件</span></summary><p class="muted">完整清單只用來查看進度；目前先處理上方這一步。</p><div class="stack" style="margin-top:12px">'+progressRows+'</div></details>';
     const evidenceHint=nextEvidence&&Number(nextEvidence.criterion_no)===1&&String(currentArtifact.title||'').includes('3 支內容')
       ?'你已排除 YouTube；目前候選是 X、Threads、Instagram。這輪先選 1 個主平台，再寫清楚內容主題與目標受眾；只是第一輪假設，不會永久綁死。'
       :nextEvidence&&/商品/.test(String(nextEvidence.criterion_text||''))
@@ -246,8 +246,8 @@ async function renderProjects(notice=''){
           </div>
         </article>
 
-        ${progressHtml}
         ${nextEvidenceHtml}
+        ${progressHtml}
         ${unblockResultHtml}
         ${unblockFormHtml}
 
