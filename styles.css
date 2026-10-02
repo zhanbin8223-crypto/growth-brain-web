@@ -155,7 +155,7 @@ input:focus,textarea:focus,select:focus{border-color:#9ab3e8;box-shadow:0 0 0 3p
   position:absolute;transform:translate(-50%,-50%);border:1px solid var(--line);border-radius:10px;
   padding:9px 11px;background:var(--paper);color:var(--ink);box-shadow:0 4px 12px rgba(32,48,68,.06)
 }
-.node.center{color:var(--accent);border-color:#b9c9eb;background:var(--accent-soft)}
+.node.center{color:var(--accent);border-color:#b9c9eb;background:var(--accent-soft)}.node.artifact{color:var(--green);border-color:#b9d8cb;background:var(--green-soft);font-weight:800;max-width:190px}
 .edge{position:absolute;height:1px;background:#aeb9c6;transform-origin:left center}
 .stack{display:grid;gap:10px}
 .project-form{display:grid;gap:14px}
