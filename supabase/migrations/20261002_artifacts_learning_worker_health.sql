@@ -1406,3 +1406,80 @@ revoke all on function public.growth_personal_artifact_complete_service_v1(uuid,
   from public,anon,authenticated;
 grant execute on function public.growth_personal_artifact_complete_service_v1(uuid,uuid,text,jsonb,text[])
   to service_role;
+
+
+-- Personal Home v3: artifact lifecycle has priority over an abstract selected route.
+create or replace function growth_control.personal_home_surface_v2(
+  p_person_id uuid,
+  p_project_key text default 'growth-brain'::text
+)
+returns jsonb
+language sql
+stable
+set search_path to 'growth_control', 'public'
+as $function$
+with base as (
+  select growth_control.personal_home_surface_v1(p_person_id,p_project_key) as j
+),
+artifacts as (
+  select growth_control.personal_artifacts_snapshot_v1(p_person_id,p_project_key) as j
+)
+select
+  (select j from base)
+  || jsonb_build_object(
+    'sv','personal-home-surface-v3',
+    'personal_synapse',
+      growth_control.personal_synapse_snapshot_v2(p_person_id,p_project_key,30),
+    'artifact_summary',
+      jsonb_build_object(
+        'current',(select j->'current' from artifacts),
+        'candidate',(select j->'candidate' from artifacts),
+        'next_plan_job',(select j->'next_plan_job' from artifacts)
+      ),
+    'primary_action',
+      case
+        when (select jsonb_typeof(j->'current') from artifacts)='object' then
+          jsonb_build_object(
+            'status','personal_artifact_current',
+            'artifact_id',(select j#>>'{current,id}' from artifacts),
+            'route_id',(select j#>>'{current,route_id}' from artifacts),
+            'title',(select j#>>'{current,title}' from artifacts),
+            'why',coalesce(
+              nullif((select j#>>'{current,objective}' from artifacts),''),
+              '這是你目前唯一進行中的作品。'
+            ),
+            'success_evidence',coalesce(
+              nullif((select j#>>'{current,done_evidence,0}' from artifacts),''),
+              nullif((select j#>>'{current,deliverable}' from artifacts),''),
+              '提交真實結果與至少一項可觀察證據。'
+            )
+          )
+        when (select jsonb_typeof(j->'candidate') from artifacts)='object' then
+          jsonb_build_object(
+            'status','personal_artifact_candidate_available',
+            'artifact_id',(select j#>>'{candidate,id}' from artifacts),
+            'route_id',(select j#>>'{candidate,route_id}' from artifacts),
+            'title',(select j#>>'{candidate,title}' from artifacts),
+            'why',coalesce(
+              nullif((select j#>>'{candidate,objective}' from artifacts),''),
+              'GPT 已產生候選作品；只有你確認後才會開始。'
+            ),
+            'success_evidence',coalesce(
+              nullif((select j#>>'{candidate,done_evidence,0}' from artifacts),''),
+              nullif((select j#>>'{candidate,deliverable}' from artifacts),''),
+              '先確認是否開始；候選作品不會自動升成進行中。'
+            )
+          )
+        when coalesce((select j#>>'{next_plan_job,status}' from artifacts),'') in ('pending','claimed','processing') then
+          jsonb_build_object(
+            'status','personal_artifact_replanning',
+            'job_id',(select j#>>'{next_plan_job,id}' from artifacts),
+            'title','正在產生下一件候選作品',
+            'why','上一件作品的結果與證據已進入重新規劃；AI 只會產生候選，不會自動開始。',
+            'success_evidence','產生一件新的 candidate 作品，並保留技能與證據狀態。'
+          )
+        else
+          (select j->'primary_action' from base)
+      end
+  );
+$function$;
