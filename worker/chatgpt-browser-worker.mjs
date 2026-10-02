@@ -81,11 +81,11 @@ async function runOpenCli(args,timeoutMs=ASK_TIMEOUT_MS+30000){
     return out.stdout.trim();
   }catch(error){
     const detail=[
-      error?.message,
       String(error?.stderr||"").trim(),
-      String(error?.stdout||"").trim()
+      String(error?.stdout||"").trim(),
+      error?.message
     ].filter(Boolean).join(" | ");
-    throw new Error("OpenCLI failed: "+detail.slice(0,1600));
+    throw new Error("OpenCLI failed: "+detail.slice(0,2600));
   }
 }
 
@@ -182,31 +182,85 @@ function findTextboxRef(axState){
   return refs.length?refs[refs.length-1]:null;
 }
 
-async function fillPrompt(prompt){
-  try{
-    return await runOpenCli([
-      "browser",BROWSER_SESSION,"fill",prompt,
+async function readTextboxText(ref){
+  const attempts=[
+    async()=>runOpenCli([
+      "browser",BROWSER_SESSION,"get","text",ref
+    ],60000),
+    async()=>runOpenCli([
+      "browser",BROWSER_SESSION,"get","text",
       "--role","textbox",
       "--name","問問 ChatGPT",
       "--nth","0"
-    ],60000);
-  }catch(semanticError){
-    const ax=await runOpenCli([
-      "browser",BROWSER_SESSION,"state"
-    ],90000);
+    ],60000)
+  ];
 
-    const ref=findTextboxRef(ax);
-    if(!ref){
-      throw new Error(
-        "Could not locate ChatGPT textbox by semantic selector or AX ref. "+
-        (semanticError instanceof Error?semanticError.message:String(semanticError))
-      );
+  let lastError=null;
+  for(const attempt of attempts){
+    try{
+      const raw=await attempt();
+      try{
+        const parsed=JSON.parse(raw);
+        if(parsed&&typeof parsed.value==="string") return parsed.value;
+      }catch{}
+      if(raw) return String(raw);
+    }catch(error){
+      lastError=error;
     }
-
-    return runOpenCli([
-      "browser",BROWSER_SESSION,"fill",ref,prompt
-    ],60000);
   }
+  throw lastError||new Error("Could not read ChatGPT textbox after typing");
+}
+
+function normalizePromptText(value){
+  return String(value||"")
+    .replace(/\r\n/g,"\n")
+    .replace(/\u00a0/g," ")
+    .trim();
+}
+
+async function fillPrompt(prompt){
+  const state=await runOpenCli([
+    "browser",BROWSER_SESSION,"state"
+  ],90000);
+
+  const ref=findTextboxRef(state);
+  if(!ref){
+    throw new Error("Could not locate ChatGPT textbox in DOM state");
+  }
+
+  await runOpenCli([
+    "browser",BROWSER_SESSION,"type",ref,prompt
+  ],90000);
+
+  const actual=await readTextboxText(ref);
+  const expectedNorm=normalizePromptText(prompt);
+  const actualNorm=normalizePromptText(actual);
+
+  if(actualNorm===expectedNorm){
+    return {ref,verified:true,mode:"type-readback-exact"};
+  }
+
+  const anchors=[
+    "【任務指示】",
+    "【任務輸入】",
+    "【回覆格式控制】",
+    "【Growth Brain 執行規則】"
+  ];
+  const anchorsOk=anchors.every(anchor=>actualNorm.includes(anchor));
+  const lengthRatio=expectedNorm.length
+    ? actualNorm.length/expectedNorm.length
+    : 0;
+
+  if(!anchorsOk||lengthRatio<0.85){
+    throw new Error(
+      "ChatGPT textbox readback incomplete after type. "+
+      "expected_chars="+expectedNorm.length+
+      " actual_chars="+actualNorm.length+
+      " ratio="+lengthRatio.toFixed(3)
+    );
+  }
+
+  return {ref,verified:true,mode:"type-readback-structural"};
 }
 
 function markerSet(jobId){
@@ -444,7 +498,7 @@ async function processJob(job){
         worker_id:WORKER_ID,
         provider_key:PROVIDER_KEY,
         execution_surface:"chatgpt_web",
-        bridge_protocol:"opencli_browser_ax_markers",
+        bridge_protocol:"opencli_browser_dom_type_readback_markers",
         opencli_version:opencliVersion,
         browser_session:BROWSER_SESSION,
         conversation_title:result.conversation_title,
