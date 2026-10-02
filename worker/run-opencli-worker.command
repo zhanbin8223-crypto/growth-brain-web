@@ -24,4 +24,4 @@ if [[ -z "${OPENCLI_BIN:-}" || ! -x "$OPENCLI_BIN" ]]; then
   exit 2
 fi
 
-exec /usr/bin/env node "$SCRIPT_DIR/chatgpt-opencli-worker.mjs"
+exec /usr/bin/env node "$SCRIPT_DIR/chatgpt-browser-worker.mjs"
