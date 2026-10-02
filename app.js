@@ -164,7 +164,7 @@ async function renderLearn(notice=''){
 
   root.innerHTML=`
     <div class="section-head">
-      <div><h2>學習陪伴</h2><p>貼入真實文字後，系統先保留原文，再讓你用自己的話回答；AI 尚未接上時不會假裝已產生解釋。</p></div>
+      <div><h2>學習陪伴</h2><p>貼入真實文字後，系統先保留原文，再讓你用自己的話回答；AI 解釋會進任務佇列，本機執行器未開啟時不會假裝已完成。</p></div>
       <span class="pill success">正式資料</span>
     </div>
 
@@ -219,12 +219,24 @@ async function renderLearn(notice=''){
     const sub=active.latest_submission||null;
     const pending=sub?.status==='pending';
     const promoted=sub?.status==='promoted'&&sub?.promoted_learning_evidence_id;
+    const ai=active.session?.ai_job||null;
+    const aiLabels={pending:'等待執行',claimed:'已領取',processing:'處理中',completed:'已完成',failed:'失敗',cancelled:'已取消'};
+    const aiLabel=ai?aiLabels[ai.status]||ai.status:'尚未建立';
+    const aiText=ai?.status==='completed'?(ai?.result?.text||''):null;
+    const aiError=ai?.status==='failed'?(ai?.error?.message||'執行失敗，可重新排入任務。'):null;
+    const canQueue=!ai||ai.status==='failed';
     detail.innerHTML=`
       <span class="kicker">正式來源</span>
       <h2>${esc(active.presentation?.title||active.session?.title||'學習單元')}</h2>
       <p class="teach">${esc(active.zh_explanation||'尚未產生 AI 解釋。')}</p>
       <details open><summary>原始內容</summary><p>${esc(active.original_text||'')}</p></details>
       <div class="provenance">來源：${esc(active.session?.source_ref||'未記錄')} · 資料範圍：正式個人資料（real）</div>
+      <div class="evidence-box">
+        <b>AI 解釋任務 · ${esc(aiLabel)}</b>
+        <span>${aiText?esc(aiText):aiError?esc(aiError):ai?'本機執行器（worker：在你的 Mac 取出任務並交給 ChatGPT）處理後，結果會顯示在這裡。':'尚未建立 AI 解釋任務；你仍可先自己閱讀與作答。'}</span>
+        ${canQueue?'<button class="ghost-btn small" id="enqueueLearningAi">'+(ai?.status==='failed'?'重新排隊':'建立 AI 解釋任務')+'</button>':''}
+        <small>AI 解釋只是輔助，不會自動算成你已學會。</small>
+      </div>
       <div class="answer">
         <b>你的驗證題</b>
         <p>${esc(active.interaction_prompt||'請用自己的話說明你理解到的重點。')}</p>
@@ -232,6 +244,17 @@ async function renderLearn(notice=''){
         <button class="primary-btn" id="submitAnswer" ${pending?'disabled':''}>${pending?'等待審核':'送出可審核回答'}</button>
         <div id="answerMsg" class="muted">${promoted?'這筆回答已通過審核並形成學習證據。':sub?.status==='rejected'?'上一筆回答未通過審核，可修改後再提交。':sub?.status==='reviewed'?'上一筆只完成審核，沒有升成個人學習證據。':'回答送出後只會先進待審核，不會直接算已學會。'}</div>
       </div>`;
+    $('#enqueueLearningAi')?.addEventListener('click',async()=>{
+      const btn=$('#enqueueLearningAi');
+      try{
+        if(btn){btn.disabled=true;btn.textContent='排入中…';}
+        await A.enqueueLearningAi(active.session.id);
+        await renderLearn(ai?.status==='failed'?'AI 解釋任務已重新排隊。':'AI 解釋任務已排入佇列。');
+      }catch(e){
+        if(btn){btn.disabled=false;btn.textContent=ai?.status==='failed'?'重新排隊':'建立 AI 解釋任務';}
+        const m=$('#answerMsg');if(m)m.textContent=e.message||'AI 任務建立失敗';
+      }
+    });
     $('#submitAnswer')?.addEventListener('click',async()=>{
       const m=$('#answerMsg');
       try{
