@@ -151,6 +151,18 @@
       await this.refreshPersonalHome();
       return clone(latest);
     },
+    async requestArtifactStageUnblock({artifactId,userNote}){
+      if(this.mode!=='live') throw Object.assign(new Error('請先登入。'),{code:'not_signed_in'});
+      const result=await liveRequest('POST',{
+        action:'request_artifact_stage_unblock',
+        artifact_id:artifactId,
+        user_note:userNote
+      });
+      this.personalArtifacts=null;
+      const latest=await this.getPersonalArtifacts({force:true});
+      await this.refreshPersonalHome();
+      return clone({unblock:result?.data?.unblock||null,artifacts:latest});
+    },
     async recordPersonalArtifactEvidence({artifactId,criterionNo,evidenceText,evidenceRefs,metadata}){
       if(this.mode!=='live') throw Object.assign(new Error('請先登入。'),{code:'not_signed_in'});
       const result=await liveRequest('POST',{
