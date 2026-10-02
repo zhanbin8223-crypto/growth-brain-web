@@ -20,8 +20,32 @@ const WORKER_ID = process.env.GROWTH_WORKER_ID || `mac-worker-${process.pid}`;
 const PROVIDER_KEY = process.env.GROWTH_PROVIDER_KEY || "chatgpt_web_bridge";
 const BRIDGE_URL = (process.env.CHATGPT_BRIDGE_URL || "http://127.0.0.1:8080").replace(/\/$/, "");
 const BRIDGE_API_KEY = process.env.CHATGPT_BRIDGE_API_KEY || "";
-const MODEL = process.env.CHATGPT_MODEL || "chatgpt";
+const MODEL = process.env.CHATGPT_MODEL || "auto";
 const POLL_MS = Math.max(1000, Number(process.env.GROWTH_POLL_MS || 4000));
+const RUN_ONCE = process.env.GROWTH_RUN_ONCE === "1";
+
+function assertLocalBridge(urlText) {
+  let url;
+  try {
+    url = new URL(urlText);
+  } catch {
+    throw new Error("CHATGPT_BRIDGE_URL must be a valid URL");
+  }
+  const host = url.hostname.toLowerCase();
+  const loopback =
+    host === "127.0.0.1" ||
+    host === "localhost" ||
+    host === "::1" ||
+    host === "[::1]";
+  if (!loopback) {
+    throw new Error("CHATGPT_BRIDGE_URL must stay on localhost/loopback");
+  }
+  if (url.protocol !== "http:" && url.protocol !== "https:") {
+    throw new Error("CHATGPT_BRIDGE_URL must use http or https");
+  }
+}
+
+assertLocalBridge(BRIDGE_URL);
 
 function sleep(ms) {
   return new Promise((resolve) => setTimeout(resolve, ms));
@@ -225,12 +249,17 @@ async function main() {
 
       const job = claim.job;
       if (!job) {
+        if (RUN_ONCE) {
+          console.log("[idle] no pending job");
+          return;
+        }
         await sleep(POLL_MS);
         continue;
       }
 
       console.log(`[claimed] ${job.id} ${job.task_type}`);
       await processJob(job);
+      if (RUN_ONCE) return;
     } catch (error) {
       console.error("[poll-error]", error instanceof Error ? error.message : error);
       await sleep(POLL_MS);
