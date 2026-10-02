@@ -782,3 +782,168 @@ revoke all on function public.growth_personal_artifacts_snapshot_service_v1(uuid
 revoke all on function public.growth_personal_artifact_decide_service_v1(uuid,uuid,text) from public,anon,authenticated;
 grant execute on function public.growth_personal_artifacts_snapshot_service_v1(uuid) to service_role;
 grant execute on function public.growth_personal_artifact_decide_service_v1(uuid,uuid,text) to service_role;
+
+
+-- Path-plan context relevance refresh
+-- Production already applied. Route-specific source_evidence is included in the
+-- Context Pack and takes precedence over unrelated general Synapse history.
+
+create or replace function growth_control.ai_job_enqueue_path_plan_v1(
+  p_person_id uuid,
+  p_route_id uuid
+)
+returns jsonb
+language plpgsql
+security definer
+set search_path to ''
+as $function$
+declare
+  v_route growth_control.personal_outcome_routes%rowtype;
+  v_job growth_control.ai_jobs%rowtype;
+  v_inserted_id uuid;
+  v_requeue jsonb;
+  v_requeued boolean := false;
+  v_context jsonb;
+  v_instruction text;
+  v_input text;
+begin
+  select * into v_route
+  from growth_control.personal_outcome_routes
+  where id=p_route_id
+    and person_id=p_person_id
+    and project_key='growth-brain'
+    and status in ('candidate','selected')
+  limit 1;
+
+  if not found then
+    return jsonb_build_object('accepted',false,'reason','personal_route_not_found');
+  end if;
+
+  v_context := jsonb_build_object(
+    'route',jsonb_build_object(
+      'id',v_route.id,
+      'route_key',v_route.route_key,
+      'title',v_route.title,
+      'success_evidence',v_route.success_evidence,
+      'why_now',v_route.why_now,
+      'direction_key',v_route.direction_key,
+      'status',v_route.status,
+      'version',v_route.version,
+      'source_evidence',v_route.source_evidence
+    ),
+    'context_relevance_policy',jsonb_build_object(
+      'highest_priority','route.source_evidence.prior_confirmed_project_context',
+      'use_general_learning_only_when_directly_relevant',true,
+      'ignore_unrelated_synapse_for_route_planning',true,
+      'confirmed_context_is_not_completion_evidence',true
+    ),
+    'recent_real_progress',growth_control.recent_real_progress_v1(p_person_id,'growth-brain',8),
+    'learning_evidence',growth_control.learning_state_evidence_audit_v1(p_person_id),
+    'personal_synapse',growth_control.personal_synapse_snapshot_v2(p_person_id,'growth-brain',12)
+  );
+
+  v_instruction :=
+'你是 Growth Brain 的產品流程架構師、學習路徑設計員與作品規劃員共同工作。
+只根據提供的資料庫 Context Pack 與使用者目標做候選規劃，不得把 AI 推測寫成已掌握能力。
+請用繁體中文，輸出純 JSON，不要 Markdown code fence。
+Context Pack 中 route.source_evidence.prior_confirmed_project_context 是使用者先前已確認的專案背景，優先於一般 Synapse；但它不是完成證據。
+personal_synapse 與 learning_evidence 可能包含其他主題，只在與目前 route 直接相關時使用，不要為了湊技能而硬套。
+規則：
+1. 區分長期底層能力與容易因技術更新而替換的工具能力。
+2. 技能掌握程度只能在有直接證據時估計；證據不足請標 unknown。
+3. 現在只選一件最值得做、可以驗證完整流程的階段作品。
+4. 下一階段只列候選分支，不提前固定整條路。
+5. 完成標準必須是可觀察證據。
+6. 已確認背景只用來避免重問與重做，不能當成已完成成果。
+7. 需要新技術資訊時標記 needs_fresh_research=true。
+JSON schema:
+{"goal_interpretation":"...","core_capabilities":[],"tool_capabilities":[],"current_artifact":{"title":"...","objective":"...","deliverable":"...","done_evidence":[],"skills_tested":[],"estimated_scope":"small|medium|large"},"learning_focus":[],"possible_next_branches":[],"assumptions":[],"needs_fresh_research":false}';
+
+  v_input := '請依照 Context Pack 產生目前階段的候選路徑與作品。'
+             || E'\n\nContext Pack:\n'
+             || v_context::text;
+
+  insert into growth_control.ai_jobs(
+    person_id,project_key,source_kind,source_ref,data_scope,
+    task_type,task_payload,provider_key,status,provenance,idempotency_key
+  ) values (
+    v_route.person_id,
+    v_route.project_key,
+    'personal_outcome',
+    'personal-outcome:'||v_route.id::text,
+    'real',
+    'path_plan',
+    jsonb_build_object(
+      'route_id',v_route.id,
+      'route_version',v_route.version,
+      'instruction',v_instruction,
+      'input',v_input,
+      'context_pack',v_context,
+      'employee_plan',jsonb_build_array(
+        'product-flow-architect',
+        'learning-path-designer',
+        'artifact-planner',
+        'impeccable-review-later'
+      ),
+      'response_schema','path-plan-v1',
+      'constraints',jsonb_build_array(
+        'candidate_only',
+        'traditional_chinese_first',
+        'evidence_before_mastery',
+        'one_current_artifact',
+        'future_branches_not_committed',
+        'confirmed_context_is_not_completion',
+        'ignore_unrelated_general_memory'
+      )
+    ),
+    null,
+    'pending',
+    jsonb_build_object(
+      'source','personal_route_real_input',
+      'route_id',v_route.id,
+      'route_version',v_route.version,
+      'context_source','supabase'
+    ),
+    'path-plan:'||v_route.id::text||':v'||v_route.version::text
+  )
+  on conflict(person_id,project_key,idempotency_key) do nothing
+  returning id into v_inserted_id;
+
+  select * into v_job
+  from growth_control.ai_jobs
+  where person_id=v_route.person_id
+    and project_key=v_route.project_key
+    and idempotency_key='path-plan:'||v_route.id::text||':v'||v_route.version::text
+  order by created_at desc
+  limit 1;
+
+  if v_job.status='failed' then
+    v_requeue:=growth_control.ai_job_transition_v1(
+      v_job.id,'pending','failed',null,v_job.provider_key,null,'{}'::jsonb,null
+    );
+    if coalesce((v_requeue->>'accepted')::boolean,false) then
+      v_requeued:=true;
+      select * into v_job
+      from growth_control.ai_jobs
+      where id=v_job.id;
+    end if;
+  end if;
+
+  return jsonb_build_object(
+    'accepted',true,
+    'created',v_inserted_id is not null,
+    'requeued',v_requeued,
+    'idempotent',v_inserted_id is null and not v_requeued,
+    'job',jsonb_build_object(
+      'id',v_job.id,
+      'status',v_job.status,
+      'task_type',v_job.task_type,
+      'provider_key',v_job.provider_key,
+      'attempt_no',v_job.attempt_no,
+      'source_ref',v_job.source_ref,
+      'created_at',v_job.created_at,
+      'updated_at',v_job.updated_at
+    )
+  );
+end;
+$function$;
