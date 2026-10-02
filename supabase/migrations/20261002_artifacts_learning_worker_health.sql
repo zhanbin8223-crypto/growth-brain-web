@@ -947,3 +947,407 @@ JSON schema:
   );
 end;
 $function$;
+
+
+-- Artifact completion and evidence-driven replanning
+-- Production applied and rollback-verified on 2026-10-02.
+-- AI may suggest the next artifact, but only user-submitted evidence can complete
+-- the current artifact or promote a skill to real_project evidence.
+
+create or replace function growth_control.personal_artifacts_snapshot_v1(
+  p_person_id uuid,
+  p_project_key text default 'growth-brain'
+)
+returns jsonb
+language sql
+stable
+set search_path to 'growth_control','public'
+as $function$
+with a as (
+  select pa.*,
+    coalesce((
+      select jsonb_agg(jsonb_build_object(
+        'skill_key',s.skill_key,
+        'name_zh',s.name_zh,
+        'skill_kind',s.skill_kind,
+        'why',s.why,
+        'freshness_sensitive',s.freshness_sensitive,
+        'ai_suggested_state',s.ai_suggested_state,
+        'evidence_state',s.evidence_state,
+        'evidence_coverage',s.evidence_coverage,
+        'confidence',s.confidence,
+        'evidence_refs',s.evidence_refs,
+        'minimum_needed_now',s.minimum_needed_now
+      ) order by s.skill_kind,s.name_zh)
+      from growth_control.artifact_skill_targets s
+      where s.artifact_id=pa.id
+    ),'[]'::jsonb) as skills,
+    coalesce((
+      select jsonb_agg(jsonb_build_object(
+        'link_kind',l.link_kind,
+        'target_ref',l.target_ref,
+        'relation',l.relation,
+        'metadata',l.metadata
+      ) order by l.created_at)
+      from growth_control.artifact_context_links l
+      where l.artifact_id=pa.id
+    ),'[]'::jsonb) as links
+  from growth_control.personal_artifacts pa
+  where pa.person_id=p_person_id
+    and pa.project_key=p_project_key
+),
+next_job as (
+  select j.*
+  from growth_control.ai_jobs j
+  where j.person_id=p_person_id
+    and j.project_key=p_project_key
+    and j.data_scope='real'
+    and j.task_type='path_plan'
+    and j.source_kind='personal_artifact'
+  order by j.created_at desc
+  limit 1
+)
+select jsonb_build_object(
+  'sv','personal-artifacts-v2',
+  'current',(
+    select to_jsonb(x)-'person_id'-'project_key'
+    from a x
+    where status='current'
+    order by started_at desc nulls last,created_at desc
+    limit 1
+  ),
+  'candidate',(
+    select to_jsonb(x)-'person_id'-'project_key'
+    from a x
+    where status='candidate'
+    order by created_at desc
+    limit 1
+  ),
+  'history',coalesce((
+    select jsonb_agg(to_jsonb(x)-'person_id'-'project_key' order by sequence_no desc)
+    from a x
+    where status in ('completed','abandoned','rejected')
+  ),'[]'::jsonb),
+  'next_plan_job',(
+    select jsonb_build_object(
+      'id',id,
+      'status',status,
+      'attempt_no',attempt_no,
+      'source_ref',source_ref,
+      'provider_key',provider_key,
+      'error',case when status='failed' then error else null end,
+      'created_at',created_at,
+      'updated_at',updated_at,
+      'completed_at',completed_at
+    )
+    from next_job
+  ),
+  'policy',jsonb_build_object(
+    'ai_result_creates_candidate_only',true,
+    'single_current_artifact',true,
+    'skill_evidence_state_not_promoted_by_ai',true,
+    'evidence_coverage_requires_real_evidence',true,
+    'artifact_completion_requires_user_evidence',true,
+    'completed_artifact_enqueues_next_candidate',true
+  )
+);
+$function$;
+
+create or replace function growth_control.ai_job_enqueue_artifact_replan_v1(
+  p_person_id uuid,
+  p_artifact_id uuid
+)
+returns jsonb
+language plpgsql
+security definer
+set search_path to ''
+as $function$
+declare
+  v_artifact growth_control.personal_artifacts%rowtype;
+  v_route growth_control.personal_outcome_routes%rowtype;
+  v_context jsonb;
+  v_instruction text;
+  v_input text;
+  v_job growth_control.ai_jobs%rowtype;
+  v_inserted_id uuid;
+begin
+  select * into v_artifact
+  from growth_control.personal_artifacts
+  where id=p_artifact_id
+    and person_id=p_person_id
+    and project_key='growth-brain'
+    and status='completed'
+  limit 1;
+
+  if not found then
+    return jsonb_build_object('accepted',false,'reason','completed_artifact_required');
+  end if;
+
+  select * into v_route
+  from growth_control.personal_outcome_routes
+  where id=v_artifact.route_id
+    and person_id=p_person_id
+    and project_key='growth-brain'
+    and status='selected'
+  limit 1;
+
+  if not found then
+    return jsonb_build_object('accepted',false,'reason','selected_route_required');
+  end if;
+
+  v_context := jsonb_build_object(
+    'context_version','artifact-replan-context-v1',
+    'route',jsonb_build_object(
+      'id',v_route.id,
+      'route_key',v_route.route_key,
+      'title',v_route.title,
+      'success_evidence',v_route.success_evidence,
+      'why_now',v_route.why_now,
+      'direction_key',v_route.direction_key,
+      'status',v_route.status,
+      'version',v_route.version,
+      'source_evidence',v_route.source_evidence
+    ),
+    'artifact_history',growth_control.personal_artifacts_snapshot_v1(p_person_id,'growth-brain'),
+    'completed_artifact',jsonb_build_object(
+      'id',v_artifact.id,
+      'sequence_no',v_artifact.sequence_no,
+      'title',v_artifact.title,
+      'objective',v_artifact.objective,
+      'deliverable',v_artifact.deliverable,
+      'result',v_artifact.result,
+      'result_evidence',v_artifact.result_evidence,
+      'completed_at',v_artifact.completed_at
+    ),
+    'recent_real_progress',growth_control.recent_real_progress_v1(p_person_id,'growth-brain',5),
+    'learning_evidence',growth_control.learning_state_evidence_audit_v1(p_person_id),
+    'personal_synapse',growth_control.personal_synapse_snapshot_v2(p_person_id,'growth-brain',12),
+    'selection_rule',jsonb_build_object(
+      'previous_artifact_result_first',true,
+      'prior_confirmed_context_is_constraint_not_completion',true,
+      'unrelated_memory_may_be_ignored',true,
+      'next_artifact_must_be_one_stage_only',true
+    )
+  );
+
+  v_instruction :=
+'你是 Growth Brain 的產品流程架構師、學習路徑設計員與作品規劃員共同工作。
+這次不是第一次規劃；上一件作品已完成。請優先使用 completed_artifact 的結果與證據，重新判斷下一件最值得做的作品。
+route.source_evidence.prior_confirmed_project_context 是使用者已確認的需求與限制，但不是完成證據。
+不要因為上一件作品完成就假設所有技能都掌握；只把已驗證證據當能力基線。
+請用繁體中文，輸出純 JSON，不要 Markdown code fence。
+規則：
+1. 只產生一件下一階段候選作品。
+2. 下一件作品必須由上一件作品結果、目前技能證據與主線目標推導。
+3. 若上一件作品暴露新缺口，learning_focus 只列現在需要補的部分。
+4. 未來分支只列候選條件，不寫成正式路線。
+5. 完成標準必須可觀察。
+6. 需要最新工具／技術資料時標記 needs_fresh_research=true。
+JSON schema:
+{"goal_interpretation":"...","core_capabilities":[],"tool_capabilities":[],"current_artifact":{"title":"...","objective":"...","deliverable":"...","done_evidence":[],"skills_tested":[],"estimated_scope":"small|medium|large"},"learning_focus":[],"possible_next_branches":[],"assumptions":[],"needs_fresh_research":false}';
+
+  v_input := '請依照上一件已完成作品與 Context Pack，產生下一件候選作品。'
+             || E'\n\nContext Pack:\n'
+             || v_context::text;
+
+  insert into growth_control.ai_jobs(
+    person_id,project_key,source_kind,source_ref,data_scope,
+    task_type,task_payload,provider_key,status,provenance,idempotency_key
+  ) values (
+    p_person_id,
+    'growth-brain',
+    'personal_artifact',
+    'artifact:'||v_artifact.id::text,
+    'real',
+    'path_plan',
+    jsonb_build_object(
+      'route_id',v_route.id,
+      'route_version',v_route.version,
+      'source_artifact_id',v_artifact.id,
+      'instruction',v_instruction,
+      'input',v_input,
+      'context_pack',v_context,
+      'employee_plan',jsonb_build_array(
+        'product-flow-architect',
+        'learning-path-designer',
+        'artifact-planner',
+        'impeccable-review-later'
+      ),
+      'response_schema','path-plan-v1',
+      'constraints',jsonb_build_array(
+        'candidate_only',
+        'traditional_chinese_first',
+        'evidence_before_mastery',
+        'one_current_artifact',
+        'future_branches_not_committed',
+        'based_on_completed_artifact'
+      )
+    ),
+    null,
+    'pending',
+    jsonb_build_object(
+      'source','completed_personal_artifact',
+      'route_id',v_route.id,
+      'artifact_id',v_artifact.id,
+      'context_source','supabase'
+    ),
+    'artifact-replan:'||v_artifact.id::text
+  )
+  on conflict(person_id,project_key,idempotency_key) do nothing
+  returning id into v_inserted_id;
+
+  select * into v_job
+  from growth_control.ai_jobs
+  where person_id=p_person_id
+    and project_key='growth-brain'
+    and idempotency_key='artifact-replan:'||v_artifact.id::text
+  order by created_at desc
+  limit 1;
+
+  return jsonb_build_object(
+    'accepted',true,
+    'created',v_inserted_id is not null,
+    'idempotent',v_inserted_id is null,
+    'job',jsonb_build_object(
+      'id',v_job.id,
+      'status',v_job.status,
+      'task_type',v_job.task_type,
+      'source_ref',v_job.source_ref,
+      'created_at',v_job.created_at
+    )
+  );
+end;
+$function$;
+
+create or replace function growth_control.personal_artifact_complete_v1(
+  p_person_id uuid,
+  p_artifact_id uuid,
+  p_result_text text,
+  p_result_evidence jsonb,
+  p_demonstrated_skill_keys text[] default '{}'::text[]
+)
+returns jsonb
+language plpgsql
+security definer
+set search_path to ''
+as $function$
+declare
+  v_artifact growth_control.personal_artifacts%rowtype;
+  v_evidence jsonb := coalesce(p_result_evidence,'{}'::jsonb);
+  v_completed_at timestamptz := now();
+  v_next_job jsonb;
+  v_key text;
+begin
+  select * into v_artifact
+  from growth_control.personal_artifacts
+  where id=p_artifact_id
+    and person_id=p_person_id
+    and project_key='growth-brain'
+  for update;
+
+  if not found then
+    return jsonb_build_object('accepted',false,'reason','artifact_not_found');
+  end if;
+
+  if v_artifact.status <> 'current' then
+    return jsonb_build_object('accepted',false,'reason','current_artifact_required');
+  end if;
+
+  if length(btrim(coalesce(p_result_text,''))) < 3 then
+    return jsonb_build_object('accepted',false,'reason','result_text_required');
+  end if;
+
+  if jsonb_typeof(v_evidence) <> 'object'
+     or jsonb_typeof(v_evidence->'items') <> 'array'
+     or jsonb_array_length(v_evidence->'items') = 0 then
+    return jsonb_build_object('accepted',false,'reason','nonempty_evidence_items_required');
+  end if;
+
+  update growth_control.personal_artifacts
+  set
+    status='completed',
+    result=jsonb_build_object(
+      'summary',btrim(p_result_text),
+      'submitted_by','primary_user',
+      'submitted_at',v_completed_at
+    ),
+    result_evidence=v_evidence || jsonb_build_object(
+      'submitted_by','primary_user',
+      'submitted_at',v_completed_at
+    ),
+    completed_at=v_completed_at,
+    updated_at=v_completed_at
+  where id=p_artifact_id;
+
+  foreach v_key in array coalesce(p_demonstrated_skill_keys,'{}'::text[])
+  loop
+    update growth_control.artifact_skill_targets
+    set
+      evidence_state=case
+        when evidence_state='commercialized' then evidence_state
+        else 'real_project'
+      end,
+      evidence_refs=coalesce(evidence_refs,'[]'::jsonb) || jsonb_build_array(
+        jsonb_build_object(
+          'type','real_project',
+          'artifact_id',p_artifact_id,
+          'source','user_confirmed_artifact_completion',
+          'completed_at',v_completed_at
+        )
+      ),
+      updated_at=v_completed_at
+    where artifact_id=p_artifact_id
+      and skill_key=v_key;
+  end loop;
+
+  v_next_job:=growth_control.ai_job_enqueue_artifact_replan_v1(
+    p_person_id,
+    p_artifact_id
+  );
+
+  return jsonb_build_object(
+    'accepted',true,
+    'artifact_id',p_artifact_id,
+    'status','completed',
+    'completed_at',v_completed_at,
+    'demonstrated_skill_keys',to_jsonb(coalesce(p_demonstrated_skill_keys,'{}'::text[])),
+    'next_plan_job',v_next_job
+  );
+end;
+$function$;
+
+create or replace function public.growth_personal_artifact_complete_service_v1(
+  p_auth_user_id uuid,
+  p_artifact_id uuid,
+  p_result_text text,
+  p_result_evidence jsonb,
+  p_demonstrated_skill_keys text[] default '{}'::text[]
+)
+returns jsonb
+language plpgsql
+security definer
+set search_path to 'public','growth_control','auth'
+as $function$
+declare
+  v_person_id uuid;
+begin
+  v_person_id:=growth_control.resolve_single_user_v1(p_auth_user_id);
+
+  if v_person_id is null then
+    return jsonb_build_object('accepted',false,'reason','not_verified_primary_user');
+  end if;
+
+  return growth_control.personal_artifact_complete_v1(
+    v_person_id,
+    p_artifact_id,
+    p_result_text,
+    p_result_evidence,
+    p_demonstrated_skill_keys
+  );
+end;
+$function$;
+
+revoke all on function public.growth_personal_artifact_complete_service_v1(uuid,uuid,text,jsonb,text[])
+  from public,anon,authenticated;
+grant execute on function public.growth_personal_artifact_complete_service_v1(uuid,uuid,text,jsonb,text[])
+  to service_role;
