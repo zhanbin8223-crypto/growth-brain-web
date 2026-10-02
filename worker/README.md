@@ -3,7 +3,7 @@
 目前正式推薦的 Worker：
 
 - `chatgpt-browser-worker.mjs` — **正式主線**。直接使用 OpenCLI Browser 驅動你已登入的 Chrome ChatGPT；這就是先前真正成功過的路徑。
-- `chatgpt-browser-worker.mjs` — 實驗備援，使用 OpenCLI 的 ChatGPT macOS 桌面 App adapter；不是目前 Web 驗證主線。
+- `chatgpt-opencli-worker.mjs` — 實驗備援，使用 OpenCLI 的 ChatGPT macOS 桌面 App adapter；不是目前 Web 驗證主線。
 - `chatgpt-web-worker.mjs` — HTTP bridge 備援，需要另外存在 localhost OpenAI-compatible bridge。
 
 ## 正式資料流
@@ -62,11 +62,15 @@ GROWTH_CHATGPT_CONVERSATION_TITLE="Growth Brain Worker"
 # 若要完全鎖死特定 conversation，可額外設定：
 # GROWTH_CHATGPT_CONVERSATION_URL="https://chatgpt.com/c/<conversation-id>"
 
-GROWTH_WORKER_ID="mac-opencli-growthbrain"
+GROWTH_WORKER_ID="mac-opencli-browser-growthbrain"
 GROWTH_PROVIDER_KEY="chatgpt_web_opencli"
 GROWTH_POLL_MS="4000"
 GROWTH_HEARTBEAT_MS="15000"
 GROWTH_CHATGPT_TIMEOUT_MS="240000"
+
+# launchd PATH 很精簡；可選擇明確指定：
+# OPENCLI_BIN="/opt/homebrew/bin/opencli"
+# NODE_BIN="/opt/homebrew/bin/node"
 ```
 
 建議權限：
@@ -84,7 +88,7 @@ zsh worker/run-opencli-worker.command
 只跑一筆：
 
 ```bash
-GROWTH_RUN_ONCE=1 ./worker/run-opencli-worker.command
+GROWTH_RUN_ONCE=1 zsh worker/run-opencli-worker.command
 ```
 
 ## macOS 自動啟動
