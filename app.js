@@ -381,142 +381,135 @@ async function renderSynapse(){
 
 async function renderSystem(){
   const root=$('#view-ceo');
-  root.innerHTML='<div class="empty">正在載入系統與員工狀態…</div>';
-  if(!SYSTEM){
-    try{SYSTEM=await A.getSystemCockpit();}
-    catch(e){SYSTEM={error:e.code||e.message}}
-  }
+  root.innerHTML='<div class="empty">正在讀取系統狀態與 AI 團隊…</div>';
+  SYSTEM=null;
+  try{SYSTEM=await A.getSystemCockpit();}catch(e){SYSTEM={error:e.code||e.message}}
   if(SYSTEM?.error){
-    root.innerHTML=`<div class="empty">系統狀態讀取失敗：${esc(SYSTEM.error)}<br>其他個人頁面仍可繼續使用。</div>`;
+    root.innerHTML=`<div class="empty">系統狀態讀取失敗：${esc(SYSTEM.error)}。這不會影響個人作品與學習資料。</div>`;
     return;
   }
 
-  const legacy=SYSTEM?.ceo||{};
+  const ceo=SYSTEM?.ceo||{};
   const latest=SYSTEM?.ceo_latest||{};
-  const cur=latest.current||legacy.current||{};
-  const next=latest.next_action||legacy.next_action||{};
-  const runtime=latest.runtime_truth||{};
-  const pkgs=Array.isArray(SYSTEM?.work_queue?.packages)?SYSTEM.work_queue.packages:[];
+  const cur=latest.current||ceo.current||{};
+  const pkgs=SYSTEM?.work_queue?.packages||[];
   const team=SYSTEM?.skill_team||{};
-  const roles=Array.isArray(team.executable_roles)?team.executable_roles:[];
-  const planned=Array.isArray(team.planned_roles)?team.planned_roles:[];
-  const usage=Array.isArray(team.recent_usage)?team.recent_usage:[];
-  const activePkgs=[...pkgs]
-    .filter(p=>['in_progress','blocked','ready'].includes(String(p.status||'')))
-    .sort((a,b)=>new Date(b.updated_at||0)-new Date(a.updated_at||0));
-  const packageBlockers=activePkgs.flatMap(p=>(Array.isArray(p.blockers)?p.blockers:[]).map(b=>({...b,package_title:p.title,package_key:p.package_key})));
+  const roles=team.executable_roles||[];
+  const planned=team.planned_roles||[];
+  const recentUsage=team.recent_usage||[];
 
-  const statusLabel=s=>({
-    in_progress:'正在執行',
-    blocked:'受阻',
-    ready:'待開始',
-    completed:'已完成',
-    cancelled:'已取消',
-    candidate:'候選試用',
-    active:'可調用',
-    planned:'候選／尚未接入',
-    installed:'已安裝',
-    builtin:'內建'
-  }[String(s||'').toLowerCase()]||statusText(s||'unknown'));
-
-  const roleInfo={
-    'ceo-orchestrator':['CEO／總控','CEO Orchestrator','讀取目前目標與系統狀態，選主線、分工、取捨並做最後驗收。'],
-    'goal-closure-operator':['達案執行官','Goal Closure Operator','從目前狀態一路推進到驗收，不把「做完一小步」當成整個目標完成。'],
-    'logic-reality-analyst':['邏輯／真實性分析員','Logic & Reality Analyst','檢查真實資料、測試資料與系統資料有沒有混在一起，避免過度擬合與假進展。'],
-    'safe-sql-execution':['資料庫安全工程師','DB Safety Engineer','資料庫修改前後做安全檢查，避免權限、資料污染與高風險 SQL。'],
-    'supabase-engineer':['Supabase 後端工程師','Supabase Engineer','處理資料庫、登入、雲端函式、權限與網站後端資料流。'],
-    'postgres-safety-reviewer':['Postgres 安全審查員','Postgres Safety Reviewer','獨立檢查資料表、函式、權限與效能，避免後端改動留下漏洞。'],
-    'work-browser-qa':['瀏覽器驗收員','Browser QA','用真實瀏覽器檢查登入、手機版、重新整理、操作流程與錯誤狀態。'],
-    'github-operator':['GitHub 版本管理員','GitHub Operator','讀寫正式網站程式、提交版本、保留部署與修改證據。'],
-    'work-web-operator':['網站實作工程師','Web Implementer','負責網站程式、建置、部署與需要實際執行環境的修改。'],
-    'plugin-resource-scout':['工具／資源偵察員','Resource Scout','需要外部工具或服務時，先找目前可用資源與連接方式。'],
-    'product-flow-architect':['產品流程架構師','Product Flow Architect','把目標、作品、證據、學習與下一步串成使用者看得懂的完整流程。'],
-    'impeccable':['介面設計審查員','Impeccable Design Reviewer','檢查資訊層級、認知負擔、文案、術語、手機版與視覺一致性。'],
-    'frontend-design-lead':['前端視覺設計主管','Frontend Design Lead','在產品流程穩定後建立正式視覺方向、版面規則與設計系統。'],
-    'synapse-visualization-specialist':['知識連結視覺化員工','Synapse Visualization Specialist','把來源、概念、證據與作品關係做成可理解、可互動的視覺圖。'],
-    'interview-me':['需求訪談官','Requirements Interviewer','只有關鍵需求真的不清楚時才補問，避免重複問已經知道的事情。'],
-    'evaluation':['員工考核官','Employee Evaluator','比較同類員工的實用度、返工、越界與缺陷，協助汰換低分重複角色。']
+  const roleNames={
+    'ceo-orchestrator':'Growth Brain CEO（總控）',
+    'goal-closure-operator':'Goal Closure Operator（達案執行官）',
+    'logic-reality-analyst':'Logic & Reality Analyst（邏輯／真實性分析員）',
+    'safe-sql-execution':'DB Safety Engineer（資料庫安全工程師）',
+    'supabase-engineer':'Supabase Engineer（Supabase 後端工程師）',
+    'postgres-safety-reviewer':'Postgres Safety Reviewer（資料庫安全審查員）',
+    'work-browser-qa':'Browser QA（瀏覽器驗收員）',
+    'github-operator':'GitHub Operator（GitHub 操作員）',
+    'work-web-operator':'Web Implementer（網站實作員）',
+    'plugin-resource-scout':'Resource Scout（工具／資源偵查員）',
+    'product-flow-architect':'Product Flow Architect（產品流程架構師）',
+    'impeccable':'Impeccable Reviewer（介面審查員）',
+    'frontend-design-lead':'Frontend Design Lead（前端視覺設計主管）',
+    'synapse-visualization-specialist':'Knowledge Map Visualizer（知識連結視覺化員工）',
+    'interview-me':'Requirement Interviewer（需求訪談官）',
+    'architect':'System Architect（系統架構師）',
+    'evaluation':'Employee Evaluator（員工考核官）'
   };
-  const describeRole=r=>{
-    const info=roleInfo[r.skill_key]||[r.role_name||human(r.skill_key),human(r.skill_key),r.trigger_summary||'依任務需要調用。'];
-    return {zh:info[0],en:info[1],desc:info[2]};
+  const roleDescriptions={
+    'ceo-orchestrator':'讀取目前狀態、決定唯一主線、分派員工與最後驗收。',
+    'goal-closure-operator':'把卡住的工作推到可驗證完成，不讓任務只停在規劃。',
+    'logic-reality-analyst':'檢查推論是否有證據、是否把測試資料誤當真實進展。',
+    'safe-sql-execution':'保護資料庫寫入，避免危險 SQL 或權限外洩。',
+    'supabase-engineer':'負責 Supabase、資料契約、Edge Function、權限與 AI 任務佇列。',
+    'postgres-safety-reviewer':'獨立檢查資料庫權限、RLS 與 SQL 風險。',
+    'work-browser-qa':'用真實瀏覽器檢查登入、互動與手機／桌面顯示。',
+    'github-operator':'讀寫 GitHub 正式來源、版本與部署相關檔案。',
+    'work-web-operator':'實作前端頁面、互動與整合。',
+    'plugin-resource-scout':'找目前缺少的外部工具或可接入資源。',
+    'product-flow-architect':'把目標、作品、技能、學習、證據與下一步排成可理解流程。',
+    'impeccable':'檢查資訊層級、術語、文案、認知負擔與介面清晰度。',
+    'frontend-design-lead':'流程穩定後，建立正式視覺方向與設計系統。',
+    'synapse-visualization-specialist':'把來源、概念、證據與作品做成可互動知識關係圖。',
+    'interview-me':'只有需求真的缺關鍵資訊時才追問，不重問已知內容。',
+    'architect':'處理大型資料流、模組邊界與長期架構。',
+    'evaluation':'比較重複員工的實際成績，低分且無獨特能力者退役。'
+  };
+  const roleCard=(r,kind='active')=>{
+    const key=r.skill_key||'';
+    const name=roleNames[key]||r.role_name||human(key);
+    const desc=r.trigger_summary||roleDescriptions[key]||'依任務需要調用。';
+    const state=kind==='active'?'可直接調用':'候選／試用';
+    const cls=kind==='active'?'success':'warn';
+    return `<article class="surface"><div class="row-between"><div><b>${esc(name)}</b><div class="muted">技術代號：${esc(key)}</div></div><span class="pill ${cls}">${state}</span></div><p>${esc(desc)}</p></article>`;
   };
 
-  const roleCards=roles.map(r=>{
-    const d=describeRole(r);
-    return `<article class="surface"><div class="row-between"><div><b>${esc(d.zh)}</b><small class="muted"> · ${esc(d.en)}</small></div><span class="pill success">可調用</span></div><p>${esc(d.desc)}</p></article>`;
-  }).join('');
+  const packageStatus=s=>{
+    const x=String(s||'');
+    if(x==='completed')return {label:'已完成',cls:'success'};
+    if(x==='in_progress'||x==='current')return {label:'進行中',cls:'warn'};
+    if(x.includes('pending'))return {label:'已實作，待驗收',cls:'warn'};
+    if(x==='blocked')return {label:'受阻',cls:'danger'};
+    return {label:statusText(x||'planned'),cls:''};
+  };
+
+  const packageBlockers=pkgs.flatMap(p=>{
+    const list=Array.isArray(p.blockers)?p.blockers:[];
+    return list.map(b=>({...b,package_title:p.title,package_key:p.package_key}));
+  });
+  const oldBlockers=ceo.parallel_blockers||[];
+  const blockers=packageBlockers.length?packageBlockers:oldBlockers;
 
   const importantCandidates=['product-flow-architect','impeccable','frontend-design-lead','synapse-visualization-specialist'];
-  const candidateCards=planned
-    .filter(r=>importantCandidates.includes(r.skill_key))
-    .sort((a,b)=>importantCandidates.indexOf(a.skill_key)-importantCandidates.indexOf(b.skill_key))
-    .map(r=>{
-      const d=describeRole(r);
-      return `<article class="surface"><div class="row-between"><div><b>${esc(d.zh)}</b><small class="muted"> · ${esc(d.en)}</small></div><span class="pill warn">候選試用</span></div><p>${esc(d.desc)}</p><small class="muted">目前已登記在員工庫；需要對應任務時才試用，不會因為存在就每次都載入。</small></article>`;
-    }).join('');
+  const currentCandidates=planned.filter(r=>importantCandidates.includes(r.skill_key));
+  const otherCandidates=planned.filter(r=>!importantCandidates.includes(r.skill_key));
 
-  const usageCards=usage.slice(0,6).map(u=>{
-    const d=roleInfo[u.skill_key]||[human(u.skill_key),human(u.skill_key),''];
-    return `<div class="surface"><div class="row-between"><b>${esc(d[0])}</b><span class="pill success">實用度 ${esc(u.usefulness??'-')}/5</span></div><p>${esc(u.notes||'')}</p><small class="muted">返工 ${esc(u.rework_count??0)} · 越界 ${esc(u.scope_violations??0)} · 找到缺陷 ${esc(u.defects_found??0)}</small></div>`;
-  }).join('');
-
-  const packageCards=activePkgs.slice(0,5).map((p,i)=>{
-    const blockers=Array.isArray(p.blockers)?p.blockers:[];
+  const packageHtml=pkgs.map(p=>{
+    const st=packageStatus(p.status);
     const steps=Array.isArray(p.steps)?p.steps:[];
-    const currentStep=steps.find(s=>['current','in_progress','implemented_pending_real_result'].includes(String(s.status||'')))||steps.find(s=>String(s.status||'')!=='completed')||null;
-    const cls=p.status==='blocked'?'danger':p.status==='in_progress'?'warn':'';
+    const done=steps.filter(s=>s.status==='completed').length;
+    const currentSteps=steps.filter(s=>['current','in_progress','implemented_pending_real_result'].includes(s.status));
     return `<article class="surface">
-      <div class="row-between"><div><span class="kicker">${i===0?'最近更新':'工作包'}</span><h3>${esc(p.title||human(p.package_key))}</h3></div><span class="pill ${cls}">${esc(statusLabel(p.status))}</span></div>
+      <div class="row-between"><div><span class="kicker">工作包</span><h3 style="margin:6px 0 0">${esc(p.title||p.package_key)}</h3></div><span class="pill ${st.cls}">${esc(st.label)}</span></div>
       <p>${esc(p.objective||'')}</p>
-      ${currentStep?`<div class="evidence-box"><b>目前做到</b><span>${esc(currentStep.title||currentStep.goal||currentStep.action||human(currentStep.key))}</span></div>`:''}
-      ${blockers.length?`<div class="evidence-box"><b>目前卡住</b><span>${esc(blockers[0].reason||blockers[0].code||'待處理')}</span></div>`:''}
-      <details><summary>查看工作包細節</summary><small class="muted">內部識別：${esc(p.package_key||'')}</small></details>
+      ${steps.length?`<div class="flow">${steps.map(s=>`<span title="${esc(s.title||'')}">${s.status==='completed'?'✓ ':['current','in_progress','implemented_pending_real_result'].includes(s.status)?'→ ':''}${esc(s.title||human(s.key))}</span>`).join('<i>›</i>')}</div><small class="muted">${done}/${steps.length} 個步驟已完成${currentSteps.length?` · 現在：${esc(currentSteps[0].title||'進行中')}`:''}</small>`:''}
     </article>`;
   }).join('');
 
-  const blockers=packageBlockers.slice(0,6);
-  const nextTitle=next.title||'目前沒有額外下一步';
-  const nextAction=next.action||'依最新工作包繼續執行。';
+  const usageHtml=recentUsage.slice(0,6).map(u=>`<div class="surface"><div class="row-between"><b>${esc(roleNames[u.skill_key]||u.skill_key)}</b><span class="pill success">實際使用 ${esc(u.usefulness??'-')}/5</span></div><p>${esc(u.notes||'')}</p><small class="muted">返工 ${esc(u.rework_count??0)} · 發現問題 ${esc(u.defects_found??0)} · 越界 ${esc(u.scope_violations??0)}</small></div>`).join('');
 
   root.innerHTML=`
-    <div class="section-head"><div><h2>系統現在在做什麼</h2><p>這裡只顯示第二大腦本身的建置與 AI 團隊，不混進你的個人成長首頁。</p></div>${pill(cur.status||'current')}</div>
+    <div class="section-head"><div><h2>系統建置與 AI 團隊</h2><p>這裡只看第二大腦本身怎麼運作、誰在做什麼、哪裡卡住；不會混進你的個人成長成果。</p></div>${pill(cur.status||'current')}</div>
 
-    <article class="hero-card">
-      <span class="kicker">${esc(cur.stage||'目前階段')}</span>
-      <h2>${esc(cur.title||'正在整理最新系統狀態')}</h2>
+    <article class="surface">
+      <span class="kicker">目前系統主線</span>
+      <h2 style="margin:8px 0">${esc(cur.title||'正在整理最新系統狀態')}</h2>
       <p>${esc(cur.objective||latest.reason||'')}</p>
-      <div class="evidence-box"><b>接下來</b><span>${esc(nextTitle)} — ${esc(nextAction)}</span></div>
+      ${latest.next_action?.action?`<div class="evidence-box"><b>下一個系統動作</b><span>${esc(latest.next_action.action)}</span></div>`:''}
     </article>
 
-    <div class="metrics">
-      <div><strong>${roles.length}</strong><span>可立即調用員工</span></div>
-      <div><strong>${activePkgs.length}</strong><span>進行中工作包</span></div>
-      <div><strong>${packageBlockers.length}</strong><span>目前阻塞</span></div>
+    <div class="section-head"><div><h2>GPT 與資料庫怎麼連起來</h2><p>GPT 負責推理；Supabase 負責長期狀態與證據。未來換 API 或本地模型，網站流程不需要重寫。</p></div></div>
+    <div class="surface">
+      <div class="flow"><span>網站輸入</span><i>›</i><span>Supabase 保存</span><i>›</i><span>AI 任務</span><i>›</i><span>本機執行器</span><i>›</i><span>GPT 網頁版／API</span><i>›</i><span>結果＋證據回寫</span><i>›</i><span>網站顯示</span></div>
+      <small class="muted">目前 GPT 網頁橋接已驗證；真實 path plan（路徑規劃）正在等待本機執行器取走。</small>
     </div>
 
-    <div class="section-head"><div><h2>AI 員工團隊</h2><p>CEO 依任務分工，不會每次把所有員工一起叫來。中文是角色名稱，英文是對應的技術／技能名稱。</p></div></div>
-    <div class="stack">${roleCards||'<div class="empty">目前沒有讀到可執行員工。</div>'}</div>
+    <div class="section-head"><div><h2>目前工作包</h2><p>工作包就是一組要一起完成、而且可以驗收的系統工作。</p></div><span>${pkgs.length} 個</span></div>
+    <div class="stack">${packageHtml||'<div class="empty">目前沒有工作包。</div>'}</div>
 
-    ${candidateCards?`<details class="surface"><summary><b>候選／試用員工</b></summary><p>這些已加入員工庫，但尚未視為正式可執行 Skill；有對應任務時才試用與評分。</p><div class="stack">${candidateCards}</div></details>`:''}
+    <div class="section-head"><div><h2>目前阻塞</h2><p>只列真正影響下一步的卡點，不把舊問題和已解掉的問題混在一起。</p></div><span>${blockers.length} 個</span></div>
+    <div class="stack">${blockers.map(b=>`<article class="surface"><div class="row-between"><b>${esc(b.package_title||b.title||'目前阻塞')}</b><span class="pill danger">待處理</span></div><p>${esc(b.reason||b.blocker?.reason||b.blocker||'')}</p>${b.next_action||b.blocker?.next_action?`<div class="evidence-box"><b>解除方式</b><span>${esc(b.next_action||b.blocker?.next_action)}</span></div>`:''}</article>`).join('')||'<div class="empty">目前沒有影響主線的阻塞。</div>'}</div>
 
-    <div class="section-head"><div><h2>最近的員工分工紀錄</h2><p>實際做過工作才留下評分；同類員工累積足夠樣本後才會進入淘汰比較。</p></div></div>
-    <div class="stack">${usageCards||'<div class="empty">目前還沒有員工使用紀錄。</div>'}</div>
+    <div class="section-head"><div><h2>現在可直接調用的員工</h2><p>這些角色可以直接參與任務；CEO 只在能力匹配時調用，不會每次全部叫上。</p></div><span>${roles.length} 人</span></div>
+    <div class="stack">${roles.map(r=>roleCard(r,'active')).join('')||'<div class="empty">目前沒有可執行角色。</div>'}</div>
 
-    <div class="section-head"><div><h2>工作包</h2><p>工作包是一組有明確完成條件的工作，不等於你的個人作品。最近更新的工作放最前面。</p></div></div>
-    <div class="stack">${packageCards||'<div class="empty">目前沒有進行中的工作包。</div>'}</div>
+    <div class="section-head"><div><h2>目前候選／試用員工</h2><p>已加入技能庫，但還要靠真實任務成績決定是否升為正式員工。</p></div></div>
+    <div class="stack">${currentCandidates.map(r=>roleCard(r,'candidate')).join('')||'<div class="empty">目前沒有優先試用員工。</div>'}</div>
+    ${otherCandidates.length?`<details class="surface"><summary><b>其他候選員工（${otherCandidates.length}）</b></summary><div class="stack" style="margin-top:12px">${otherCandidates.map(r=>roleCard(r,'candidate')).join('')}</div></details>`:''}
 
-    <div class="section-head"><div><h2>目前阻塞</h2><p>阻塞會留下原因與恢復點，但不會讓其他不衝突工作一起停住。</p></div></div>
-    <div class="stack">${blockers.length?blockers.map(b=>`<div class="surface"><div class="row-between"><b>${esc(b.package_title||'待處理問題')}</b><span class="pill danger">受阻</span></div><p>${esc(b.reason||'目前缺少必要條件。')}</p>${b.next_action?`<div class="evidence-box"><b>恢復方式</b><span>${esc(b.next_action)}</span></div>`:''}</div>`).join(''):'<div class="empty">目前沒有已登記的阻塞。</div>'}</div>
-
-    <details class="surface">
-      <summary><b>系統技術狀態</b></summary>
-      <p>正式網站：${esc(runtime.production_url||'已部署')}</p>
-      <p>GPT 網頁版橋接：${esc(runtime.ai_worker_bridge==='e2e_verified_system_validation'?'已完成橋接驗證':'依最新執行狀態')}</p>
-      <p>API 模式：${esc(runtime.api_mode?'已預留同一 AI 任務介面，可後續接 API／本地模型':'尚未記錄')}</p>
-      <small class="muted">這些是維運資訊，不代表你的個人作品或能力進展。</small>
-    </details>
-  `;
+    <div class="section-head"><div><h2>最近真的有被調用的員工</h2><p>只有實際參與任務才記錄；這些紀錄也會用於之後的員工評分與淘汰。</p></div></div>
+    <div class="stack">${usageHtml||'<div class="empty">目前還沒有員工使用紀錄。</div>'}</div>`;
 }
 
 function setView(name){
