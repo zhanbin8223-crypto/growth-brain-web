@@ -2,17 +2,18 @@
 
 目前正式推薦的 Worker：
 
-- `chatgpt-opencli-worker.mjs` — **主線**。直接使用 OpenCLI 內建 ChatGPT Web adapter，沿用你已登入的 ChatGPT 網頁版。
-- `chatgpt-web-worker.mjs` — 備援。需要另外存在 localhost OpenAI-compatible HTTP bridge；不是目前已驗證主線。
+- `chatgpt-browser-worker.mjs` — **正式主線**。直接使用 OpenCLI Browser 驅動你已登入的 Chrome ChatGPT；這就是先前真正成功過的路徑。
+- `chatgpt-browser-worker.mjs` — 實驗備援，使用 OpenCLI 的 ChatGPT macOS 桌面 App adapter；不是目前 Web 驗證主線。
+- `chatgpt-web-worker.mjs` — HTTP bridge 備援，需要另外存在 localhost OpenAI-compatible bridge。
 
 ## 正式資料流
 
 ```text
 Supabase ai_jobs
   ↓
-chatgpt-opencli-worker.mjs
+chatgpt-browser-worker.mjs
   ↓
-OpenCLI ChatGPT Web adapter
+OpenCLI Browser
   ↓
 固定「Growth Brain Worker」對話
   ↓
@@ -23,14 +24,15 @@ result + result_evidence
 Supabase
 ```
 
-OpenCLI Worker 啟動前會先確認：
+Browser Worker 啟動前會先確認：
 
 1. OpenCLI 可執行。
-2. ChatGPT Web 已登入。
-3. 能找到標題為 `Growth Brain Worker` 的固定對話，或已設定固定 conversation URL。
-4. preflight 通過後才會 claim AI 任務。
+2. `opencli doctor --live` 通過，Browser Bridge 可用。
+3. Chrome 已登入 ChatGPT。
+4. 能切到標題為 `Growth Brain Worker` 的固定對話，或已設定固定 conversation URL。
+5. preflight 通過後才會 claim AI 任務。
 
-每次任務都會重新打開固定 conversation，並檢查回覆仍屬於同一對話；如果跑到錯對話，不會把結果寫回正式資料。
+每次任務都會確認固定 conversation。輸入框先用 role/name 語意定位，失敗才回退到最新 AX ref；回覆用每筆 job 唯一 BEGIN/END 標記讀回，避免抓到上一筆回答。
 
 ## 安全邊界
 
@@ -54,6 +56,7 @@ SUPABASE_URL="https://<project-ref>.supabase.co"
 SUPABASE_SECRET_KEY="<server-secret>"
 GROWTH_AUTH_USER_ID="<primary-auth-user-uuid>"
 
+GROWTH_OPENCLI_BROWSER_SESSION="growthbrain"
 GROWTH_CHATGPT_CONVERSATION_TITLE="Growth Brain Worker"
 
 # 若要完全鎖死特定 conversation，可額外設定：
@@ -63,7 +66,7 @@ GROWTH_WORKER_ID="mac-opencli-growthbrain"
 GROWTH_PROVIDER_KEY="chatgpt_web_opencli"
 GROWTH_POLL_MS="4000"
 GROWTH_HEARTBEAT_MS="15000"
-GROWTH_CHATGPT_TIMEOUT="240"
+GROWTH_CHATGPT_TIMEOUT_MS="240000"
 ```
 
 建議權限：
@@ -92,7 +95,7 @@ GROWTH_RUN_ONCE=1 ./worker/run-opencli-worker.command
 zsh worker/install-macos-launchd.command
 ```
 
-LaunchAgent 不保存 Supabase secret；它只呼叫 runner，而 runner 再讀取 `~/.config/growth-brain/worker.env`。
+LaunchAgent 不保存 Supabase secret；它只呼叫 runner，而 runner 再讀取 `~/.config/growth-brain/worker.env`。如果有設定 `GROWTH_CHATGPT_CONVERSATION_URL`，Worker 會每次回到固定對話。
 
 ## 驗收
 
@@ -105,6 +108,6 @@ AI 團隊頁應看到：
 - result / result_evidence 回寫 Supabase
 - path_plan 完成後形成候選作品，而不是直接變成正式能力
 
-## 備援 HTTP bridge Worker
+## 備援 Worker
 
-`chatgpt-web-worker.mjs` 仍保留，方便未來使用 OpenAI-compatible localhost bridge。但目前不要把它當作已驗證主線。
+`chatgpt-opencli-worker.mjs` 控制的是 ChatGPT macOS 桌面 App；`chatgpt-web-worker.mjs` 則需要額外 localhost HTTP bridge。兩者都先保留，但目前真正驗證過的是 `opencli browser growthbrain` 的 Chrome Web 路徑。
