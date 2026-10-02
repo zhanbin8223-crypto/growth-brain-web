@@ -176,6 +176,10 @@ async function renderProjects(notice=''){
   const currentPanel=currentArtifact?(()=>{
     const counts=linkCounts(currentArtifact);
     const done=Array.isArray(currentArtifact.done_evidence)?currentArtifact.done_evidence:[];
+    const progressItems=Array.isArray(currentArtifact.evidence_progress)?currentArtifact.evidence_progress:[];
+    const progress=currentArtifact.progress_summary||{total:progressItems.length,confirmed:progressItems.filter(x=>x.status==='confirmed').length,remaining:progressItems.filter(x=>x.status!=='confirmed').length};
+    const nextEvidence=currentArtifact.next_evidence_item||progressItems.find(x=>x.status!=='confirmed')||null;
+    const allEvidenceConfirmed=Number(progress.total||0)>0&&Number(progress.remaining||0)===0;
     const learning=Array.isArray(currentArtifact.learning_focus)?currentArtifact.learning_focus:[];
     const branches=Array.isArray(currentArtifact.next_branch_candidates)?currentArtifact.next_branch_candidates:[];
     return `
