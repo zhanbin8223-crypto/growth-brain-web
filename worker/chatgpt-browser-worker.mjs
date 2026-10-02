@@ -328,15 +328,24 @@ function extractMarkedResponse(text,markers){
   return result;
 }
 
+function unwrapOpenCliText(raw){
+  const text=String(raw||"").trim();
+  if(!text) return "";
+  try{
+    const parsed=JSON.parse(text);
+    if(parsed&&typeof parsed.value==="string") return parsed.value;
+  }catch{}
+  return text;
+}
+
 async function readMarkedResponse(markers){
   const attempts=[
-    async()=>runOpenCli([
-      "browser",BROWSER_SESSION,"get","text",
-      "--selector","body"
-    ],90000),
-    async()=>runOpenCli([
-      "browser",BROWSER_SESSION,"state"
-    ],90000)
+    async()=>unwrapOpenCliText(await runOpenCli([
+      "browser",BROWSER_SESSION,"get","text","body"
+    ],90000)),
+    async()=>unwrapOpenCliText(await runOpenCli([
+      "browser",BROWSER_SESSION,"eval","document.body.innerText"
+    ],90000))
   ];
 
   let lastError=null;
@@ -352,7 +361,7 @@ async function readMarkedResponse(markers){
     }
   }
 
-  throw lastError||new Error("Could not read marked ChatGPT response");
+  throw lastError||new Error("Could not read marked ChatGPT response as plain text");
 }
 
 async function askChatGPT(job){
