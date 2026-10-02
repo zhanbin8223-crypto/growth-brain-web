@@ -60,7 +60,12 @@
     }
     if(item.classification==='learning'){
       const goal=item?.ai_triage?.suggestion?.learning_goal||'';
-      return '<div class="project-form" data-route-panel><label><b>這次最低要學到什麼（可選）</b><input data-learning-goal value="'+esc(goal)+'"></label><button class="primary-btn" data-route data-item-id="'+esc(item.id)+'">加入學習陪伴</button></div>';
+      return '<div class="project-form" data-route-panel>'+
+        '<p><b>這筆資料需要真的進入學習流程嗎？</b></p>'+
+        '<div class="project-actions"><button class="ghost-btn" data-no-learning data-item-id="'+esc(item.id)+'">只存知識，不開學習</button></div>'+
+        '<label><b>如果要學，最低做到哪裡（可選）</b><input data-learning-goal value="'+esc(goal)+'" placeholder="例如：能說出重點，或能實際用一次"></label>'+
+        '<button class="primary-btn" data-route data-item-id="'+esc(item.id)+'">加入學習流程</button>'+
+        '<small class="muted">沒有必要學就選「只存知識」；不會因為 AI 分成學習就強迫你學。</small></div>';
     }
     if(item.classification==='action'){
       return '<button class="primary-btn" data-route data-item-id="'+esc(item.id)+'">建立可追蹤行動</button>';
@@ -71,20 +76,32 @@
   function itemHtml(item){
     const source=item.source_url?'<a href="'+esc(item.source_url)+'" target="_blank" rel="noopener">查看原始來源</a>':'直接輸入';
     const kind=kindLabel[item.source_kind]||item.source_kind||'內容';
+    const triage=item.ai_triage||{};
+    const job=triage.job||null;
+    const routed=Boolean(item.routing);
+    const state=routed
+      ?'已送到對應流程'
+      :job&&['pending','claimed','processing'].includes(job.status)
+        ?'AI 整理中'
+        :item.classification
+          ?(classLabel[item.classification]||item.classification)
+          :'待整理';
+    const stateClass=routed?'success':job&&['pending','claimed','processing'].includes(job.status)?'warn':'';
     return '<article class="surface">'+
-      '<div class="row-between"><div><span class="kicker">'+esc(kind)+'</span><b>'+esc(item.classification?classLabel[item.classification]||item.classification:'尚未整理')+'</b></div><small class="muted">'+esc(item.created_at?new Date(item.created_at).toLocaleString('zh-TW'):'')+'</small></div>'+
-      '<p>'+esc(item.raw_content||'')+'</p>'+
-      '<small class="muted">'+source+'</small>'+
-      triageBlock(item)+
-      routeControls(item)+
-      '<div style="margin-top:12px">'+correctionControls(item)+'</div>'+
+      '<div class="row-between"><div><span class="kicker">'+esc(kind)+'</span><b>'+esc((item.raw_content||'').slice(0,80)||'未命名內容')+(String(item.raw_content||'').length>80?'…':'')+'</b></div><span class="pill '+stateClass+'">'+esc(state)+'</span></div>'+
+      '<p class="muted">'+source+' · '+esc(item.created_at?new Date(item.created_at).toLocaleString('zh-TW'):'')+'</p>'+
+      '<details><summary><b>查看整理方式與下一步</b></summary><div style="margin-top:12px">'+
+        triageBlock(item)+
+        routeControls(item)+
+        '<div style="margin-top:12px">'+correctionControls(item)+'</div>'+
+      '</div></details>'+
       '</article>';
   }
 
   async function renderInbox(notice=''){
     const root=$('#view-inbox');
     if(!root) return;
-    $('#pageTitle').textContent='把資料丟進來，系統幫你判斷去哪裡';
+    $('#pageTitle').textContent='快速收進第二大腦';
 
     if(A.liveStatus!=='live'){
       root.innerHTML='<div class="section-head"><div><h2>資料入口</h2><p>登入後，系統才能把內容保存並結合你的主線、學習與知識狀態自動整理。</p></div></div><div class="surface"><b>目前尚未登入正式資料</b><p>這裡不會用示範資料冒充你的收件內容。</p><button class="primary-btn" data-auth>登入</button></div>';
@@ -98,13 +115,13 @@
     const items=snapshot?.items||[];
 
     root.innerHTML=
-      '<div class="section-head"><div><h2>資料入口</h2><p>正常情況下，系統應自動接收並整理資料；這個輸入框只是你臨時看到連結、文字或想法時的快速入口。</p></div><span class="pill success">正式資料</span></div>'+
+      '<div class="section-head"><div><h2>先收進來，不用先分類</h2><p>貼網址、文字或想法就好。AI 會在背景判斷用途；分類與送去哪裡放在每筆資料的「整理方式與下一步」裡。</p></div><span class="pill success">正式資料</span></div>'+
       '<form class="surface project-form" id="inboxForm">'+
-        '<label><b>丟一段內容、網址或想法</b><textarea id="inboxContent" placeholder="例如：貼一篇文章網址、記下一個想法，或放入想之後學的內容"></textarea></label>'+
+        '<label><b>貼網址、文字或想法</b><textarea id="inboxContent" placeholder="先收進來就好，不用先想它屬於知識、學習、作品還是行動"></textarea></label>'+
         '<details><summary>補充來源網址（通常不用填）</summary><input id="inboxUrl" type="url" placeholder="https://..."></details>'+
-        '<div class="row-between"><div id="inboxMsg" class="muted">'+esc(notice||'保存後會自動交給 AI 判斷用途；高信心只會自動分類，不會替你承諾主線或宣稱已學會。')+'</div><button class="primary-btn" type="submit">收進第二大腦</button></div>'+
+        '<div class="row-between"><div id="inboxMsg" class="muted">'+esc(notice||'收進來後再整理；AI 的分類只是建議，不會直接改主線或宣稱你已學會。')+'</div><button class="primary-btn" type="submit">收進去</button></div>'+
       '</form>'+
-      '<div class="section-head"><div><h2>最近收進來的資料</h2><p>原始內容永遠保留；AI 只是幫忙判斷用途，你仍可以修正。</p></div><span>'+items.length+' 筆</span></div>'+
+      '<div class="section-head"><div><h2>最近收進來</h2><p>先看狀態；只有要處理時才展開分類與下一步。</p></div><span>'+items.length+' 筆</span></div>'+
       '<div class="stack" id="inboxItems">'+(items.length?items.map(itemHtml).join(''):'<div class="empty">目前沒有待整理內容。</div>')+'</div>';
 
     $('#inboxForm')?.addEventListener('submit',async e=>{
@@ -132,6 +149,18 @@
 
     root.querySelectorAll('[data-classify]').forEach(btn=>btn.addEventListener('click',()=>classify(btn,btn.dataset.classify)));
     root.querySelectorAll('[data-accept-suggestion]').forEach(btn=>btn.addEventListener('click',()=>classify(btn,btn.dataset.acceptSuggestion)));
+    root.querySelectorAll('[data-no-learning]').forEach(btn=>btn.addEventListener('click',async()=>{
+      btn.disabled=true;
+      try{
+        await A.classifyInbox({itemId:btn.dataset.itemId,classification:'knowledge'});
+        await A.routeInbox({itemId:btn.dataset.itemId});
+        await renderInbox('已改成只保存知識，不建立學習流程。');
+      }catch(err){
+        btn.disabled=false;
+        const msg=$('#inboxMsg');
+        if(msg) msg.textContent=err.message||'處理失敗';
+      }
+    }));
 
     root.querySelectorAll('[data-route]').forEach(btn=>btn.addEventListener('click',async()=>{
       const itemId=btn.dataset.itemId;
