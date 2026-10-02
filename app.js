@@ -502,12 +502,19 @@ async function renderSynapse(){
     return;
   }
 
-  root.innerHTML='<div class="empty">正在讀取你的來源、概念與學習證據…</div>';
-  let synapse=D?.synapse||null;
-  if(!synapse?.nodes){
-    try{synapse=await A.getPersonalSynapse();D.synapse=synapse;}
-    catch(e){root.innerHTML=`<div class="empty">知識連結載入失敗：${esc(e.message||e)}</div>`;return;}
-  }
+  root.innerHTML='<div class="empty">正在讀取你的來源、概念、作品與學習證據…</div>';
+  let synapse=D?.synapse||null,artifacts=null;
+  try{
+    if(!synapse?.nodes){synapse=await A.getPersonalSynapse();D.synapse=synapse;}
+    artifacts=await A.getPersonalArtifacts({force:true});
+  }catch(e){root.innerHTML=`<div class="empty">知識連結載入失敗：${esc(e.message||e)}</div>`;return;}
+
+  const currentArtifact=artifacts?.current||null;
+  const artifactLinks=Array.isArray(currentArtifact?.links)?currentArtifact.links:[];
+  const artifactConceptIds=new Set(
+    artifactLinks.filter(x=>x.link_kind==='synapse_concept').map(x=>String(x.target_ref))
+  );
+  const artifactEvidenceCount=artifactLinks.filter(x=>x.link_kind==='learning_evidence').length;
 
   const rawNodes=Array.isArray(synapse?.nodes)?synapse.nodes:[];
   const edges=Array.isArray(synapse?.edges)?synapse.edges:[];
@@ -545,15 +552,21 @@ async function renderSynapse(){
   const conceptCards=concepts.map(n=>{
     const evidence=Number(n.learning_evidence_count)||0;
     const state=levelLabel[n.learning_level_name]||'尚未驗證';
+    const supportsCurrent=currentArtifact&&artifactConceptIds.has(String(n.id));
     return `<article class="surface">
-      <div class="row-between"><div><b>${esc(human(n.label||n.id))}</b><div class="muted">技術標記：${esc(n.id)}</div></div><span class="pill ${evidence?'success':''}">${esc(state)}</span></div>
+      <div class="row-between"><div><b>${esc(human(n.label||n.id))}</b><div class="muted">技術標記：${esc(n.id)}</div></div><span class="pill ${supportsCurrent||evidence?'success':''}">${supportsCurrent?'支援目前作品':esc(state)}</span></div>
       <p>目前連到 ${esc(n.source_count??0)} 個真實來源；正式學習證據 ${esc(evidence)} 筆。</p>
-      <small class="muted">${n.independent_application_verified?'已有獨立應用證據':'目前還不能宣稱已能獨立應用'}</small>
+      <small class="muted">${supportsCurrent&&currentArtifact?`目前關聯作品：${esc(currentArtifact.title)} · `:''}${n.independent_application_verified?'已有獨立應用證據':'目前還不能宣稱已能獨立應用'}</small>
     </article>`;
   }).join('');
 
   const spread=(items,x)=>items.map((n,i)=>({...n,x,y:items.length===1?50:15+(70*i/Math.max(items.length-1,1))}));
-  const graphNodes=[...spread(sources,20),...spread(concepts,75)];
+  const artifactNode=currentArtifact?{id:'artifact:'+currentArtifact.id,type:'artifact',label:currentArtifact.title,x:88,y:50}:null;
+  const graphNodes=[...spread(sources,12),...spread(concepts,55),...(artifactNode?[artifactNode]:[])];
+  const graphEdges=[
+    ...edges,
+    ...(artifactNode?[...artifactConceptIds].map(id=>({source:id,target:artifactNode.id,relation:'supports_artifact'})):[]
+  ];
 
   root.innerHTML=`
     <div class="section-head"><div><h2>知識連結</h2><p>Synapse（知識關係層）：把你的真實來源、概念與證據連起來，方便之後支援作品與學習。</p></div><span class="pill success">只讀正式個人資料</span></div>
@@ -564,12 +577,18 @@ async function renderSynapse(){
       <div><strong>${esc(summary.learning_evidence_count??0)}</strong><span>正式學習證據</span></div>
     </div>
 
+    ${currentArtifact?`
     <article class="surface">
-      <span class="kicker">目前缺少的一段</span>
-      <h3>作品連結還沒有完整接上</h3>
-      <p>現在資料庫已能證明「哪個來源包含哪些概念」以及「哪些概念已有學習證據」，但還沒把概念／證據完整連到目前作品。因此之前看起來像一張孤立知識圖。</p>
-      <div class="evidence-box"><b>接下來要補的關係</b><span>來源 → 概念 → 學習證據 → 目前作品 → 作品結果 → 下一件作品</span></div>
-    </article>
+      <span class="kicker">目前作品已接入知識關係</span>
+      <h3>${esc(currentArtifact.title)}</h3>
+      <p>新建立的學習與概念會自動掛回目前作品。概念關係不等於已學會；正式能力仍要看回答、操作與作品結果。</p>
+      <div class="metrics compact">
+        <div><strong>${artifactConceptIds.size}</strong><span>支援作品的概念</span></div>
+        <div><strong>${artifactEvidenceCount}</strong><span>作品相關學習證據</span></div>
+        <div><strong>${(currentArtifact.skills||[]).length}</strong><span>待驗證技能</span></div>
+      </div>
+    </article>`:`
+    <div class="empty">目前還沒有進行中的作品，所以知識連結先保留「來源 → 概念 → 證據」。當作品開始後，新學習會自動接成「來源 → 概念 → 作品」。</div>`}
 
     <div class="section-head"><div><h2>這些資料從哪裡來</h2><p>不是 AI 猜的節點；每一筆都要能追到資料庫中的正式來源。</p></div></div>
     <div class="stack">${sourceCards||'<div class="empty">目前沒有來源。</div>'}</div>
@@ -586,7 +605,7 @@ async function renderSynapse(){
 
   const g=$('#graph');
   if(!g) return;
-  edges.forEach(e=>{
+  graphEdges.forEach(e=>{
     const a=graphNodes.find(n=>n.id===e.source),b=graphNodes.find(n=>n.id===e.target);
     if(!a||!b)return;
     const line=document.createElement('div');
@@ -600,11 +619,11 @@ async function renderSynapse(){
   });
   graphNodes.forEach(n=>{
     const b=document.createElement('button');
-    b.className='node '+(n.type==='source'?'center':'');
+    b.className='node '+(n.type==='source'?'center':n.type==='artifact'?'artifact':'');
     b.style.left=n.x+'%';
     b.style.top=n.y+'%';
-    b.textContent=n.type==='source'?(sourceTypeLabel[n.source_type]||'來源'):human(n.label||n.id);
-    b.title=n.type==='source'?'正式個人來源':'概念關係；不代表已熟練';
+    b.textContent=n.type==='source'?(sourceTypeLabel[n.source_type]||'來源'):n.type==='artifact'?`作品：${n.label}`:human(n.label||n.id);
+    b.title=n.type==='source'?'正式個人來源':n.type==='artifact'?'目前正在做的作品':'概念關係；不代表已熟練';
     g.appendChild(b);
   });
 }
@@ -631,6 +650,9 @@ async function renderSystem(){
   const roles=team.executable_roles||[];
   const planned=team.planned_roles||[];
   const recentUsage=team.recent_usage||[];
+  const workerHealth=SYSTEM?.worker_health||{};
+  const workers=Array.isArray(workerHealth.workers)?workerHealth.workers:[];
+  const queue=workerHealth.queue||{};
 
   const roleNames={
     'ceo-orchestrator':'Growth Brain CEO（總控）',
@@ -726,7 +748,16 @@ async function renderSystem(){
     <div class="section-head"><div><h2>GPT 與資料庫怎麼連起來</h2><p>GPT 負責推理；Supabase 負責長期狀態與證據。未來換 API 或本地模型，網站流程不需要重寫。</p></div></div>
     <div class="surface">
       <div class="flow"><span>網站輸入</span><i>›</i><span>Supabase 保存</span><i>›</i><span>AI 任務</span><i>›</i><span>本機執行器</span><i>›</i><span>GPT 網頁版／API</span><i>›</i><span>結果＋證據回寫</span><i>›</i><span>網站顯示</span></div>
-      <small class="muted">目前 GPT 網頁橋接已驗證；真實 path plan（路徑規劃）正在等待本機執行器取走。</small>
+      <div class="metrics compact">
+        <div><strong>${esc(workerHealth.online_count??0)}</strong><span>在線執行器</span></div>
+        <div><strong>${esc(queue.pending??0)}</strong><span>等待 AI 任務</span></div>
+        <div><strong>${esc((queue.claimed??0)+(queue.processing??0))}</strong><span>執行中</span></div>
+      </div>
+      <div class="evidence-box">
+        <b>本機執行器：${workerHealth.status==='online'?'在線':workerHealth.status==='offline'?'離線':'尚未回報心跳'}</b>
+        <span>${workerHealth.status==='online'?'系統最近 30 秒內收到 Worker 心跳，可以自動領取 AI 任務。':workers.length?'最近一次心跳已超過 30 秒；任務會留在資料庫等待，不會消失。':'新版 Worker 尚未送出第一個心跳；目前待處理任務會繼續留在 queue。'}</span>
+      </div>
+      ${workers.length?`<details><summary>查看執行器細節</summary>${workers.map(w=>`<p><b>${esc(w.worker_id)}</b> · ${esc(w.provider_key)} · ${w.online_now?'在線':'離線'}<br><small class="muted">最後回報：${esc(w.last_seen_at?new Date(w.last_seen_at).toLocaleString('zh-TW'):'未回報')}</small></p>`).join('')}</details>`:''}
     </div>
 
     <div class="section-head"><div><h2>目前工作包</h2><p>工作包就是一組要一起完成、而且可以驗收的系統工作。</p></div><span>${pkgs.length} 個</span></div>
