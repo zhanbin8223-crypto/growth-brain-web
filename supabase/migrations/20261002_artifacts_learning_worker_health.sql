@@ -118,6 +118,8 @@ declare
   v_seq integer;
   v_skill jsonb;
   v_focus jsonb;
+  v_label text;
+  v_skill_key text;
 begin
   if new.task_type <> 'path_plan'
      or new.status <> 'completed'
@@ -194,14 +196,27 @@ begin
   if jsonb_typeof(v_plan->'core_capabilities')='array' then
     for v_skill in select value from jsonb_array_elements(v_plan->'core_capabilities')
     loop
+      v_label := coalesce(
+        nullif(btrim(v_skill->>'name_zh'),''),
+        nullif(btrim(v_skill->>'capability'),''),
+        nullif(btrim(v_skill->>'skill'),''),
+        nullif(btrim(v_skill->>'name'),''),
+        '未命名能力'
+      );
+      v_skill_key := coalesce(
+        nullif(btrim(v_skill->>'key'),''),
+        nullif(btrim(v_skill->>'skill_key'),''),
+        md5('core:'||v_label)
+      );
+
       insert into growth_control.artifact_skill_targets(
         person_id,project_key,artifact_id,skill_key,name_zh,skill_kind,why,
         freshness_sensitive,ai_suggested_state,evidence_state,confidence,evidence_refs,minimum_needed_now
       ) values (
-        new.person_id,new.project_key,v_artifact_id,
-        coalesce(nullif(v_skill->>'key',''),md5(coalesce(v_skill->>'name_zh','core-skill'))),
-        coalesce(nullif(v_skill->>'name_zh',''),'未命名能力'),
-        'core',v_skill->>'why',false,v_skill->>'current_state','unknown',
+        new.person_id,new.project_key,v_artifact_id,v_skill_key,v_label,
+        'core',v_skill->>'why',false,
+        coalesce(v_skill->>'current_state',v_skill->>'state'),
+        'unknown',
         case lower(coalesce(v_skill->>'confidence','low'))
           when 'high' then 0.8
           when 'medium' then 0.5
@@ -209,35 +224,75 @@ begin
         end,
         case when jsonb_typeof(v_skill->'evidence_refs')='array' then v_skill->'evidence_refs' else '[]'::jsonb end,
         null
-      );
+      )
+      on conflict(artifact_id,skill_key) do update set
+        name_zh=excluded.name_zh,
+        skill_kind=excluded.skill_kind,
+        why=excluded.why,
+        freshness_sensitive=excluded.freshness_sensitive,
+        ai_suggested_state=excluded.ai_suggested_state,
+        confidence=excluded.confidence,
+        evidence_refs=excluded.evidence_refs,
+        updated_at=now();
     end loop;
   end if;
 
   if jsonb_typeof(v_plan->'tool_capabilities')='array' then
     for v_skill in select value from jsonb_array_elements(v_plan->'tool_capabilities')
     loop
+      v_label := coalesce(
+        nullif(btrim(v_skill->>'name_zh'),''),
+        nullif(btrim(v_skill->>'capability'),''),
+        nullif(btrim(v_skill->>'skill'),''),
+        nullif(btrim(v_skill->>'name'),''),
+        '未命名工具能力'
+      );
+      v_skill_key := coalesce(
+        nullif(btrim(v_skill->>'key'),''),
+        nullif(btrim(v_skill->>'skill_key'),''),
+        md5('tool:'||v_label)
+      );
+
       insert into growth_control.artifact_skill_targets(
         person_id,project_key,artifact_id,skill_key,name_zh,skill_kind,why,
         freshness_sensitive,ai_suggested_state,evidence_state,confidence,evidence_refs,minimum_needed_now
       ) values (
-        new.person_id,new.project_key,v_artifact_id,
-        coalesce(nullif(v_skill->>'key',''),md5(coalesce(v_skill->>'name_zh','tool-skill'))),
-        coalesce(nullif(v_skill->>'name_zh',''),'未命名工具能力'),
+        new.person_id,new.project_key,v_artifact_id,v_skill_key,v_label,
         'tool',v_skill->>'why',
-        coalesce((v_skill->>'freshness_sensitive')::boolean,true),
-        null,'unknown',0.2,'[]'::jsonb,null
-      );
+        case lower(coalesce(v_skill->>'freshness_sensitive','true'))
+          when 'false' then false else true end,
+        coalesce(v_skill->>'current_state',v_skill->>'state'),
+        'unknown',
+        case lower(coalesce(v_skill->>'confidence','low'))
+          when 'high' then 0.8
+          when 'medium' then 0.5
+          else 0.2
+        end,
+        case when jsonb_typeof(v_skill->'evidence_refs')='array' then v_skill->'evidence_refs' else '[]'::jsonb end,
+        null
+      )
+      on conflict(artifact_id,skill_key) do update set
+        name_zh=excluded.name_zh,
+        skill_kind=excluded.skill_kind,
+        why=excluded.why,
+        freshness_sensitive=excluded.freshness_sensitive,
+        ai_suggested_state=excluded.ai_suggested_state,
+        confidence=excluded.confidence,
+        evidence_refs=excluded.evidence_refs,
+        updated_at=now();
     end loop;
   end if;
 
   if jsonb_typeof(v_plan->'learning_focus')='array' then
     for v_focus in select value from jsonb_array_elements(v_plan->'learning_focus')
     loop
-      update growth_control.artifact_skill_targets
-      set minimum_needed_now=coalesce(v_focus->>'minimum_needed_now',minimum_needed_now),
-          updated_at=now()
-      where artifact_id=v_artifact_id
-        and skill_key=v_focus->>'skill_key';
+      if jsonb_typeof(v_focus)='object' then
+        update growth_control.artifact_skill_targets
+        set minimum_needed_now=coalesce(v_focus->>'minimum_needed_now',minimum_needed_now),
+            updated_at=now()
+        where artifact_id=v_artifact_id
+          and skill_key=coalesce(v_focus->>'skill_key',v_focus->>'key');
+      end if;
     end loop;
   end if;
 
