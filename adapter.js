@@ -107,27 +107,29 @@
     },
     async savePersonalOutcomeCandidate({title,successEvidence,whyNow,directionKey}){
       if(this.mode!=='live') throw Object.assign(new Error('請先登入，候選主線才會正式保存。'),{code:'not_signed_in'});
-      const result=await liveRequest('POST',{
+      await liveRequest('POST',{
         action:'save_personal_outcome_candidate',
         title,
         success_evidence:successEvidence,
         why_now:whyNow||null,
         direction_key:directionKey||null
       });
-      this.personalOutcome=result?.data?.snapshot||null;
+      this.personalOutcome=null;
+      const latest=await this.getPersonalOutcome();
       await this.refreshPersonalHome();
-      return clone(this.personalOutcome);
+      return clone(latest);
     },
     async decidePersonalOutcomeCandidate({routeId,decision}){
       if(this.mode!=='live') throw Object.assign(new Error('請先登入。'),{code:'not_signed_in'});
-      const result=await liveRequest('POST',{
+      await liveRequest('POST',{
         action:'decide_personal_outcome_candidate',
         route_id:routeId,
         decision
       });
-      this.personalOutcome=result?.data?.snapshot||null;
+      this.personalOutcome=null;
+      const latest=await this.getPersonalOutcome();
       await this.refreshPersonalHome();
-      return clone(this.personalOutcome);
+      return clone(latest);
     },
     async getInbox(){
       if(this.mode!=='live') throw Object.assign(new Error('請先登入，收件匣只顯示正式資料。'),{code:'not_signed_in'});
