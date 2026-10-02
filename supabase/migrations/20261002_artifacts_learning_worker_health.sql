@@ -553,6 +553,187 @@ revoke all on function public.growth_ai_worker_heartbeat_service_v1(uuid,text,te
 grant execute on function public.growth_ai_worker_heartbeat_service_v1(uuid,text,text,text,uuid,jsonb)
   to service_role;
 
+
+create or replace function growth_control.personal_artifacts_snapshot_v1(
+  p_person_id uuid,
+  p_project_key text default 'growth-brain'
+)
+returns jsonb
+language sql
+stable
+set search_path to 'growth_control','public'
+as $function$
+with a as (
+  select pa.*,
+    coalesce((
+      select jsonb_agg(jsonb_build_object(
+        'skill_key',s.skill_key,
+        'name_zh',s.name_zh,
+        'skill_kind',s.skill_kind,
+        'why',s.why,
+        'freshness_sensitive',s.freshness_sensitive,
+        'ai_suggested_state',s.ai_suggested_state,
+        'evidence_state',s.evidence_state,
+        'evidence_coverage',s.evidence_coverage,
+        'confidence',s.confidence,
+        'evidence_refs',s.evidence_refs,
+        'minimum_needed_now',s.minimum_needed_now
+      ) order by s.skill_kind,s.name_zh)
+      from growth_control.artifact_skill_targets s
+      where s.artifact_id=pa.id
+    ),'[]'::jsonb) as skills,
+    coalesce((
+      select jsonb_agg(jsonb_build_object(
+        'link_kind',l.link_kind,
+        'target_ref',l.target_ref,
+        'relation',l.relation,
+        'metadata',l.metadata
+      ) order by l.created_at)
+      from growth_control.artifact_context_links l
+      where l.artifact_id=pa.id
+    ),'[]'::jsonb) as links
+  from growth_control.personal_artifacts pa
+  where pa.person_id=p_person_id
+    and pa.project_key=p_project_key
+)
+select jsonb_build_object(
+  'sv','personal-artifacts-v1',
+  'current',(
+    select to_jsonb(x)-'person_id'-'project_key'
+    from a x
+    where status='current'
+    order by started_at desc nulls last,created_at desc
+    limit 1
+  ),
+  'candidate',(
+    select to_jsonb(x)-'person_id'-'project_key'
+    from a x
+    where status='candidate'
+    order by created_at desc
+    limit 1
+  ),
+  'history',coalesce((
+    select jsonb_agg(to_jsonb(x)-'person_id'-'project_key' order by sequence_no desc)
+    from a x
+    where status in ('completed','abandoned','rejected')
+  ),'[]'::jsonb),
+  'policy',jsonb_build_object(
+    'ai_result_creates_candidate_only',true,
+    'single_current_artifact',true,
+    'skill_evidence_state_not_promoted_by_ai',true,
+    'evidence_coverage_requires_real_evidence',true
+  )
+);
+$function$;
+
+create or replace function growth_control.ai_worker_health_v1(
+  p_person_id uuid,
+  p_project_key text default 'growth-brain'
+)
+returns jsonb
+language sql
+stable
+set search_path to 'growth_control'
+as $function$
+with workers as (
+  select
+    worker_id,
+    provider_key,
+    status,
+    last_job_id,
+    metadata,
+    last_seen_at,
+    extract(epoch from (now()-last_seen_at))::int as seconds_since_seen,
+    (last_seen_at >= now()-interval '30 seconds') as online_now
+  from growth_control.ai_worker_heartbeats
+  where person_id=p_person_id
+    and project_key=coalesce(nullif(btrim(p_project_key),''),'growth-brain')
+  order by last_seen_at desc
+),
+q as (
+  select
+    count(*) filter(where status='pending')::int as pending,
+    count(*) filter(where status='claimed')::int as claimed,
+    count(*) filter(where status='processing')::int as processing
+  from growth_control.ai_jobs
+  where person_id=p_person_id
+    and project_key=coalesce(nullif(btrim(p_project_key),''),'growth-brain')
+    and data_scope='real'
+)
+select jsonb_build_object(
+  'workers',coalesce((
+    select jsonb_agg(jsonb_build_object(
+      'worker_id',worker_id,
+      'provider_key',provider_key,
+      'reported_status',status,
+      'online_now',online_now,
+      'seconds_since_seen',seconds_since_seen,
+      'last_seen_at',last_seen_at,
+      'last_job_id',last_job_id,
+      'metadata',metadata
+    ) order by last_seen_at desc)
+    from workers
+  ),'[]'::jsonb),
+  'online_count',coalesce((select count(*) from workers where online_now),0),
+  'queue',jsonb_build_object(
+    'pending',coalesce((select pending from q),0),
+    'claimed',coalesce((select claimed from q),0),
+    'processing',coalesce((select processing from q),0)
+  ),
+  'status',case
+    when exists(select 1 from workers where online_now) then 'online'
+    when exists(select 1 from workers) then 'offline'
+    else 'never_reported'
+  end,
+  'online_threshold_seconds',30
+);
+$function$;
+
+create or replace function growth_control.system_cockpit_surface_v2(
+  p_person_id uuid,
+  p_project_key text default 'growth-brain'
+)
+returns jsonb
+language sql
+stable
+set search_path to ''
+as $function$
+with latest_ceo as (
+  select state,reason,created_at
+  from growth_control.ceo_state_snapshots
+  where person_id=p_person_id
+    and project_key=p_project_key
+  order by created_at desc
+  limit 1
+)
+select jsonb_build_object(
+  'sv','system-cockpit-surface-v3',
+  'surface','system_cockpit',
+  'generated_at',now(),
+  'ceo',growth_control.ceo_project_state_v1(p_person_id,p_project_key),
+  'ceo_latest',coalesce((
+    select jsonb_build_object(
+      'current',state->'current',
+      'next_action',state->'next_action',
+      'runtime_truth',state->'runtime_truth',
+      'reason',reason,
+      'created_at',created_at
+    )
+    from latest_ceo
+  ),'{}'::jsonb),
+  'worker_health',growth_control.ai_worker_health_v1(p_person_id,p_project_key),
+  'artifacts',growth_control.personal_artifacts_snapshot_v1(p_person_id,p_project_key),
+  'work_queue',growth_control.web_work_queue_surface_v1(p_person_id,p_project_key),
+  'skill_team',growth_control.skill_team_status_v1(p_person_id,p_project_key),
+  'website_logic_audit',growth_control.website_logic_audit_v1(p_person_id,p_project_key),
+  'capabilities',growth_control.logic_capability_surface_v1(p_person_id,p_project_key),
+  'path_trial_contract',growth_control.path_artifact_trial_contract_v1(),
+  'language_contract',growth_control.ui_language_contract_v1(),
+  'ui_resilience_contract',growth_control.ui_resilience_contract_v1(),
+  'pre_real_usability',growth_control.pre_real_usability_surface_v1(p_person_id,p_project_key)
+);
+$function$;
+
 -- Public artifact service wrappers
 create or replace function public.growth_personal_artifacts_snapshot_service_v1(
   p_auth_user_id uuid
