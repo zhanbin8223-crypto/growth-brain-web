@@ -36,6 +36,9 @@ const statusText=s=>({
   blocked_external:'外部服務尚未接通',candidate_only:'僅候選',unknown:'未驗證',confirmed:'使用者已確認',verified:'已驗證',
   personal_outcome_route_selected:'已選定個人主線',
   personal_outcome_candidate_available:'有候選主線待確認',
+  personal_artifact_candidate_available:'有候選作品待確認',
+  personal_artifact_current:'目前作品進行中',
+  personal_artifact_replanning:'正在重新規劃下一件作品',
   needs_personal_outcome_route:'尚未選定個人主線'
 }[String(s||'').toLowerCase()]||String(s||''));
 
@@ -50,6 +53,9 @@ function renderHome(){
   if(A.liveStatus==='signed_out') cta='<button class="primary-btn" data-auth>登入同步我的資料</button>';
   else if(action.status==='needs_personal_outcome_route') cta='<button class="primary-btn" data-jump="projects">建立候選主線</button>';
   else if(action.status==='personal_outcome_candidate_available') cta='<button class="primary-btn" data-jump="projects">確認候選主線</button>';
+  else if(action.status==='personal_artifact_candidate_available') cta='<button class="primary-btn" data-jump="projects">確認並開始這件作品</button>';
+  else if(action.status==='personal_artifact_current') cta='<button class="primary-btn" data-jump="projects">繼續目前作品</button>';
+  else if(action.status==='personal_artifact_replanning') cta='<button class="primary-btn" data-jump="projects">查看重新規劃進度</button>';
   else cta='<button class="primary-btn" data-jump="projects">查看我的主線</button>';
 
   $('#view-home').innerHTML=`${modeStrip()}
