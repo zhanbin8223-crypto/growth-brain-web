@@ -610,7 +610,7 @@ async function renderSystem(){
 function setView(name){
   $$('.view').forEach(v=>v.classList.toggle('active',v.id===`view-${name}`));
   $$('.nav-item').forEach(n=>n.classList.toggle('active',n.dataset.view===name));
-  const t={home:'今天只做一件最值得做的事',projects:'把目標變成現在這一件作品',learn:'只學現在真正需要補的東西',synapse:'看知識從哪裡來、怎麼互相連結',ceo:'看系統、員工、工作包與阻塞'};$('#pageTitle').textContent=t[name]||t.home;if(name==='projects')renderProjects();if(name==='learn')renderLearn();if(name==='synapse')renderSynapse();if(name==='ceo')renderSystem();
+  const t={home:'今天只做一件最值得做的事',projects:'把方向變成作品，一步一步驗證',inbox:'把資料丟進來，系統幫你整理',learn:'只學現在作品真正需要的東西',synapse:'看來源、概念與證據怎麼連起來',ceo:'看 AI 團隊、工作包與目前卡點'};$('#pageTitle').textContent=t[name]||t.home;if(name==='projects')renderProjects();if(name==='learn')renderLearn();if(name==='synapse')renderSynapse();if(name==='ceo')renderSystem();
 }
 
 function detectSessionLifecycleProbe(){
