@@ -1,5 +1,5 @@
 {
-  "sv": "ai-worker-runtime-contract-v2",
+  "sv": "ai-worker-runtime-contract-v3",
   "project": "growth-brain",
   "scope": "system",
   "purpose": "Define queue safety before provider activation without claiming real AI completion.",
@@ -27,13 +27,65 @@
     "claim_rpc": "growth_control.ai_job_claim_next_v1",
     "transition_rpc": "growth_control.ai_job_transition_v1",
     "specialized_enqueue_rpc": "growth_control.ai_job_enqueue_learning_explanation_v1",
-    "stale_recovery_rpc": "pending",
-    "provider_activation": "pending_local_runtime"
+    "stale_recovery_rpc": "pending_runtime_migration",
+    "provider_activation": "pending_local_runtime",
+    "queue_status": "pending",
+    "queue_index_observed_predicate": "status='queued'",
+    "queue_index_expected_predicate": "status='pending'",
+    "queue_index_alignment": "mismatch_requires_runtime_migration"
   },
   "acceptance": [
     "Provider outage does not consume a pending job.",
     "A stale worker cannot leave a job permanently claimed or processing.",
     "Retry exhaustion ends in failed with explicit evidence.",
     "Validation does not create personal progress."
+  ],
+  "provider_preflight_contract": {
+    "required_before_claim": true,
+    "required_fields": [
+      "provider_key",
+      "ready",
+      "checked_at"
+    ],
+    "ready_must_be_true": true,
+    "failure_behavior": "leave job pending; do not increment attempt_no; record system health evidence only"
+  },
+  "stale_recovery_contract": {
+    "eligible_statuses": [
+      "claimed",
+      "processing"
+    ],
+    "stale_clock": "coalesce(started_at, claimed_at, updated_at)",
+    "default_stale_after_seconds": 900,
+    "default_max_attempts": 3,
+    "below_retry_limit": "return job to pending and clear claim/start timestamps",
+    "at_or_above_retry_limit": "set failed with explicit stale_worker_max_attempts error evidence",
+    "preserve": [
+      "person_id",
+      "project_key",
+      "source_ref",
+      "task_payload",
+      "provenance",
+      "idempotency_key"
+    ],
+    "forbidden": [
+      "creating personal progress",
+      "marking completed without provider result evidence"
+    ]
+  },
+  "runtime_blocker": {
+    "observed_at": "2026-10-02",
+    "blocked_changes": [
+      "Supabase DDL migration for stale recovery/index fix",
+      "GitHub executable app.js patch"
+    ],
+    "fallback_mutation": "contract hardened in canonical repository",
+    "resume_condition": "runtime allows DDL or executable source writes"
+  },
+  "next_executable_fix": [
+    "replace ai_jobs_queue_idx predicate queued -> pending",
+    "allow processing -> pending only for bounded stale recovery",
+    "deploy growth_control.ai_job_recover_stale_v1 as service_role-only",
+    "add provider preflight before ai_job_claim_next_v1 in worker runtime"
   ]
 }
