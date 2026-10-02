@@ -80,13 +80,19 @@ function renderHome(){
     <article class="hero-card"><span class="kicker">現在最重要</span><h2>${esc(action.title||'先選一個真實下一步')}</h2><p>${esc(action.why||'目前還沒有足夠證據替你自動選唯一主線。')}</p><div class="evidence-box"><b>做到什麼算完成</b><span>${esc(action.success_evidence||'產生一個真實作品或行動證據。')}</span></div>${cta}</article>
     <article class="direction-card"><span class="kicker">方向</span><h3>${esc(dir.key?human(dir.key):'尚未同步')}</h3><p>${esc(dir.goal||'登入後同步目前方向。')}</p><div class="row-between"><span>信心 ${pct(dir.confidence)}</span>${pill(dir.status)}</div></article>
   </div>
-  ${currentArtifact?`<div class="metrics"><div><strong>${esc(artifactProgress?.confirmed??0)}/${esc(artifactProgress?.total??0)}</strong><span>作品完成條件</span></div><div><strong>${esc(artifactLearning)}</strong><span>目前作品相關學習</span></div><div><strong>${esc(artifactSkills)}</strong><span>待作品驗證能力</span></div></div>`:`<div class="metrics"><div><strong>${esc(summary.unverified_count??0)}</strong><span>未驗證概念</span></div><div><strong>${esc(summary.forming_count??0)}</strong><span>形成證據中</span></div><div><strong>${A.candidateEvidenceCount()}</strong><span>候選作答</span></div></div>`}
+  ${currentArtifact?`<div class="metrics"><div><strong>${esc(artifactProgress?.confirmed??0)}/${esc(artifactProgress?.total??0)}</strong><span>作品完成條件</span></div><div><strong>${esc(currentArtifact.next_evidence_item?.criterion_no||'—')}</strong><span>目前第幾步</span></div><div><strong>${esc(artifactEvidence)}</strong><span>已留下正式證據</span></div></div>`:`<div class="metrics"><div><strong>${esc(summary.unverified_count??0)}</strong><span>未驗證概念</span></div><div><strong>${esc(summary.forming_count??0)}</strong><span>形成證據中</span></div><div><strong>${A.candidateEvidenceCount()}</strong><span>候選作答</span></div></div>`}
   <section><div class="section-head"><div><h2>最近真實進展</h2><p>只記錄你真的完成、確認或留下證據的事情；系統自己建置不算。</p></div></div>
     <div class="stack">${progress.length?progress.map(p=>`<div class="surface"><div class="row-between"><b>${esc(p.title||'真實進展')}</b>${pill(p.evidence_level||'confirmed')}</div><p>${esc(p.summary||'')}</p><small class="muted">時間：${esc(p.occurred_at?new Date(p.occurred_at).toLocaleString('zh-TW'):'未記錄')} · 主線：${esc(p.route_key||p.route_id||'未連結')} · 來源：${esc(p.source_type||'未記錄')} / ${esc(p.source_ref||'未記錄')} · 證據：${esc(statusText(p.evidence_level||'unknown'))}</small></div>`).join(''):'<div class="empty">目前還沒有可追溯到正式來源、個人主線與確認／驗證證據的真實進展。完成一個真實行動、作品、主線決定或通過的學習證據後才會出現在這裡。</div>'}</div>
   </section>
-  <section><div class="section-head"><div><h2>學習支援</h2><p>學習是支援，不會搶走你的個人主線。</p></div>${pill(learn.role||'supporting_only')}</div><div class="surface"><b>${esc(learn.primary_card?.label||'未驗證')}</b><p>${esc(learn.primary_card?.description||'先留下可驗證證據。')}</p><small>${esc(learn.primary_card?.next_action||'完成一次回答或實作')}</small></div></section>
-  <section><div class="section-head"><div><h2>知識連結重點</h2><p>首頁只看重點；完整關係在「知識連結」頁。</p></div></div><div class="highlight-grid">${nodes.map(n=>`<div class="highlight"><b>${esc(human(n.label||n.k))}</b><span>${esc(n.n??0)} 個訊號 · ${pct(n.c)}</span></div>`).join('')||'<div class="empty">目前沒有重點節點。</div>'}</div></section>
-  <section><div class="section-head"><div><h2>系統狀態</h2><p>只顯示摘要，不把系統建置任務冒充成你的個人下一步。</p></div></div><div class="surface row-between"><div><b>${esc(systemTitle)}</b><p>${esc(systemNote)}</p></div><button class="ghost-btn" data-jump="ceo">查看系統</button></div></section>`;
+  <details class="surface" style="margin-top:18px">
+    <summary><b>其他資訊：學習、知識與系統狀態</b></summary>
+    <p class="muted">這些都不能取代你現在正在做的這一步，需要時再展開。</p>
+    <div class="stack">
+      <div><b>學習</b><p>${esc(learn.primary_card?.description||'目前沒有需要先處理的學習。')}</p><small class="muted">${esc(learn.primary_card?.next_action||'只有卡到知識缺口時才需要先學。')}</small></div>
+      <div><b>知識連結</b><p>${nodes.length?nodes.map(n=>esc(human(n.label||n.k))).join('、'):'目前沒有需要優先查看的知識節點。'}</p><button class="ghost-btn" data-jump="synapse">查看知識連結</button></div>
+      <div><b>系統</b><p>${esc(systemTitle)} · ${esc(systemNote)}</p><button class="ghost-btn" data-jump="ceo">查看系統</button></div>
+    </div>
+  </details>`;
 }
 
 async function renderProjects(notice=''){
@@ -208,8 +214,8 @@ async function renderProjects(notice=''){
       :'<div class="surface"><div class="row-between"><div><b>所有完成條件都有證據</b><p>現在才進入整件作品的完成確認與技能驗證。</p></div><span class="pill success">可完成作品</span></div></div>';
     const unblockStateLabel={
       reported:'已收到卡點',
-      diagnosing:'達案執行官正在拆解',
-      reviewing:'邏輯／真實性分析員正在複核',
+      diagnosing:'正在拆解目前這一步',
+      reviewing:'正在複核拆解結果',
       ready:'拆解完成',
       failed:'這次拆解失敗',
       resolved:'已解決',
@@ -219,11 +225,11 @@ async function renderProjects(notice=''){
     const learningNeed=guidance?.learning_needed||{};
     const unblockResultHtml=activeUnblock
       ?activeUnblock.status==='ready'
-        ?'<article class="surface" style="margin-top:12px"><div class="row-between"><div><span class="kicker">AI 團隊拆解結果</span><h3>'+esc(guidance.problem_summary||'已找到目前卡點')+'</h3></div><span class="pill success">已複核</span></div><div class="evidence-box"><b>你現在只做這一步</b><span>'+esc(guidance.smallest_next_action||'先完成目前階段最小可執行動作')+'</span></div>'+(Array.isArray(guidance.micro_steps)&&guidance.micro_steps.length?'<details><summary><b>如果還是太大，再拆成 '+guidance.micro_steps.length+' 小步</b></summary><p>'+guidance.micro_steps.map((x,i)=>(i+1)+'. '+esc(typeof x==='string'?x:(x.title||x.step||''))).join('<br>')+'</p></details>':'')+(learningNeed?.needed?'<p><b>這次只需要補的學習：</b>'+esc(learningNeed.minimum||learningNeed.target||'目前階段最低必要內容')+'</p>':'')+'<small class="muted">卡住是診斷訊號，不會直接降低能力狀態，也不會自動重做整條路徑。</small></article>'
-        :'<article class="surface" style="margin-top:12px"><div class="row-between"><div><b>'+esc(unblockStateLabel[activeUnblock.status]||'AI 團隊正在處理')+'</b><p>先由達案執行官拆目前這一步，再由邏輯／真實性分析員複核。</p></div><span class="pill warn">'+esc(activeUnblock.signal_count||1)+' 次卡點訊號</span></div><small class="muted">這不會改變你的能力等級。</small></article>'
+        ?'<article class="surface" style="margin-top:12px"><div class="row-between"><div><span class="kicker">拆解結果</span><h3>'+esc(guidance.problem_summary||'已找到目前卡點')+'</h3></div><span class="pill success">已複核</span></div><div class="evidence-box"><b>你現在只做這一步</b><span>'+esc(guidance.smallest_next_action||'先完成目前階段最小可執行動作')+'</span></div>'+(Array.isArray(guidance.micro_steps)&&guidance.micro_steps.length?'<details><summary><b>如果還是太大，再拆成 '+guidance.micro_steps.length+' 小步</b></summary><p>'+guidance.micro_steps.map((x,i)=>(i+1)+'. '+esc(typeof x==='string'?x:(x.title||x.step||''))).join('<br>')+'</p></details>':'')+(learningNeed?.needed?'<p><b>這次只需要補的學習：</b>'+esc(learningNeed.minimum||learningNeed.target||'目前階段最低必要內容')+'</p>':'')+'<small class="muted">卡住是診斷訊號，不會直接降低能力狀態，也不會自動重做整條路徑。</small></article>'
+        :'<article class="surface" style="margin-top:12px"><div class="row-between"><div><b>'+esc(unblockStateLabel[activeUnblock.status]||'正在處理目前這一步')+'</b><p>會先拆小目前這一步，再檢查建議是否真的可執行。</p></div><span class="pill warn">'+esc(activeUnblock.signal_count||1)+' 次卡點訊號</span></div><small class="muted">這不會改變你的能力等級。</small></article>'
       :'';
     const unblockFormHtml=nextEvidence
-      ?'<details class="surface" style="margin-top:12px"><summary><b>卡住了？讓 AI 團隊拆目前這一步</b></summary><p>只描述你現在卡在哪裡。系統先嘗試解釋或拆小步驟；同一階段反覆卡住時，才考慮重切這個階段。</p><form class="project-form" id="artifactUnblockForm"><label><b>我卡在</b><textarea id="artifactUnblockNote" placeholder="例如：我不知道 X、Threads、IG 要用什麼標準選；或我看懂概念但不知道下一個實際動作"></textarea></label><div class="row-between"><div id="artifactUnblockMsg" class="muted">卡住不等於能力下降；AI 團隊只處理目前這一步。</div><button type="submit" class="ghost-btn">幫我拆這一步</button></div></form></details>'
+      ?'<details class="surface" style="margin-top:12px"><summary><b>卡住了？幫我拆這一步</b></summary><p>只描述你現在卡在哪裡。系統先嘗試解釋或拆小步驟；同一階段反覆卡住時，才考慮重切這個階段。</p><form class="project-form" id="artifactUnblockForm"><label><b>我卡在</b><textarea id="artifactUnblockNote" placeholder="例如：我不知道 X、Threads、IG 要用什麼標準選；或我看懂概念但不知道下一個實際動作"></textarea></label><div class="row-between"><div id="artifactUnblockMsg" class="muted">卡住不等於能力下降；只處理目前這一步。</div><button type="submit" class="ghost-btn">幫我拆這一步</button></div></form></details>'
       :'';
     return `
       <section>
@@ -455,14 +461,14 @@ async function renderProjects(notice=''){
     }
     submit.disabled=true;
     try{
-      if(msg) msg.textContent='正在交給達案執行官拆解目前這一步…';
+      if(msg) msg.textContent='正在分析你卡在這一步的原因…';
       await A.requestArtifactStageUnblock({
         artifactId:currentArtifact.id,
         userNote:note
       });
       D=await A.getSnapshot();
       renderHome();
-      await renderProjects('卡點已送進 AI 團隊：先由達案執行官拆解，再由邏輯／真實性分析員複核。');
+      await renderProjects('已開始拆解目前這一步；完成後只會留下最小下一步。');
     }catch(err){
       submit.disabled=false;
       if(msg) msg.textContent=err.message||'卡點拆解任務建立失敗';
@@ -549,7 +555,10 @@ async function renderLearn(notice=''){
   );
   const sessions=learning?.sessions||[];
   const units=sessions.flatMap(s=>(s.units||[]).map(u=>({...u,session:s})));
-  const neededSkills=(currentArtifact?.skills||[]).filter(s=>s.minimum_needed_now);
+  const currentStep=currentArtifact?.next_evidence_item||null;
+  const latestUnblock=currentArtifact?.latest_unblock||null;
+  const unblockLearning=latestUnblock?.status==='ready'?latestUnblock?.final_guidance?.learning_needed:null;
+  const stageLearningNeeded=Boolean(unblockLearning?.needed);
 
   root.innerHTML=`
     <div class="section-head">
@@ -559,24 +568,28 @@ async function renderLearn(notice=''){
 
     ${currentArtifact?`
     <article class="surface">
-      <span class="kicker">這次學習正在支援</span>
-      <h3>${esc(currentArtifact.title)}</h3>
-      <p>新建立的正式學習會自動掛回這件作品；只有你的回答、操作或作品結果才會提升技能證據。</p>
-      ${neededSkills.length?`<div class="evidence-box"><b>目前只需要補</b><span>${neededSkills.map(s=>`${esc(s.name_zh)}：${esc(s.minimum_needed_now)}`).join('<br>')}</span></div>`:''}
+      <span class="kicker">目前作品的這一步</span>
+      <h3>${esc(currentStep?.criterion_text||currentArtifact.title)}</h3>
+      <p>${stageLearningNeeded?'這一步已確認有知識缺口，只補最低必要內容。':'目前沒有證據顯示你必須先學；可以直接繼續做這一步。'}</p>
+      ${stageLearningNeeded?`<div class="evidence-box"><b>這次最低只要學到</b><span>${esc(unblockLearning.minimum||unblockLearning.target||'能支援目前這一步')}</span></div>`:''}
     </article>`:`
-    <div class="empty">目前沒有進行中的作品。學習仍會保存，但不會自動假設它服務哪個作品；等作品開始後再建立新的學習，系統就會自動串回去。</div>`}
+    <div class="empty">目前沒有進行中的作品。學習可以保存，但不會自動變成你的主線。</div>`}
 
-    <form class="surface project-form" id="learningInputForm">
-      <label><b>學習內容</b><textarea id="learningText" placeholder="貼入你真的想理解的一段文字"></textarea></label>
-      <div class="hero-grid">
-        <label><b>標題（可選）</b><input id="learningTitle" placeholder="例如：文章中的核心概念"></label>
-        <label><b>學習目標（可選）</b><input id="learningGoal" placeholder="例如：能用自己的話說明並應用"></label>
-      </div>
-      <div class="row-between">
-        <div id="learningInputMsg" class="muted">${esc(notice||'建立後會保存成正式學習紀錄；AI 產生的解釋不會自動算成你已學會。')}</div>
-        <button class="primary-btn" type="submit">建立學習單元</button>
-      </div>
-    </form>
+    <details class="surface" style="margin-top:18px" ${stageLearningNeeded?'open':''}>
+      <summary><b>${stageLearningNeeded?'開始補目前這一步需要的內容':'我想主動學一段內容'}</b></summary>
+      <p class="muted">${stageLearningNeeded?'只處理目前卡住的最低必要範圍。':'這是你主動選擇的學習，不代表系統認為你現在必須學。'}</p>
+      <form class="project-form" id="learningInputForm">
+        <label><b>學習內容</b><textarea id="learningText" placeholder="貼入你真的想理解的一段文字"></textarea></label>
+        <div class="hero-grid">
+          <label><b>標題（可選）</b><input id="learningTitle" placeholder="例如：目前這一步需要理解的概念"></label>
+          <label><b>最低要學到什麼（可選）</b><input id="learningGoal" value="${esc(stageLearningNeeded?(unblockLearning.minimum||unblockLearning.target||''):'')}" placeholder="例如：能解釋並實際用一次"></label>
+        </div>
+        <div class="row-between">
+          <div id="learningInputMsg" class="muted">${esc(notice||'AI 解釋不算你的能力；只有回答、操作或作品結果才會形成證據。')}</div>
+          <button class="primary-btn" type="submit">建立學習單元</button>
+        </div>
+      </form>
+    </details>
 
     <div class="section-head">
       <div><h2>我的正式學習</h2><p>只顯示你真的輸入、回答或完成的學習紀錄；測試資料與系統建置資料不會混進來。</p></div>
