@@ -285,9 +285,14 @@ function buildPrompt(job,markers){
     payload.prompt ??
     payload.text ??
     payload.raw_content ??
-    JSON.stringify(payload);
+    payload;
 
-  parts.push("【任務輸入】\n"+String(input).trim());
+  const inputText=
+    typeof input==="string"
+      ? input
+      : JSON.stringify(input,null,2);
+
+  parts.push("【任務輸入】\n"+String(inputText).trim());
 
   parts.push(
     "【回覆格式控制】\n"+
