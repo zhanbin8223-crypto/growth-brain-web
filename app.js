@@ -351,18 +351,37 @@ async function renderLearn(notice=''){
   }
 
   root.innerHTML='<div class="empty">正在載入正式學習資料…</div>';
-  let learning;
-  try{learning=await A.getLearning();}
-  catch(e){root.innerHTML=`<div class="empty">學習資料載入失敗：${esc(e.message||e)}</div>`;return;}
+  let learning,artifacts;
+  try{
+    [learning,artifacts]=await Promise.all([
+      A.getLearning(),
+      A.getPersonalArtifacts({force:true})
+    ]);
+  }catch(e){root.innerHTML=`<div class="empty">學習資料載入失敗：${esc(e.message||e)}</div>`;return;}
 
+  const currentArtifact=artifacts?.current||null;
+  const artifactLinks=Array.isArray(currentArtifact?.links)?currentArtifact.links:[];
+  const linkedSessionIds=new Set(
+    artifactLinks.filter(x=>x.link_kind==='learning_session').map(x=>String(x.target_ref))
+  );
   const sessions=learning?.sessions||[];
   const units=sessions.flatMap(s=>(s.units||[]).map(u=>({...u,session:s})));
+  const neededSkills=(currentArtifact?.skills||[]).filter(s=>s.minimum_needed_now);
 
   root.innerHTML=`
     <div class="section-head">
       <div><h2>學習陪伴</h2><p>貼入真實內容後，系統會保留原文，再讓你用自己的話回答。需要 AI 幫忙時會交給 GPT；還沒完成就會明確顯示等待，不會假裝已產生結果。</p></div>
       <span class="pill success">正式資料</span>
     </div>
+
+    ${currentArtifact?`
+    <article class="surface">
+      <span class="kicker">這次學習正在支援</span>
+      <h3>${esc(currentArtifact.title)}</h3>
+      <p>新建立的正式學習會自動掛回這件作品；只有你的回答、操作或作品結果才會提升技能證據。</p>
+      ${neededSkills.length?`<div class="evidence-box"><b>目前只需要補</b><span>${neededSkills.map(s=>`${esc(s.name_zh)}：${esc(s.minimum_needed_now)}`).join('<br>')}</span></div>`:''}
+    </article>`:`
+    <div class="empty">目前沒有進行中的作品。學習仍會保存，但不會自動假設它服務哪個作品；等作品開始後再建立新的學習，系統就會自動串回去。</div>`}
 
     <form class="surface project-form" id="learningInputForm">
       <label><b>學習內容</b><textarea id="learningText" placeholder="貼入你真的想理解的一段文字"></textarea></label>
@@ -383,7 +402,10 @@ async function renderLearn(notice=''){
 
     <div class="lesson-layout">
       <div class="lesson-list" id="liveLessonList">
-        ${units.length?units.map((u,i)=>`<button class="lesson-item ${i===0?'active':''}" data-live-unit="${esc(u.id)}"><span>${esc(u.session?.title||'學習來源')}</span><b>${esc(u.presentation?.title||u.session?.title||'學習單元')}</b><small>${esc(u.latest_submission?.status?statusText(u.latest_submission.status):'未作答')}</small></button>`).join(''):'<div class="empty">目前還沒有正式學習單元。把一段真實文字貼進上方即可開始。</div>'}
+        ${units.length?units.map((u,i)=>{
+          const supportsCurrent=linkedSessionIds.has(String(u.session?.id||''));
+          return `<button class="lesson-item ${i===0?'active':''}" data-live-unit="${esc(u.id)}"><span>${esc(u.session?.title||'學習來源')}</span><b>${esc(u.presentation?.title||u.session?.title||'學習單元')}</b><small>${supportsCurrent?`支援作品：${esc(currentArtifact?.title||'目前作品')} · `:''}${esc(u.latest_submission?.status?statusText(u.latest_submission.status):'未作答')}</small></button>`;
+        }).join(''):'<div class="empty">目前還沒有正式學習單元。把一段真實文字貼進上方即可開始。</div>'}
       </div>
       <article class="lesson-detail" id="liveLessonDetail"></article>
     </div>`;
@@ -400,7 +422,7 @@ async function renderLearn(notice=''){
       await A.createLearningText({rawContent:text,title,goal,sourceLanguage:'zh-Hant'});
       D=await A.getSnapshot();
       renderHome();
-      await renderLearn('已建立正式學習單元；原文已保留，AI 解釋目前仍標示為尚未產生。');
+      await renderLearn(currentArtifact?'已建立正式學習單元，並自動掛到目前作品；AI 解釋仍不算你的能力證據。':'已建立正式學習單元；目前沒有進行中作品，所以暫不自動建立作品關聯。');
     }catch(err){msg.textContent=err.message||'建立失敗';}
   });
 
@@ -421,12 +443,13 @@ async function renderLearn(notice=''){
     const aiText=ai?.status==='completed'?(ai?.result?.text||''):null;
     const aiError=ai?.status==='failed'?(ai?.error?.message||'執行失敗，可重新排入任務。'):null;
     const canQueue=!ai||ai.status==='failed';
+    const supportsCurrent=linkedSessionIds.has(String(active.session?.id||''));
     detail.innerHTML=`
       <span class="kicker">正式來源</span>
       <h2>${esc(active.presentation?.title||active.session?.title||'學習單元')}</h2>
       <p class="teach">${esc(active.zh_explanation||'尚未產生 AI 解釋。')}</p>
       <details open><summary>原始內容</summary><p>${esc(active.original_text||'')}</p></details>
-      <div class="provenance">來源：${esc(active.session?.source_ref||'未記錄')} · 資料：你的正式學習紀錄</div>
+      <div class="provenance">來源：${esc(active.session?.source_ref||'未記錄')} · 資料：你的正式學習紀錄${supportsCurrent&&currentArtifact?` · 支援作品：${esc(currentArtifact.title)}`:''}</div>
       <div class="evidence-box">
         <b>AI 解釋任務 · ${esc(aiLabel)}</b>
         <span>${aiText?esc(aiText):aiError?esc(aiError):ai?'你的 Mac 上 AI 執行器處理完成後，GPT 的整理結果會顯示在這裡。':'尚未建立 AI 解釋任務；你仍可先自己閱讀與作答。'}</span>
