@@ -368,6 +368,48 @@ Deno.serve(async (req: Request) => {
         return json({ ok: true, data: { decision: result, snapshot } }, 200);
       }
 
+      if (body?.action === "request_artifact_stage_unblock") {
+        const userNote =
+          typeof body?.user_note === "string" ? body.user_note.trim() : "";
+
+        if (!body?.artifact_id || userNote.length < 2) {
+          return json(
+            {
+              ok: false,
+              reason: "artifact_id_and_user_note_required",
+            },
+            400,
+          );
+        }
+
+        const result = await adminRpc(
+          "growth_artifact_stage_unblock_request_service_v1",
+          {
+            p_auth_user_id: verified.user.id,
+            p_artifact_id: body.artifact_id,
+            p_user_note: userNote,
+          },
+        );
+
+        if (result?.accepted === false) {
+          const reason = result.reason || "artifact_stage_unblock_rejected";
+          return json(
+            { ok: false, reason, data: result },
+            reason.includes("verified") ? 403 : 400,
+          );
+        }
+
+        const snapshot = await adminRpc(
+          "growth_personal_artifacts_snapshot_service_v1",
+          { p_auth_user_id: verified.user.id },
+        );
+
+        return json(
+          { ok: true, data: { unblock: result, snapshot } },
+          202,
+        );
+      }
+
       if (body?.action === "record_personal_artifact_evidence") {
         const evidenceText =
           typeof body?.evidence_text === "string" ? body.evidence_text.trim() : "";
