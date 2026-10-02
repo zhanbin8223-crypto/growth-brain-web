@@ -182,6 +182,16 @@ async function renderProjects(notice=''){
     const allEvidenceConfirmed=Number(progress.total||0)>0&&Number(progress.remaining||0)===0;
     const learning=Array.isArray(currentArtifact.learning_focus)?currentArtifact.learning_focus:[];
     const branches=Array.isArray(currentArtifact.next_branch_candidates)?currentArtifact.next_branch_candidates:[];
+    const progressRows=progressItems.length
+      ?progressItems.map(item=>'<div class="row-between" style="gap:14px"><div><b>'+(item.status==='confirmed'?'✓ ':'○ ')+esc(item.criterion_text)+'</b>'+(item.status==='confirmed'&&item.evidence?.text?'<p class="muted">'+esc(item.evidence.text)+'</p>':'')+'</div><span class="pill '+(item.status==='confirmed'?'success':'')+'">'+(item.status==='confirmed'?'已留證據':'待完成')+'</span></div>').join('')
+      :'<div class="empty">正在建立作品證據清單…</div>';
+    const progressHtml='<div class="section-head"><div><h2>作品進度與真實證據</h2><p>完成一項就留下證據；未留下證據的條件不會被當成完成。</p></div><span class="pill '+(allEvidenceConfirmed?'success':'warn')+'">'+esc(progress.confirmed||0)+'/'+esc(progress.total||0)+'</span></div><div class="surface"><div class="stack">'+progressRows+'</div></div>';
+    const evidenceHint=nextEvidence&&/商品/.test(String(nextEvidence.criterion_text||''))
+      ?'第一步請記錄：商品名稱、商品連結、目前分潤資訊，以及你為什麼先選它。無法確認的欄位就明確寫「尚未確認」，不要猜。'
+      :'只記錄你真的做過或可以追溯的結果；AI 推測不算證據。';
+    const nextEvidenceHtml=nextEvidence
+      ?'<form class="surface project-form" id="artifactEvidenceProgressForm"><span class="kicker">現在只做第 '+esc(nextEvidence.criterion_no)+' 項</span><h3>'+esc(nextEvidence.criterion_text)+'</h3><p class="muted">'+esc(evidenceHint)+'</p><label><b>這一步的真實結果／證據</b><textarea id="artifactEvidenceProgressText" placeholder="寫下實際資料、結果或可驗證紀錄"></textarea></label><label><b>參考連結（可選，每行一個）</b><textarea id="artifactEvidenceProgressRefs" placeholder="https://..."></textarea></label><div class="row-between"><div id="artifactEvidenceProgressMsg" class="muted">保存後才會前進到下一個完成條件。</div><button type="submit" class="primary-btn">保存這一步的證據</button></div></form>'
+      :'<div class="surface"><div class="row-between"><div><b>所有完成條件都有證據</b><p>現在才進入整件作品的完成確認與技能驗證。</p></div><span class="pill success">可完成作品</span></div></div>';
     return `
       <section>
         <div class="section-head"><div><h2>現在只做這一件作品</h2><p>學習、知識連結與技能驗證都應該回到這件作品，而不是另外長出一堆支線。</p></div><span class="pill success">進行中</span></div>
@@ -197,6 +207,9 @@ async function renderProjects(notice=''){
             <div><strong>${counts.evidence}</strong><span>正式證據</span></div>
           </div>
         </article>
+
+        ${progressHtml}
+        ${nextEvidenceHtml}
 
         <div class="section-head"><div><h2>這件作品正在驗證的能力</h2><p>AI 可以提出初步判斷，但正式狀態只看你的回答、操作與作品證據。</p></div></div>
         ${skillHtml(currentArtifact)}
