@@ -57,70 +57,141 @@ async function renderProjects(notice=''){
   const root=$('#view-projects');
   const H=home(),dir=H.primary_direction||{};
   if(A.liveStatus!=='live'){
-    root.innerHTML=`<div class="section-head"><div><h2>個人主線與專案</h2><p>登入後才能把候選主線正式保存到第二大腦。</p></div></div><div class="surface"><b>目前尚未連線正式資料</b><p>可以先查看首頁方向，但建立或確認個人主線前需要登入。</p><button class="primary-btn" data-auth>登入</button></div>`;
+    root.innerHTML=`<div class="section-head"><div><h2>目標與作品路徑</h2><p>登入後，你輸入的方向才會交給第二大腦與 GPT 整理，並保存成可持續更新的作品路徑。</p></div></div><div class="surface"><b>目前尚未連線正式資料</b><p>登入後才能讀取你的能力證據、作品進度與學習紀錄來規劃下一步。</p><button class="primary-btn" data-auth>登入</button></div>`;
     return;
   }
 
-  root.innerHTML='<div class="empty">正在載入個人主線…</div>';
+  root.innerHTML='<div class="empty">正在讀取你的目標與作品路徑…</div>';
   let outcome;
   try{outcome=await A.getPersonalOutcome();}
-  catch(e){root.innerHTML=`<div class="empty">個人主線載入失敗：${esc(e.message||e)}</div>`;return;}
+  catch(e){root.innerHTML=`<div class="empty">目標與作品路徑載入失敗：${esc(e.message||e)}</div>`;return;}
 
   const selected=outcome?.selected_route||null;
   const candidate=outcome?.candidate_route||null;
+  const planningRoute=candidate||selected||null;
+  const planJob=planningRoute?.path_plan||null;
+  const aiLabels={pending:'等待 GPT 整理',claimed:'已開始整理',processing:'正在分析你的資料',completed:'整理完成',failed:'整理失敗',cancelled:'已取消'};
+  let plan=null;
+  if(planJob?.status==='completed'){
+    const raw=planJob?.result?.text;
+    if(raw){
+      try{plan=JSON.parse(String(raw).replace(/^\`\`\`json\s*/i,'').replace(/\`\`\`$/,'').trim());}catch{}
+    }
+  }
+
+  const masteryLabel=s=>({
+    unknown:'尚未驗證',
+    exposure:'接觸過',
+    understood:'已理解',
+    apply_with_help:'可在協助下應用',
+    apply_independently:'可獨立應用'
+  }[String(s||'').toLowerCase()]||'尚未驗證');
+
+  const planPanel=(()=>{
+    if(!planningRoute){
+      return `<section><div class="section-head"><div><h2>AI 路徑整理</h2><p>先輸入一個你想達成的方向，系統才會用你的資料庫狀態與 GPT 產生第一件可驗證作品。</p></div></div><div class="empty">目前還沒有可整理的目標。</div></section>`;
+    }
+    if(!planJob){
+      return `<section><div class="section-head"><div><h2>AI 路徑整理</h2><p>保存目標後，系統會自動把相關能力、學習證據與知識連結交給 GPT 整理。</p></div></div><div class="surface"><b>尚未建立整理任務</b><p>再次保存這個目標後會自動建立，不需要另外輸入一次。</p></div></section>`;
+    }
+    if(['pending','claimed','processing'].includes(planJob.status)){
+      return `<section><div class="section-head"><div><h2>AI 正在整理你的路徑</h2><p>第二大腦已把目前目標、技能證據、學習紀錄與知識連結交給 GPT；結果會先當候選建議，不會直接改寫你的能力。</p></div>${pill('pending')}</div><div class="surface"><b>${esc(aiLabels[planJob.status]||'處理中')}</b><p>完成後這裡會出現「現在這一件作品、要驗證的技能、完成證據與後續候選方向」。</p></div></section>`;
+    }
+    if(planJob.status==='failed'){
+      return `<section><div class="section-head"><div><h2>AI 路徑整理</h2><p>你的目標與資料都還在資料庫，不會因 GPT 或本機執行器暫時失敗而遺失。</p></div>${pill('danger')}</div><div class="surface"><b>這次整理沒有完成</b><p>系統保留原始目標與失敗紀錄；重新保存目標或稍後重試即可，不會把失敗結果當成正式路徑。</p></div></section>`;
+    }
+    if(planJob.status==='completed'&&!plan){
+      return `<section><div class="section-head"><div><h2>AI 路徑整理</h2><p>GPT 已經回覆，但這次格式還不能安全轉成作品路徑。</p></div>${pill('warn')}</div><div class="surface"><b>回覆已保存，尚未套用</b><p>原始結果保留在資料庫；在格式整理完成前，不會把它寫成你的技能或正式路徑。</p></div></section>`;
+    }
+    if(!plan) return '';
+    const artifact=plan.current_artifact||{};
+    const skills=Array.isArray(plan.core_capabilities)?plan.core_capabilities:[];
+    const tools=Array.isArray(plan.tool_capabilities)?plan.tool_capabilities:[];
+    const learning=Array.isArray(plan.learning_focus)?plan.learning_focus:[];
+    const branches=Array.isArray(plan.possible_next_branches)?plan.possible_next_branches:[];
+    return `<section>
+      <div class="section-head"><div><h2>現在這一件作品</h2><p>先用作品驗證能力；下一階段等這件作品有結果後再重新判斷。</p></div><span class="pill success">GPT 已整理</span></div>
+      <article class="surface">
+        <span class="kicker">目前階段</span>
+        <h2>${esc(artifact.title||'尚未命名的階段作品')}</h2>
+        <p>${esc(artifact.objective||plan.goal_interpretation||'')}</p>
+        ${artifact.deliverable?`<div class="evidence-box"><b>要做出什麼</b><span>${esc(artifact.deliverable)}</span></div>`:''}
+        <div class="evidence-box"><b>做到什麼才算通過</b><span>${(artifact.done_evidence||[]).length?(artifact.done_evidence||[]).map(x=>`• ${esc(x)}`).join('<br>'):'等待作品完成標準'}</span></div>
+      </article>
+
+      <div class="section-head"><div><h2>這件作品正在驗證的能力</h2><p>百分比不是靠 AI 猜；沒有真實證據的能力會維持「尚未驗證」。</p></div></div>
+      <div class="stack">${skills.length?skills.map(s=>`<div class="surface row-between"><div><b>${esc(s.name_zh||human(s.key))}</b><p>${esc(s.why||'')}</p></div><span class="pill">${esc(masteryLabel(s.current_state))}</span></div>`).join(''):'<div class="empty">目前還沒有足夠證據整理能力狀態。</div>'}</div>
+
+      ${learning.length?`<div class="section-head"><div><h2>現在只需要補的學習</h2><p>只補這件作品目前真的需要的缺口，不先把整套課程學完。</p></div></div><div class="stack">${learning.map(x=>`<div class="surface"><b>${esc(human(x.skill_key)||x.skill_key||'學習重點')}</b><p>${esc(x.reason||'')}</p><small class="muted">目前最低需要：${esc(x.minimum_needed_now||'能支援現在作品')}</small></div>`).join('')}</div>`:''}
+
+      ${tools.length?`<details class="surface"><summary><b>容易隨技術更新的工具能力</b></summary><p>這些可以換工具；底層能力沒有失效時，不會因此重建整條路徑。</p>${tools.map(t=>`<p><b>${esc(t.name_zh||human(t.key))}</b> — ${esc(t.why||'')}</p>`).join('')}</details>`:''}
+
+      ${branches.length?`<details class="surface"><summary><b>完成這件作品後，可能的下一步</b></summary><p>以下只是候選，不會提前寫成你的正式路徑。</p>${branches.map(b=>`<p><b>${esc(b.title||'候選方向')}</b><br><small class="muted">什麼情況才走這條：${esc(b.condition||'看作品結果再決定')}</small></p>`).join('')}</details>`:''}
+
+      ${plan.needs_fresh_research?`<div class="surface"><b>需要更新外部技術資訊</b><p>這次規劃發現部分工具選擇具有時效性。系統應先更新最新技術資料，再決定工具層，不會直接改寫底層能力。</p></div>`:''}
+    </section>`;
+  })();
+
   root.innerHTML=`
-    <div class="section-head"><div><h2>個人主線與專案</h2><p>AI 可以整理候選，但只有你能把它設成正式主線。</p></div>${pill(selected?'selected':candidate?'candidate':'unknown')}</div>
+    <div class="section-head"><div><h2>目標與作品路徑</h2><p>你只要告訴系統想往哪裡走；第二大腦會結合資料庫記憶與 GPT，把它整理成現在這一件可驗證作品。</p></div>${pill(selected?'selected':candidate?'candidate':'unknown')}</div>
+
     <div class="hero-grid">
       <article class="surface">
-        <span class="kicker">目前方向</span>
-        <h3>${esc(dir.key?human(dir.key):'尚無方向')}</h3>
-        <p>${esc(dir.goal||'目前沒有足夠證據形成方向。')}</p>
-        <small class="muted">方向是長期傾向；主線是你現在明確選定要完成的成果，兩者不等同。</small>
+        <span class="kicker">目前正式主線</span>
+        <h3>${esc(selected?.title||'尚未選定')}</h3>
+        <p>${esc(selected?.success_evidence||'先輸入你想達成的方向；AI 可以整理，但只有你能確認正式主線。')}</p>
+        ${selected?pill('selected'):''}
       </article>
       <article class="surface">
-        <span class="kicker">目前主線</span>
-        <h3>${esc(selected?.title||'尚未選定')}</h3>
-        <p>${esc(selected?.success_evidence||'先建立一條候選主線，再由你確認。')}</p>
-        ${selected?pill('selected'):''}
+        <span class="kicker">長期方向</span>
+        <h3>${esc(dir.key?human(dir.key):'尚未形成')}</h3>
+        <p>${esc(dir.goal||'方向會依真實作品與能力證據逐步修正，不會只靠一次回答定案。')}</p>
+        <small class="muted">方向可以調整；目前作品才是現在真正要完成的東西。</small>
       </article>
     </div>
 
     ${candidate?`
-    <div class="section-head"><div><h2>待確認候選</h2><p>這筆已經保存到資料庫，但還不是正式主線。</p></div></div>
+    <div class="section-head"><div><h2>待你確認的新主線</h2><p>AI 可以先替它整理路徑，但在你確認前仍只是候選。</p></div></div>
     <article class="surface">
       <h3>${esc(candidate.title)}</h3>
-      <p><b>完成證據：</b>${esc(candidate.success_evidence)}</p>
+      <p><b>你目前認為的完成方向：</b>${esc(candidate.success_evidence)}</p>
       ${candidate.why_now?`<p><b>為什麼現在做：</b>${esc(candidate.why_now)}</p>`:''}
       <div class="project-actions">
-        <button class="primary-btn" id="selectCandidate">設為正式主線</button>
-        <button class="ghost-btn" id="rejectCandidate">拒絕這個候選</button>
+        <button class="primary-btn" id="selectCandidate">確認為目前主線</button>
+        <button class="ghost-btn" id="rejectCandidate">不要走這條</button>
       </div>
     </article>`:''}
 
-    <div class="section-head"><div><h2>${candidate?'修改候選主線':'建立候選主線'}</h2><p>只先定義「想完成什麼」與「怎樣才算完成」，不一次塞入大量規劃。</p></div></div>
+    ${planPanel}
+
+    <div class="section-head"><div><h2>${candidate?'調整這個方向':'輸入一個想走的方向'}</h2><p>最少只要告訴我「你想達成什麼」。完成標準與技能拆解可以交給 GPT 先整理，再由作品結果驗證。</p></div></div>
     <form class="surface project-form" id="projectForm">
-      <label><b>我想完成什麼</b><input id="projectTitle" value="${esc(candidate?.title||'')}" placeholder="例如：完成一個自己會持續使用的第二大腦核心流程"></label>
-      <label><b>什麼證據代表完成</b><textarea id="projectEvidence" placeholder="例如：我能從輸入一個想法，一路走到可執行下一步，而且結果會被記錄">${esc(candidate?.success_evidence||'')}</textarea></label>
-      <label><b>為什麼現在做</b><textarea id="projectWhy" placeholder="可選填">${esc(candidate?.why_now||'')}</textarea></label>
+      <label><b>我想往哪裡走／想完成什麼</b><textarea id="projectTitle" placeholder="例如：我想把 AI 自動化學到可以接遠端工作，先從能做出實際作品開始">${esc(candidate?.title||'')}</textarea></label>
+      <label><b>如果你已經知道，怎樣算達成（可選）</b><textarea id="projectEvidence" placeholder="不知道可以留空，GPT 會先拆成第一件可驗證作品">${esc(candidate?.success_evidence||'')}</textarea></label>
+      <details>
+        <summary>補充：為什麼現在想做</summary>
+        <textarea id="projectWhy" placeholder="可選填">${esc(candidate?.why_now||'')}</textarea>
+      </details>
       <div class="row-between">
-        <div id="projectMsg" class="muted">${esc(notice||'儲存後只是候選，不會自動變成你的正式目標。')}</div>
-        <button type="submit" class="primary-btn">保存候選主線</button>
+        <div id="projectMsg" class="muted">${esc(notice||'保存後會自動交給 GPT 整理；AI 結果先是候選，不會直接改成你已學會。')}</div>
+        <button type="submit" class="primary-btn">保存並交給 GPT 整理</button>
       </div>
     </form>`;
 
   $('#projectForm')?.addEventListener('submit',async e=>{
     e.preventDefault();
     const title=$('#projectTitle').value.trim();
-    const successEvidence=$('#projectEvidence').value.trim();
+    const providedEvidence=$('#projectEvidence').value.trim();
+    const successEvidence=providedEvidence||'先由 GPT 拆解第一件可驗證作品，再以作品結果逐步確認完成標準。';
     const whyNow=$('#projectWhy').value.trim();
     const msg=$('#projectMsg');
-    if(title.length<3||successEvidence.length<3){msg.textContent='請至少填入「想完成什麼」與「完成證據」。';return;}
+    if(title.length<3){msg.textContent='請至少告訴我你想往哪裡走或想完成什麼。';return;}
     try{
-      msg.textContent='正在保存到第二大腦…';
+      msg.textContent='正在保存，並把相關資料交給 GPT 整理…';
       await A.savePersonalOutcomeCandidate({title,successEvidence,whyNow,directionKey:dir.key||null});
       D=await A.getSnapshot();
       renderHome();
-      await renderProjects('候選主線已正式保存，現在可以確認是否設為主線。');
+      await renderProjects('已保存。GPT 路徑整理已自動排入，完成後會直接顯示第一件作品與要驗證的技能。');
     }catch(e){msg.textContent=e.message||'保存失敗';}
   });
 
@@ -130,7 +201,7 @@ async function renderProjects(notice=''){
       await A.decidePersonalOutcomeCandidate({routeId:candidate.id,decision:'select'});
       D=await A.getSnapshot();
       renderHome();
-      await renderProjects('已設為正式個人主線；首頁已同步更新。');
+      await renderProjects('已確認為正式主線；系統會保留 GPT 整理結果，但能力仍要靠作品證據更新。');
     }catch(e){btn.disabled=false;$('#projectMsg').textContent=e.message||'設定失敗';}
   });
 
@@ -140,7 +211,7 @@ async function renderProjects(notice=''){
       await A.decidePersonalOutcomeCandidate({routeId:candidate.id,decision:'reject'});
       D=await A.getSnapshot();
       renderHome();
-      await renderProjects('候選已拒絕，不會成為你的主線。');
+      await renderProjects('這個候選方向已拒絕，不會進入正式主線。');
     }catch(e){btn.disabled=false;$('#projectMsg').textContent=e.message||'拒絕失敗';}
   });
 }
