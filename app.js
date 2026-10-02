@@ -9,9 +9,22 @@ const pct=v=>`${Math.round((Number(v)||0)*100)}%`;
 const pill=s=>{const k=String(s||'unknown').toLowerCase();const cls=['completed','available','live','active','selected'].includes(k)?'success':['blocked','blocked_external','danger','rejected'].includes(k)?'danger':['current','planned','pending','supporting_only','candidate','candidate_only','paused'].includes(k)?'warn':'';return `<span class="pill ${cls}">${esc(statusText(s||'unknown'))}</span>`};
 const human=s=>{
   const raw=String(s||'');
-  const labels={remote_income:'遠端收入',synapse_graph:'知識連結圖',repeated_core_logic:'重複核心邏輯',unified_stream:'統一資訊流',spec_kit_workflow:'規格優先工作流'};
+  const labels={
+    remote_income:'遠端收入',
+    synapse_graph:'知識連結圖',
+    repeated_core_logic:'重複核心邏輯',
+    unified_stream:'統一資訊流',
+    spec_kit_workflow:'Spec Kit 規格工作流',
+    'spec-kit-workflow':'Spec Kit 規格工作流',
+    'event-clustering':'事件聚類',
+    'filter-before-learning':'先過濾再學習',
+    'pipeline-vs-learning':'資料流程與學習流程的差別',
+    goal_closure_recovery:'卡住後的達案恢復',
+    intent_evidence_before_implementation:'先確認需求與證據再實作',
+    spec_before_code:'先規格後寫程式'
+  };
   const key=raw.replace(/^concept:/,'').replace(/^logic:/,'');
-  return labels[key]||key.replaceAll('_',' ');
+  return labels[key]||key.replaceAll('_',' ').replaceAll('-',' ');
 };
 const home=()=>D?.personalHome||{};
 const attempt=u=>A.latestAttempt(u.id);
@@ -350,11 +363,11 @@ async function renderLearn(notice=''){
 async function renderSynapse(){
   const root=$('#view-synapse');
   if(A.liveStatus!=='live'){
-    root.innerHTML='<div class="section-head"><div><h2>知識連結</h2><p>把你的來源、概念與學習證據串成可追溯的關係圖。</p></div></div><div class="empty">目前未讀取正式知識連結；不會用快取或示範資料冒充個人結果。登入後才讀取正式個人資料。</div>';
+    root.innerHTML='<div class="section-head"><div><h2>知識連結</h2><p>登入後才會從你的正式資料來源、學習紀錄與證據建立關係。</p></div></div><div class="empty">目前沒有讀取正式個人資料，不會用示範圖冒充你的知識狀態。</div>';
     return;
   }
 
-  root.innerHTML='<div class="empty">正在讀取正式個人知識連結…</div>';
+  root.innerHTML='<div class="empty">正在讀取你的來源、概念與學習證據…</div>';
   let synapse=D?.synapse||null;
   if(!synapse?.nodes){
     try{synapse=await A.getPersonalSynapse();D.synapse=synapse;}
@@ -363,20 +376,102 @@ async function renderSynapse(){
 
   const rawNodes=Array.isArray(synapse?.nodes)?synapse.nodes:[];
   const edges=Array.isArray(synapse?.edges)?synapse.edges:[];
+  const sources=rawNodes.filter(n=>n.type==='source');
+  const concepts=rawNodes.filter(n=>n.type!=='source');
+  const summary=synapse?.summary||{};
+
   if(!rawNodes.length){
-    root.innerHTML='<div class="section-head"><div><h2>知識連結</h2><p>這裡會把你真正收集、學習或完成過的內容，和其中出現的概念與證據連起來。</p></div></div><div class="empty">目前還沒有足夠的正式個人來源形成知識連結。</div>';
+    root.innerHTML='<div class="section-head"><div><h2>知識連結</h2><p>當你有正式來源、學習或作品證據後，這裡才會形成關係。</p></div></div><div class="empty">目前還沒有足夠的正式資料形成知識連結。</div>';
     return;
   }
 
-  const sources=rawNodes.filter(n=>n.type==='source');
-  const concepts=rawNodes.filter(n=>n.type!=='source');
-  const spread=(items,x)=>items.map((n,i)=>({...n,x,y:items.length===1?50:15+(70*i/Math.max(items.length-1,1))}));
-  const nodes=[...spread(sources,20),...spread(concepts,75)];
+  const sourceTypeLabel={article:'文章',video:'影片',chat:'對話',text:'文字',learning:'學習來源'};
+  const levelLabel={
+    unknown:'尚未驗證',
+    exposure:'看過／接觸過',
+    can_paraphrase:'能用自己的話說明',
+    understood:'已理解',
+    apply_with_help:'可在協助下應用',
+    apply_independently:'可獨立應用'
+  };
+  const sourceRef=n=>{
+    const ref=String(n.source_ref||'');
+    if(/^https?:\/\//i.test(ref)) return `<a href="${esc(ref)}" target="_blank" rel="noopener">查看原始來源</a>`;
+    if(ref.startsWith('inbox:')) return '來自資料入口中的正式紀錄';
+    return esc(ref||'來源已記錄');
+  };
 
-  root.innerHTML=`<div class="section-head"><div><h2>知識連結</h2><p>這裡只用資料庫裡可追溯的正式來源，把內容、概念與學習證據連起來；有來源證據才會建立連結。</p></div><span class="pill success">正式個人資料</span></div><div class="graph" id="graph"></div><details class="surface"><summary><b>這張圖代表什麼？</b></summary><p>技術上這一層稱為 Synapse（關聯層）：作用是把不同來源與概念的關係保存起來。它只表示「彼此有關」，不代表你已經學會。</p></details><div class="provenance">目前資料：${esc(synapse?.summary?.source_count??sources.length)} 個來源 · ${esc(synapse?.summary?.concept_count??concepts.length)} 個概念 · ${esc(synapse?.summary?.edge_count??edges.length)} 條關係。這些連結代表來源與概念的關聯，不等於你已經熟練。</div>`;
+  const sourceCards=sources.map(s=>`<article class="surface">
+    <div class="row-between"><b>${esc(sourceTypeLabel[s.source_type]||'正式來源')}</b><span class="pill success">資料庫來源</span></div>
+    <p>${sourceRef(s)}</p>
+    <small class="muted">收進時間：${esc(s.observed_at?new Date(s.observed_at).toLocaleString('zh-TW'):'未記錄')}</small>
+  </article>`).join('');
+
+  const conceptCards=concepts.map(n=>{
+    const evidence=Number(n.learning_evidence_count)||0;
+    const state=levelLabel[n.learning_level_name]||'尚未驗證';
+    return `<article class="surface">
+      <div class="row-between"><div><b>${esc(human(n.label||n.id))}</b><div class="muted">技術標記：${esc(n.id)}</div></div><span class="pill ${evidence?'success':''}">${esc(state)}</span></div>
+      <p>目前連到 ${esc(n.source_count??0)} 個真實來源；正式學習證據 ${esc(evidence)} 筆。</p>
+      <small class="muted">${n.independent_application_verified?'已有獨立應用證據':'目前還不能宣稱已能獨立應用'}</small>
+    </article>`;
+  }).join('');
+
+  const spread=(items,x)=>items.map((n,i)=>({...n,x,y:items.length===1?50:15+(70*i/Math.max(items.length-1,1))}));
+  const graphNodes=[...spread(sources,20),...spread(concepts,75)];
+
+  root.innerHTML=`
+    <div class="section-head"><div><h2>知識連結</h2><p>Synapse（知識關係層）：把你的真實來源、概念與證據連起來，方便之後支援作品與學習。</p></div><span class="pill success">只讀正式個人資料</span></div>
+
+    <div class="metrics">
+      <div><strong>${esc(summary.source_count??sources.length)}</strong><span>真實來源</span></div>
+      <div><strong>${esc(summary.concept_count??concepts.length)}</strong><span>概念</span></div>
+      <div><strong>${esc(summary.learning_evidence_count??0)}</strong><span>正式學習證據</span></div>
+    </div>
+
+    <article class="surface">
+      <span class="kicker">目前缺少的一段</span>
+      <h3>作品連結還沒有完整接上</h3>
+      <p>現在資料庫已能證明「哪個來源包含哪些概念」以及「哪些概念已有學習證據」，但還沒把概念／證據完整連到目前作品。因此之前看起來像一張孤立知識圖。</p>
+      <div class="evidence-box"><b>接下來要補的關係</b><span>來源 → 概念 → 學習證據 → 目前作品 → 作品結果 → 下一件作品</span></div>
+    </article>
+
+    <div class="section-head"><div><h2>這些資料從哪裡來</h2><p>不是 AI 猜的節點；每一筆都要能追到資料庫中的正式來源。</p></div></div>
+    <div class="stack">${sourceCards||'<div class="empty">目前沒有來源。</div>'}</div>
+
+    <div class="section-head"><div><h2>目前形成的概念</h2><p>「有連結」只代表你接觸過這個概念；有作品或回答證據後才會提高能力狀態。</p></div></div>
+    <div class="stack">${conceptCards||'<div class="empty">目前沒有概念。</div>'}</div>
+
+    <details class="surface" style="margin-top:18px">
+      <summary><b>查看關係圖（Synapse）</b></summary>
+      <p>這張圖是輔助視覺，不是主要操作介面。</p>
+      <div class="graph" id="graph"></div>
+      <div class="provenance">${esc(summary.edge_count??edges.length)} 條有來源可追溯的關係；關係本身不等於已學會。</div>
+    </details>`;
+
   const g=$('#graph');
-  edges.forEach(e=>{const a=nodes.find(n=>n.id===e.source),b=nodes.find(n=>n.id===e.target);if(!a||!b)return;const line=document.createElement('div');line.className='edge';const dx=b.x-a.x,dy=b.y-a.y;line.style.left=a.x+'%';line.style.top=a.y+'%';line.style.width=Math.hypot(dx,dy)+'%';line.style.transform=`rotate(${Math.atan2(dy,dx)*180/Math.PI}deg)`;g.appendChild(line)});
-  nodes.forEach(n=>{const b=document.createElement('button');b.className='node '+(n.type==='source'?'center':'');b.style.left=n.x+'%';b.style.top=n.y+'%';b.textContent=n.label||human(n.id);b.title=n.type==='source'?'正式個人來源':'概念節點；不代表已熟練';g.appendChild(b)});
+  if(!g) return;
+  edges.forEach(e=>{
+    const a=graphNodes.find(n=>n.id===e.source),b=graphNodes.find(n=>n.id===e.target);
+    if(!a||!b)return;
+    const line=document.createElement('div');
+    line.className='edge';
+    const dx=b.x-a.x,dy=b.y-a.y;
+    line.style.left=a.x+'%';
+    line.style.top=a.y+'%';
+    line.style.width=Math.hypot(dx,dy)+'%';
+    line.style.transform=`rotate(${Math.atan2(dy,dx)*180/Math.PI}deg)`;
+    g.appendChild(line);
+  });
+  graphNodes.forEach(n=>{
+    const b=document.createElement('button');
+    b.className='node '+(n.type==='source'?'center':'');
+    b.style.left=n.x+'%';
+    b.style.top=n.y+'%';
+    b.textContent=n.type==='source'?(sourceTypeLabel[n.source_type]||'來源'):human(n.label||n.id);
+    b.title=n.type==='source'?'正式個人來源':'概念關係；不代表已熟練';
+    g.appendChild(b);
+  });
 }
 
 async function renderSystem(){
