@@ -194,6 +194,15 @@
       await this.refreshPersonalHome();
       return clone(result?.data||null);
     },
+    async enqueueLearningAi(sessionId){
+      if(this.mode!=='live') throw Object.assign(new Error('請先登入。'),{code:'not_signed_in'});
+      const result=await liveRequest('POST',{
+        action:'enqueue_learning_ai',
+        session_id:sessionId
+      });
+      await this.getLearning();
+      return clone(result?.data||null);
+    },
     async getPersonalSynapse(){
       if(this.mode!=='live') throw Object.assign(new Error('請先登入，知識連結只顯示正式個人資料。'),{code:'not_signed_in'});
       const result=await liveRequest('GET',undefined,'personal_synapse');
