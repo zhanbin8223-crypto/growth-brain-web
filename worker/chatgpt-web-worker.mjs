@@ -23,6 +23,8 @@ const BRIDGE_API_KEY = process.env.CHATGPT_BRIDGE_API_KEY || "";
 const MODEL = process.env.CHATGPT_MODEL || "auto";
 const POLL_MS = Math.max(1000, Number(process.env.GROWTH_POLL_MS || 4000));
 const RUN_ONCE = process.env.GROWTH_RUN_ONCE === "1";
+const HEARTBEAT_MS = Math.max(5000, Number(process.env.GROWTH_HEARTBEAT_MS || 15000));
+let lastHeartbeatAt = 0;
 
 function assertLocalBridge(urlText) {
   let url;
@@ -154,6 +156,33 @@ async function callBridge(job) {
   };
 }
 
+async function heartbeat(status = "online", lastJobId = null, force = false) {
+  const now = Date.now();
+  if (!force && now - lastHeartbeatAt < HEARTBEAT_MS) return null;
+  lastHeartbeatAt = now;
+
+  try {
+    return await rpc("growth_ai_worker_heartbeat_service_v1", {
+      p_auth_user_id: AUTH_USER_ID,
+      p_worker_id: WORKER_ID,
+      p_provider_key: PROVIDER_KEY,
+      p_status: status,
+      p_last_job_id: lastJobId,
+      p_metadata: {
+        bridge_scope: "localhost_only",
+        bridge_url: BRIDGE_URL,
+        model: MODEL,
+        run_once: RUN_ONCE,
+        poll_ms: POLL_MS,
+        heartbeat_ms: HEARTBEAT_MS
+      }
+    });
+  } catch (error) {
+    console.error("[heartbeat-error]", error instanceof Error ? error.message : error);
+    return null;
+  }
+}
+
 async function transition(jobId, nextStatus, expectedStatus, extra = {}) {
   return rpc("growth_ai_job_transition_service_v1", {
     p_auth_user_id: AUTH_USER_ID,
@@ -178,6 +207,7 @@ async function claimNext() {
 
 async function processJob(job) {
   let expectedStatus = "claimed";
+  await heartbeat("busy", job.id, true);
   try {
     const processing = await transition(job.id, "processing", expectedStatus);
     if (!processing?.accepted) {
@@ -209,9 +239,11 @@ async function processJob(job) {
     }
 
     console.log(`[completed] ${job.id} ${job.task_type}`);
+    await heartbeat("idle", job.id, true);
   } catch (error) {
     const message = error instanceof Error ? error.message : String(error);
     console.error(`[failed] ${job.id}: ${message}`);
+    await heartbeat("error", job.id, true);
 
     try {
       const failed = await transition(job.id, "failed", expectedStatus, {
@@ -237,9 +269,11 @@ async function main() {
   console.log(`provider=${PROVIDER_KEY}`);
   console.log(`bridge=${BRIDGE_URL}`);
   console.log("ChatGPT browser session and all secrets stay on this Mac.");
+  await heartbeat("online", null, true);
 
   while (true) {
     try {
+      await heartbeat("online");
       const claim = await claimNext();
       if (!claim?.accepted) {
         console.error("[claim-rejected]", claim);
@@ -249,8 +283,10 @@ async function main() {
 
       const job = claim.job;
       if (!job) {
+        await heartbeat("idle");
         if (RUN_ONCE) {
           console.log("[idle] no pending job");
+          await heartbeat("stopping", null, true);
           return;
         }
         await sleep(POLL_MS);
@@ -259,7 +295,10 @@ async function main() {
 
       console.log(`[claimed] ${job.id} ${job.task_type}`);
       await processJob(job);
-      if (RUN_ONCE) return;
+      if (RUN_ONCE) {
+        await heartbeat("stopping", job.id, true);
+        return;
+      }
     } catch (error) {
       console.error("[poll-error]", error instanceof Error ? error.message : error);
       await sleep(POLL_MS);
