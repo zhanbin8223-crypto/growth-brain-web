@@ -235,7 +235,7 @@ async function renderLearn(notice=''){
 
   root.innerHTML=`
     <div class="section-head">
-      <div><h2>學習陪伴</h2><p>貼入真實文字後，系統先保留原文，再讓你用自己的話回答；AI 解釋會進任務佇列，本機執行器未開啟時不會假裝已完成。</p></div>
+      <div><h2>學習陪伴</h2><p>貼入真實內容後，系統會保留原文，再讓你用自己的話回答。需要 AI 幫忙時會交給 GPT；還沒完成就會明確顯示等待，不會假裝已產生結果。</p></div>
       <span class="pill success">正式資料</span>
     </div>
 
@@ -246,13 +246,13 @@ async function renderLearn(notice=''){
         <label><b>學習目標（可選）</b><input id="learningGoal" placeholder="例如：能用自己的話說明並應用"></label>
       </div>
       <div class="row-between">
-        <div id="learningInputMsg" class="muted">${esc(notice||'建立後會進正式 Learning；目前不會把 AI 生成內容當成你已學會。')}</div>
+        <div id="learningInputMsg" class="muted">${esc(notice||'建立後會保存成正式學習紀錄；AI 產生的解釋不會自動算成你已學會。')}</div>
         <button class="primary-btn" type="submit">建立學習單元</button>
       </div>
     </form>
 
     <div class="section-head">
-      <div><h2>我的正式學習</h2><p>只顯示正式個人資料（data_scope=real：代表真實使用資料，不包含測試與系統資料）。</p></div>
+      <div><h2>我的正式學習</h2><p>只顯示你真的輸入、回答或完成的學習紀錄；測試資料與系統建置資料不會混進來。</p></div>
       <span>${sessions.length} 個來源 · ${units.length} 個單元</span>
     </div>
 
@@ -284,7 +284,7 @@ async function renderLearn(notice=''){
     const detail=$('#liveLessonDetail');
     if(!detail) return;
     if(!active){
-      detail.innerHTML='<div class="empty">目前沒有正式學習單元（Learning Unit：一次要理解或練習的一小段內容）。</div>';
+      detail.innerHTML='<div class="empty">目前沒有學習單元。學習單元就是一次要理解、練習或驗證的一小段內容。</div>';
       return;
     }
     const sub=active.latest_submission||null;
@@ -301,10 +301,10 @@ async function renderLearn(notice=''){
       <h2>${esc(active.presentation?.title||active.session?.title||'學習單元')}</h2>
       <p class="teach">${esc(active.zh_explanation||'尚未產生 AI 解釋。')}</p>
       <details open><summary>原始內容</summary><p>${esc(active.original_text||'')}</p></details>
-      <div class="provenance">來源：${esc(active.session?.source_ref||'未記錄')} · 資料範圍：正式個人資料（real）</div>
+      <div class="provenance">來源：${esc(active.session?.source_ref||'未記錄')} · 資料：你的正式學習紀錄</div>
       <div class="evidence-box">
         <b>AI 解釋任務 · ${esc(aiLabel)}</b>
-        <span>${aiText?esc(aiText):aiError?esc(aiError):ai?'本機執行器（worker：在你的 Mac 取出任務並交給 ChatGPT）處理後，結果會顯示在這裡。':'尚未建立 AI 解釋任務；你仍可先自己閱讀與作答。'}</span>
+        <span>${aiText?esc(aiText):aiError?esc(aiError):ai?'你的 Mac 上 AI 執行器處理完成後，GPT 的整理結果會顯示在這裡。':'尚未建立 AI 解釋任務；你仍可先自己閱讀與作答。'}</span>
         ${canQueue?'<button class="ghost-btn small" id="enqueueLearningAi">'+(ai?.status==='failed'?'重新排隊':'建立 AI 解釋任務')+'</button>':''}
         <small>AI 解釋只是輔助，不會自動算成你已學會。</small>
       </div>
@@ -320,7 +320,7 @@ async function renderLearn(notice=''){
       try{
         if(btn){btn.disabled=true;btn.textContent='排入中…';}
         await A.enqueueLearningAi(active.session.id);
-        await renderLearn(ai?.status==='failed'?'AI 解釋任務已重新排隊。':'AI 解釋任務已排入佇列。');
+        await renderLearn(ai?.status==='failed'?'已重新交給 AI 整理。':'已交給 AI 整理。');
       }catch(e){
         if(btn){btn.disabled=false;btn.textContent=ai?.status==='failed'?'重新排隊':'建立 AI 解釋任務';}
         const m=$('#answerMsg');if(m)m.textContent=e.message||'AI 任務建立失敗';
@@ -350,7 +350,7 @@ async function renderLearn(notice=''){
 async function renderSynapse(){
   const root=$('#view-synapse');
   if(A.liveStatus!=='live'){
-    root.innerHTML='<div class="section-head"><div><h2>知識連結（Synapse）</h2><p>把你的來源、概念與學習證據串成可追溯的關係圖。</p></div></div><div class="empty">目前未讀取正式知識連結；不會用快取或示範資料冒充個人結果。登入後才讀取正式個人資料。</div>';
+    root.innerHTML='<div class="section-head"><div><h2>知識連結</h2><p>把你的來源、概念與學習證據串成可追溯的關係圖。</p></div></div><div class="empty">目前未讀取正式知識連結；不會用快取或示範資料冒充個人結果。登入後才讀取正式個人資料。</div>';
     return;
   }
 
@@ -364,7 +364,7 @@ async function renderSynapse(){
   const rawNodes=Array.isArray(synapse?.nodes)?synapse.nodes:[];
   const edges=Array.isArray(synapse?.edges)?synapse.edges:[];
   if(!rawNodes.length){
-    root.innerHTML='<div class="section-head"><div><h2>知識連結（Synapse）</h2><p>Synapse 是把相關來源、概念與證據串起來的知識關係圖。</p></div></div><div class="empty">目前還沒有足夠的正式個人來源形成知識連結。</div>';
+    root.innerHTML='<div class="section-head"><div><h2>知識連結</h2><p>這裡會把你真正收集、學習或完成過的內容，和其中出現的概念與證據連起來。</p></div></div><div class="empty">目前還沒有足夠的正式個人來源形成知識連結。</div>';
     return;
   }
 
@@ -373,7 +373,7 @@ async function renderSynapse(){
   const spread=(items,x)=>items.map((n,i)=>({...n,x,y:items.length===1?50:15+(70*i/Math.max(items.length-1,1))}));
   const nodes=[...spread(sources,20),...spread(concepts,75)];
 
-  root.innerHTML=`<div class="section-head"><div><h2>知識連結（Synapse）</h2><p>Synapse 是把正式來源、概念與學習證據串成可追溯關係圖；連結只在已有來源證據時顯示。</p></div><span class="pill success">正式個人資料</span></div><div class="graph" id="graph"></div><div class="provenance">目前資料：${esc(synapse?.summary?.source_count??sources.length)} 個來源 · ${esc(synapse?.summary?.concept_count??concepts.length)} 個概念 · ${esc(synapse?.summary?.edge_count??edges.length)} 條關係。這些連結代表來源與概念的關聯，不等於你已經熟練。</div>`;
+  root.innerHTML=`<div class="section-head"><div><h2>知識連結</h2><p>這裡只用資料庫裡可追溯的正式來源，把內容、概念與學習證據連起來；有來源證據才會建立連結。</p></div><span class="pill success">正式個人資料</span></div><div class="graph" id="graph"></div><details class="surface"><summary><b>這張圖代表什麼？</b></summary><p>技術上這一層稱為 Synapse（關聯層）：作用是把不同來源與概念的關係保存起來。它只表示「彼此有關」，不代表你已經學會。</p></details><div class="provenance">目前資料：${esc(synapse?.summary?.source_count??sources.length)} 個來源 · ${esc(synapse?.summary?.concept_count??concepts.length)} 個概念 · ${esc(synapse?.summary?.edge_count??edges.length)} 條關係。這些連結代表來源與概念的關聯，不等於你已經熟練。</div>`;
   const g=$('#graph');
   edges.forEach(e=>{const a=nodes.find(n=>n.id===e.source),b=nodes.find(n=>n.id===e.target);if(!a||!b)return;const line=document.createElement('div');line.className='edge';const dx=b.x-a.x,dy=b.y-a.y;line.style.left=a.x+'%';line.style.top=a.y+'%';line.style.width=Math.hypot(dx,dy)+'%';line.style.transform=`rotate(${Math.atan2(dy,dx)*180/Math.PI}deg)`;g.appendChild(line)});
   nodes.forEach(n=>{const b=document.createElement('button');b.className='node '+(n.type==='source'?'center':'');b.style.left=n.x+'%';b.style.top=n.y+'%';b.textContent=n.label||human(n.id);b.title=n.type==='source'?'正式個人來源':'概念節點；不代表已熟練';g.appendChild(b)});
@@ -515,7 +515,7 @@ async function renderSystem(){
 function setView(name){
   $$('.view').forEach(v=>v.classList.toggle('active',v.id===`view-${name}`));
   $$('.nav-item').forEach(n=>n.classList.toggle('active',n.dataset.view===name));
-  const t={home:'今天只做一件最值得做的事',projects:'把候選方向變成可驗證的個人主線',learn:'把複雜內容變成可以理解的東西',synapse:'看見知識與經驗如何連起來',ceo:'系統建置與 AI 團隊狀態'};$('#pageTitle').textContent=t[name]||t.home;if(name==='projects')renderProjects();if(name==='learn')renderLearn();if(name==='synapse')renderSynapse();if(name==='ceo')renderSystem();
+  const t={home:'今天只做一件最值得做的事',projects:'把目標變成現在這一件作品',learn:'只學現在真正需要補的東西',synapse:'看知識從哪裡來、怎麼互相連結',ceo:'看系統、員工、工作包與阻塞'};$('#pageTitle').textContent=t[name]||t.home;if(name==='projects')renderProjects();if(name==='learn')renderLearn();if(name==='synapse')renderSynapse();if(name==='ceo')renderSystem();
 }
 
 function detectSessionLifecycleProbe(){
@@ -541,7 +541,7 @@ async function sendSessionLifecycleProbe(){
 }
 
 function authBar(){
-  $('#authBox')?.remove();const box=document.createElement('div');box.id='authBox';box.className='auth-box';box.innerHTML=A.liveStatus==='live'?'<span class="pill success">正式資料已連線（Live）</span><button class="ghost-btn small" id="signOut">登出</button>':'<button class="ghost-btn small" id="openLogin">登入</button>';$('.top-actions').prepend(box);$('#openLogin')?.addEventListener('click',loginModal);$('#signOut')?.addEventListener('click',async()=>{await A.signOut();location.reload()});
+  $('#authBox')?.remove();const box=document.createElement('div');box.id='authBox';box.className='auth-box';box.innerHTML=A.liveStatus==='live'?'<span class="pill success">正式資料已連線</span><button class="ghost-btn small" id="signOut">登出</button>':'<button class="ghost-btn small" id="openLogin">登入</button>';$('.top-actions').prepend(box);$('#openLogin')?.addEventListener('click',loginModal);$('#signOut')?.addEventListener('click',async()=>{await A.signOut();location.reload()});
 }
 function loginModal(){
   let m=$('#loginModal');
