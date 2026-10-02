@@ -91,7 +91,7 @@ async function renderProjects(notice=''){
   const selected=outcome?.selected_route||null;
   const candidate=outcome?.candidate_route||null;
   const planningRoute=candidate||selected||null;
-  const planJob=planningRoute?.path_plan||null;
+  const planJob=artifacts?.next_plan_job||planningRoute?.path_plan||null;
   const currentArtifact=artifacts?.current||null;
   const candidateArtifact=artifacts?.candidate||null;
   const history=Array.isArray(artifacts?.history)?artifacts.history:[];
@@ -187,6 +187,22 @@ async function renderProjects(notice=''){
         ${learning.length?`<div class="section-head"><div><h2>現在真正需要補的學習</h2><p>只學能幫這件作品往前走的缺口。</p></div></div><div class="stack">${learning.map(x=>`<article class="surface"><b>${esc(human(x.skill_key)||x.skill_key||'學習重點')}</b><p>${esc(x.reason||'')}</p><small class="muted">最低需要：${esc(x.minimum_needed_now||'能支援目前作品')}</small></article>`).join('')}</div>`:''}
 
         ${branches.length?`<details class="surface" style="margin-top:18px"><summary><b>完成後可能往哪裡走</b></summary><p>這些只是候選。真正下一件作品要等這次結果出來再生成。</p>${branches.map(b=>`<p><b>${esc(b.title||'候選方向')}</b><br><small class="muted">條件：${esc(b.condition||'看作品結果再決定')}</small></p>`).join('')}</details>`:''}
+
+        <div class="section-head"><div><h2>作品做完時，提交真實結果</h2><p>這一步才會把作品標成完成。只有你勾選、且這件作品真的驗證到的技能，才會記成「已在真實作品驗證」。</p></div></div>
+        <form class="surface project-form" id="completeArtifactForm">
+          <label><b>實際做出了什麼／結果如何</b><textarea id="artifactResultText" placeholder="例如：已完成商品資料進入評分、人工審核與影片任務的閉環，實際跑過 3 筆商品"></textarea></label>
+          <label><b>完成證據（每行一項）</b><textarea id="artifactEvidenceItems" placeholder="例如：&#10;重新整理後資料仍存在&#10;同一商品重跑不會重複建立任務&#10;影片任務可追到原商品"></textarea></label>
+          ${(currentArtifact.skills||[]).length?`
+            <div><b>這次作品真的驗證到哪些技能</b><p class="muted">沒有把握就不要勾；未勾選的技能維持原本證據狀態。</p>
+              <div class="stack" style="margin-top:8px">
+                ${(currentArtifact.skills||[]).map(s=>`<label class="surface" style="padding:12px;display:flex;gap:10px;align-items:flex-start"><input type="checkbox" data-complete-skill value="${esc(s.skill_key)}" style="width:auto;margin-top:4px"><span><b>${esc(s.name_zh||human(s.skill_key))}</b><br><small class="muted">${esc(s.minimum_needed_now||s.why||'只有作品證據足夠時才勾選')}</small></span></label>`).join('')}
+              </div>
+            </div>`:''}
+          <div class="row-between">
+            <div id="completeArtifactMsg" class="muted">完成後會保留結果與證據，並自動排入「下一件候選作品」規劃；不會一次固定後面整條路。</div>
+            <button type="submit" class="primary-btn">確認完成並重新規劃</button>
+          </div>
+        </form>
       </section>
     `;
   })():'';
@@ -196,7 +212,7 @@ async function renderProjects(notice=''){
     const canStart=Boolean(selected && selected.id===candidateArtifact.route_id);
     return `
       <section>
-        <div class="section-head"><div><h2>GPT 建議的第一件作品</h2><p>這只是候選。你確認後它才會成為「目前作品」，之後學習與知識才會自動掛到它。</p></div><span class="pill warn">待確認</span></div>
+        <div class="section-head"><div><h2>${history.some(x=>x.status==='completed')?'GPT 建議的下一件作品':'GPT 建議的第一件作品'}</h2><p>這只是候選。你確認後它才會成為「目前作品」，之後學習與知識才會自動掛到它。</p></div><span class="pill warn">待確認</span></div>
         <article class="surface">
           <h2>${esc(candidateArtifact.title)}</h2>
           <p>${esc(candidateArtifact.objective||'')}</p>
@@ -221,7 +237,8 @@ async function renderProjects(notice=''){
       return '<section><div class="section-head"><div><h2>AI 路徑整理</h2><p>這個方向還沒有建立 GPT 路徑任務。</p></div></div><div class="empty">重新保存方向後會自動建立整理任務。</div></section>';
     }
     if(['pending','claimed','processing'].includes(planJob.status)){
-      return `<section><div class="section-head"><div><h2>正在產生第一件作品</h2><p>第二大腦已把目標與相關資料放進 AI 任務；完成後會先生成候選作品，不會直接改成你已學會。</p></div><span class="pill warn">${esc(aiLabels[planJob.status]||'處理中')}</span></div><div class="surface"><b>${esc(aiLabels[planJob.status]||'處理中')}</b><p>${planJob.status==='pending'?'目前還在等待本機執行器取走。你的目標與 Context Pack 都已安全留在資料庫。':'GPT 正在整理作品與技能缺口。'}</p></div></section>`;
+      const replanning=history.some(x=>x.status==='completed')||String(planJob.source_ref||'').startsWith('artifact:');
+      return `<section><div class="section-head"><div><h2>${replanning?'正在依上一件作品重新規劃':'正在產生第一件作品'}</h2><p>${replanning?'上一件作品的結果與證據已進資料庫，現在只生成下一件候選作品。':'第二大腦已把目標與相關資料放進 AI 任務；完成後會先生成候選作品，不會直接改成你已學會。'}</p></div><span class="pill warn">${esc(aiLabels[planJob.status]||'處理中')}</span></div><div class="surface"><b>${esc(aiLabels[planJob.status]||'處理中')}</b><p>${planJob.status==='pending'?'目前還在等待本機執行器取走。結果與 Context Pack 都已安全留在資料庫。':'GPT 正在整理作品結果、技能缺口與下一件候選作品。'}</p></div></section>`;
     }
     if(planJob.status==='failed'){
       return '<section><div class="section-head"><div><h2>這次 AI 整理沒有完成</h2><p>原始目標還在資料庫，不會因此遺失或被當成失敗的學習證據。</p></div><span class="pill danger">待重試</span></div></section>';
@@ -320,6 +337,47 @@ async function renderProjects(notice=''){
       renderHome();
       await renderProjects('這個方向與底下尚未開始的候選作品都已退出主線。');
     }catch(e){btn.disabled=false;const msg=$('#projectMsg');if(msg)msg.textContent=e.message||'拒絕失敗';}
+  });
+
+  $('#completeArtifactForm')?.addEventListener('submit',async e=>{
+    e.preventDefault();
+    if(!currentArtifact) return;
+    const resultText=$('#artifactResultText')?.value?.trim()||'';
+    const evidenceItems=($('#artifactEvidenceItems')?.value||'')
+      .split(/\r?\n/)
+      .map(x=>x.trim())
+      .filter(Boolean);
+    const demonstratedSkillKeys=[...root.querySelectorAll('[data-complete-skill]:checked')]
+      .map(el=>el.value)
+      .filter(Boolean);
+    const msg=$('#completeArtifactMsg');
+    const submit=e.currentTarget.querySelector('button[type="submit"]');
+
+    if(resultText.length<3){
+      if(msg) msg.textContent='請先寫下這件作品實際做出了什麼。';
+      return;
+    }
+    if(!evidenceItems.length){
+      if(msg) msg.textContent='至少需要一項可觀察的完成證據，才能把作品標成完成。';
+      return;
+    }
+
+    submit.disabled=true;
+    try{
+      if(msg) msg.textContent='正在保存作品結果、證據，並建立下一件候選作品規劃…';
+      await A.completePersonalArtifact({
+        artifactId:currentArtifact.id,
+        resultText,
+        evidenceItems,
+        demonstratedSkillKeys
+      });
+      D=await A.getSnapshot();
+      renderHome();
+      await renderProjects('作品已完成並保存證據。下一件作品只會先以候選方式產生，等你確認後才開始。');
+    }catch(err){
+      submit.disabled=false;
+      if(msg) msg.textContent=err.message||'作品完成提交失敗';
+    }
   });
 
   $('#startArtifact')?.addEventListener('click',async()=>{
