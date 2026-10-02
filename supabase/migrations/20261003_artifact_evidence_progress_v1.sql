@@ -16,6 +16,24 @@ create table if not exists growth_control.artifact_evidence_progress (
 create index if not exists artifact_evidence_progress_person_artifact_idx
   on growth_control.artifact_evidence_progress(person_id, artifact_id, criterion_no);
 
+alter table growth_control.artifact_context_links
+  drop constraint if exists artifact_context_links_link_kind_check;
+
+alter table growth_control.artifact_context_links
+  add constraint artifact_context_links_link_kind_check
+  check (
+    link_kind = any (
+      array[
+        'learning_session'::text,
+        'learning_unit'::text,
+        'synapse_concept'::text,
+        'learning_evidence'::text,
+        'source'::text,
+        'artifact_evidence'::text
+      ]
+    )
+  );
+
 alter table growth_control.artifact_evidence_progress enable row level security;
 revoke all on table growth_control.artifact_evidence_progress from public, anon, authenticated;
 
