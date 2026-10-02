@@ -476,6 +476,10 @@ async function renderSynapse(){
 
 async function renderSystem(){
   const root=$('#view-ceo');
+  if(A.liveStatus!=='live'){
+    root.innerHTML='<div class="section-head"><div><h2>AI 團隊與系統狀態</h2><p>這一頁只顯示目前資料庫中的真實員工、工作包與阻塞；未登入時不再顯示舊 demo 狀態。</p></div></div><div class="surface"><b>請先登入讀取最新系統狀態</b><p>登入後才會看到目前真的可調用員工、候選員工、工作包、GPT 任務與阻塞項目。</p><button class="primary-btn" data-auth>登入</button></div>';
+    return;
+  }
   root.innerHTML='<div class="empty">正在讀取系統狀態與 AI 團隊…</div>';
   SYSTEM=null;
   try{SYSTEM=await A.getSystemCockpit();}catch(e){SYSTEM={error:e.code||e.message}}
