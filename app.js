@@ -23,8 +23,9 @@ const human=s=>{
     intent_evidence_before_implementation:'先確認需求與證據再實作',
     spec_before_code:'先規格後寫程式'
   };
-  const key=raw.replace(/^concept:/,'').replace(/^logic:/,'');
-  return labels[key]||key.replaceAll('_',' ').replaceAll('-',' ');
+  const key=raw.replace(/^concept:/,'').replace(/^logic:/,'').trim();
+  const normalized=key.toLowerCase().replace(/\s+/g,'_');
+  return labels[key]||labels[normalized]||key.replaceAll('_',' ').replaceAll('-',' ');
 };
 const home=()=>D?.personalHome||{};
 const attempt=u=>A.latestAttempt(u.id);
@@ -147,7 +148,7 @@ async function renderProjects(notice=''){
     return {
       learning:links.filter(x=>x.link_kind==='learning_session').length,
       concepts:links.filter(x=>x.link_kind==='synapse_concept').length,
-      evidence:links.filter(x=>x.link_kind==='learning_evidence').length
+      evidence:links.filter(x=>['learning_evidence','artifact_evidence'].includes(x.link_kind)).length
     };
   };
 
@@ -203,7 +204,6 @@ async function renderProjects(notice=''){
           <h2>${esc(currentArtifact.title)}</h2>
           <p>${esc(currentArtifact.objective||'')}</p>
           ${currentArtifact.deliverable?`<div class="evidence-box"><b>這次要做出什麼</b><span>${esc(currentArtifact.deliverable)}</span></div>`:''}
-          <div class="evidence-box"><b>做到什麼才算通過</b><span>${done.length?done.map(x=>`• ${esc(x)}`).join('<br>'):'還沒有明確完成證據'}</span></div>
           <div class="metrics compact">
             <div><strong>${counts.learning}</strong><span>相關學習</span></div>
             <div><strong>${counts.concepts}</strong><span>相關概念</span></div>
@@ -214,17 +214,21 @@ async function renderProjects(notice=''){
         ${progressHtml}
         ${nextEvidenceHtml}
 
-        <div class="section-head"><div><h2>這件作品正在驗證的能力</h2><p>AI 可以提出初步判斷，但正式狀態只看你的回答、操作與作品證據。</p></div></div>
-        ${skillHtml(currentArtifact)}
+        <details class="surface" style="margin-top:18px">
+          <summary><b>這件作品會驗證哪些能力（${(currentArtifact.skills||[]).length}）</b></summary>
+          <p>先做作品；能力狀態只會依真實回答、操作與作品證據更新。</p>
+          ${skillHtml(currentArtifact)}
+        </details>
 
-        ${learning.length?`<div class="section-head"><div><h2>現在真正需要補的學習</h2><p>只學能幫這件作品往前走的缺口。</p></div></div><div class="stack">${learning.map(x=>`<article class="surface"><b>${esc(human(x.skill_key)||x.skill_key||'學習重點')}</b><p>${esc(x.reason||'')}</p><small class="muted">最低需要：${esc(x.minimum_needed_now||'能支援目前作品')}</small></article>`).join('')}</div>`:''}
+        ${learning.length?`<details class="surface" style="margin-top:18px"><summary><b>現在真正需要補的學習（${learning.length}）</b></summary><p>只學能幫目前作品往前走的缺口，不預先學完整工具鏈。</p><div class="stack">${learning.map(x=>{const isText=typeof x==='string';const title=isText?'學習原則':human(x.skill_key)||x.skill_key||'學習重點';const body=isText?x:(x.reason||x.minimum_needed_now||'能支援目前作品');return `<div><b>${esc(title)}</b><p>${esc(body)}</p></div>`}).join('')}</div></details>`:''}
 
-        ${branches.length?`<details class="surface" style="margin-top:18px"><summary><b>完成後可能往哪裡走</b></summary><p>這些只是候選。真正下一件作品要等這次結果出來再生成。</p>${branches.map(b=>`<p><b>${esc(b.title||'候選方向')}</b><br><small class="muted">條件：${esc(b.condition||'看作品結果再決定')}</small></p>`).join('')}</details>`:''}
+        ${branches.length?`<details class="surface" style="margin-top:18px"><summary><b>完成後可能往哪裡走</b></summary><p>這些只是候選。真正下一件作品要等這次結果出來再生成。</p>${branches.map(b=>`<p><b>${esc(b.branch||b.title||'候選方向')}</b><br><small class="muted">條件：${esc(b.condition||'看作品結果再決定')}</small></p>`).join('')}</details>`:''}
 
-        <div class="section-head"><div><h2>作品做完時，提交真實結果</h2><p>這一步才會把作品標成完成。只有你勾選、且這件作品真的驗證到的技能，才會記成「已在真實作品驗證」。</p></div></div>
+        ${allEvidenceConfirmed?`
+        <div class="section-head"><div><h2>最後確認</h2><p>完成條件都有證據後，才確認作品結果與真正驗證到的技能。</p></div></div>
         <form class="surface project-form" id="completeArtifactForm">
-          <label><b>實際做出了什麼／結果如何</b><textarea id="artifactResultText" placeholder="例如：已完成商品資料進入評分、人工審核與影片任務的閉環，實際跑過 3 筆商品"></textarea></label>
-          <label><b>補充證據（可選，每行一項）</b><textarea id="artifactEvidenceItems" placeholder="上方逐項 checklist 已是主要證據；這裡只補充額外資訊"></textarea></label>
+          <label><b>這輪實際做出了什麼／結果如何</b><textarea id="artifactResultText" placeholder="例如：已發布 3 支內容，取得第一輪觀看與互動資料，並決定下一輪優先測試 Threads 的 AI 工具實測內容"></textarea></label>
+          <label><b>補充證據（可選，每行一項）</b><textarea id="artifactEvidenceItems" placeholder="上方逐項清單已是主要證據；這裡只補充額外資訊"></textarea></label>
           ${(currentArtifact.skills||[]).length?`
             <div><b>這次作品真的驗證到哪些技能</b><p class="muted">沒有把握就不要勾；未勾選的技能維持原本證據狀態。</p>
               <div class="stack" style="margin-top:8px">
@@ -232,10 +236,12 @@ async function renderProjects(notice=''){
               </div>
             </div>`:''}
           <div class="row-between">
-            <div id="completeArtifactMsg" class="muted">完成後會保留結果與證據，並自動排入「下一件候選作品」規劃；不會一次固定後面整條路。</div>
-            <button type="submit" class="primary-btn" ${allEvidenceConfirmed?'':'disabled'}>${allEvidenceConfirmed?'確認完成並重新規劃':'先完成上方證據清單'}</button>
+            <div id="completeArtifactMsg" class="muted">完成後會保存結果與證據，再產生下一件候選作品；不會一次固定整條未來路徑。</div>
+            <button type="submit" class="primary-btn">確認完成並重新規劃</button>
           </div>
-        </form>
+        </form>`:`
+        <div class="empty" style="margin-top:18px">先把目前 9 項證據清單走完；最後完成與技能確認現在先不佔畫面。</div>`}
+
       </section>
     `;
   })():'';
@@ -648,6 +654,11 @@ async function renderSynapse(){
   }
 
   const sourceTypeLabel={article:'文章',video:'影片',chat:'對話',text:'文字',learning:'學習來源'};
+  const relationLabel={
+    source_contains_concept:'來源包含此概念',
+    supports_artifact:'概念支援目前作品',
+    supports_completion:'證據支援作品完成'
+  };
   const levelLabel={
     unknown:'尚未驗證',
     exposure:'看過／接觸過',
@@ -674,9 +685,10 @@ async function renderSynapse(){
     const state=levelLabel[n.learning_level_name]||'尚未驗證';
     const supportsCurrent=currentArtifact&&artifactConceptIds.has(String(n.id));
     return `<article class="surface">
-      <div class="row-between"><div><b>${esc(human(n.label||n.id))}</b><div class="muted">技術標記：${esc(n.id)}</div></div><span class="pill ${supportsCurrent||evidence?'success':''}">${supportsCurrent?'支援目前作品':esc(state)}</span></div>
+      <div class="row-between"><div><b>${esc(human(n.label||n.id))}</b></div><span class="pill ${supportsCurrent||evidence?'success':''}">${supportsCurrent?'支援目前作品':esc(state)}</span></div>
       <p>目前連到 ${esc(n.source_count??0)} 個真實來源；正式學習證據 ${esc(evidence)} 筆。</p>
       <small class="muted">${supportsCurrent&&currentArtifact?`目前關聯作品：${esc(currentArtifact.title)} · `:''}${n.independent_application_verified?'已有獨立應用證據':'目前還不能宣稱已能獨立應用'}</small>
+      <details style="margin-top:8px"><summary>查看技術識別碼</summary><small class="muted">${esc(n.id)}</small></details>
     </article>`;
   }).join('');
 
@@ -717,8 +729,10 @@ async function renderSynapse(){
     <div class="stack">${conceptCards||'<div class="empty">目前沒有概念。</div>'}</div>
 
     <details class="surface" style="margin-top:18px">
-      <summary><b>查看關係圖（Synapse）</b></summary>
-      <p>這張圖是輔助視覺，不是主要操作介面。</p>
+      <summary><b>查看關係圖（Synapse／知識關係圖）</b></summary>
+      <p>這張圖只說明資料怎麼連在一起，不代表你已經學會。</p>
+      <div class="flow"><span>來源</span><i>包含</i><span>概念</span><i>支援</i><span>目前作品</span></div>
+      <p class="muted">「來源包含概念」＝這個來源提到或承載該概念；「概念支援作品」＝目前作品可能需要這個概念。兩者都不是能力證明。</p>
       <div class="graph" id="graph"></div>
       <div class="provenance">${esc(summary.edge_count??edges.length)} 條有來源可追溯的關係；關係本身不等於已學會。</div>
     </details>`;
@@ -735,6 +749,7 @@ async function renderSynapse(){
     line.style.top=a.y+'%';
     line.style.width=Math.hypot(dx,dy)+'%';
     line.style.transform=`rotate(${Math.atan2(dy,dx)*180/Math.PI}deg)`;
+    line.title=relationLabel[e.relation]||e.label||'知識關係';
     g.appendChild(line);
   });
   graphNodes.forEach(n=>{
@@ -900,7 +915,7 @@ async function renderSystem(){
 function setView(name){
   $$('.view').forEach(v=>v.classList.toggle('active',v.id===`view-${name}`));
   $$('.nav-item').forEach(n=>n.classList.toggle('active',n.dataset.view===name));
-  const t={home:'今天只做一件最值得做的事',projects:'把方向變成作品，一步一步驗證',inbox:'把資料丟進來，系統幫你整理',learn:'只學現在作品真正需要的東西',synapse:'看來源、概念與證據怎麼連起來',ceo:'看 AI 團隊、工作包與目前卡點'};$('#pageTitle').textContent=t[name]||t.home;if(name==='projects')renderProjects();if(name==='learn')renderLearn();if(name==='synapse')renderSynapse();if(name==='ceo')renderSystem();
+  const t={home:'今天只做一件最值得做的事',projects:'把方向變成作品，一步一步驗證',inbox:'快速收進第二大腦',learn:'只學現在作品真正需要的東西',synapse:'看來源、概念與證據怎麼連起來',ceo:'看 AI 團隊、工作包與目前卡點'};$('#pageTitle').textContent=t[name]||t.home;if(name==='projects')renderProjects();if(name==='learn')renderLearn();if(name==='synapse')renderSynapse();if(name==='ceo')renderSystem();
 }
 
 function detectSessionLifecycleProbe(){
