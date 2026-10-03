@@ -1,0 +1,340 @@
+{
+  "schema_version": "growth-control-live-migration-manifest-v1",
+  "source": "supabase_migrations.schema_migrations",
+  "scope": "stored migration SQL containing growth_control",
+  "migration_count": 66,
+  "first_version": "20260926002315",
+  "last_version": "20261003080229",
+  "migrations": [
+    {
+      "version": "20260926002315",
+      "name": "require_verified_auth_person_mapping",
+      "statement_count": 1
+    },
+    {
+      "version": "20260926132819",
+      "name": "add_learning_progress_ui_projection",
+      "statement_count": 1
+    },
+    {
+      "version": "20260926133026",
+      "name": "prefer_current_outcome_step_status",
+      "statement_count": 1
+    },
+    {
+      "version": "20260926133642",
+      "name": "create_learning_next_evidence_action",
+      "statement_count": 1
+    },
+    {
+      "version": "20260926133705",
+      "name": "expose_learning_next_action_in_growth_home",
+      "statement_count": 1
+    },
+    {
+      "version": "20260926162912",
+      "name": "add_fixed_site_e2e_readiness_contract",
+      "statement_count": 1
+    },
+    {
+      "version": "20260926173130",
+      "name": "add_outcome_step_evidence_patch_contract",
+      "statement_count": 1
+    },
+    {
+      "version": "20260927231636",
+      "name": "add_growth_brain_inbox_quick_capture_v1",
+      "statement_count": 1
+    },
+    {
+      "version": "20260927231839",
+      "name": "add_inbox_auth_user_id_v1",
+      "statement_count": 1
+    },
+    {
+      "version": "20260928211511",
+      "name": "routing_from_inbox_route_links",
+      "statement_count": 1
+    },
+    {
+      "version": "20260928211526",
+      "name": "routing_from_inbox_route_links_constraints",
+      "statement_count": 1
+    },
+    {
+      "version": "20260928211536",
+      "name": "routing_from_inbox_actions_table",
+      "statement_count": 1
+    },
+    {
+      "version": "20260928211547",
+      "name": "routing_from_inbox_actions_status_constraint",
+      "statement_count": 1
+    },
+    {
+      "version": "20260928211554",
+      "name": "routing_from_inbox_actions_index",
+      "statement_count": 1
+    },
+    {
+      "version": "20260928211631",
+      "name": "routing_from_inbox_knowledge_candidates_table",
+      "statement_count": 1
+    },
+    {
+      "version": "20260928211657",
+      "name": "routing_from_inbox_knowledge_candidates_constraints",
+      "statement_count": 1
+    },
+    {
+      "version": "20260928211705",
+      "name": "routing_from_inbox_knowledge_candidates_indexes",
+      "statement_count": 1
+    },
+    {
+      "version": "20260928211713",
+      "name": "routing_from_inbox_knowledge_candidates_fk",
+      "statement_count": 1
+    },
+    {
+      "version": "20260928211734",
+      "name": "routing_from_inbox_routes_snapshot_function",
+      "statement_count": 1
+    },
+    {
+      "version": "20260928211908",
+      "name": "routing_from_inbox_learning_service_wrapper",
+      "statement_count": 1
+    },
+    {
+      "version": "20260928212148",
+      "name": "routing_from_inbox_learning_wrapper_invoker_v2",
+      "statement_count": 1
+    },
+    {
+      "version": "20260928212336",
+      "name": "routing_from_inbox_record_route_service",
+      "statement_count": 1
+    },
+    {
+      "version": "20260928212604",
+      "name": "routing_from_inbox_snapshot_service_person",
+      "statement_count": 1
+    },
+    {
+      "version": "20260928212838",
+      "name": "routing_from_inbox_route_event_lookup",
+      "statement_count": 1
+    },
+    {
+      "version": "20260928212850",
+      "name": "routing_from_inbox_snapshot_projection",
+      "statement_count": 1
+    },
+    {
+      "version": "20260928212900",
+      "name": "routing_from_inbox_classification_lock_v2",
+      "statement_count": 1
+    },
+    {
+      "version": "20260928213457",
+      "name": "routing_from_inbox_harden_inbox_snapshot_user_call",
+      "statement_count": 1
+    },
+    {
+      "version": "20260928213609",
+      "name": "routing_from_inbox_two_stage_classify_route",
+      "statement_count": 1
+    },
+    {
+      "version": "20260928214323",
+      "name": "routing_actions_rls_v1",
+      "statement_count": 1
+    },
+    {
+      "version": "20260928214438",
+      "name": "routing_link_projection_v1",
+      "statement_count": 1
+    },
+    {
+      "version": "20260928214559",
+      "name": "routing_event_projection_restore_v1",
+      "statement_count": 1
+    },
+    {
+      "version": "20260928214626",
+      "name": "routing_event_status_projection_v1",
+      "statement_count": 1
+    },
+    {
+      "version": "20260928214727",
+      "name": "routing_simple_user_rpc_v1",
+      "statement_count": 1
+    },
+    {
+      "version": "20260928214742",
+      "name": "routing_project_user_rpc_v1",
+      "statement_count": 1
+    },
+    {
+      "version": "20260928214753",
+      "name": "routing_learning_user_rpc_v1",
+      "statement_count": 1
+    },
+    {
+      "version": "20260928215459",
+      "name": "routing_simple_service_v1",
+      "statement_count": 1
+    },
+    {
+      "version": "20260928215712",
+      "name": "project_route_confirm_service_v1",
+      "statement_count": 1
+    },
+    {
+      "version": "20260928215837",
+      "name": "materialize_learning_route_session_v1",
+      "statement_count": 1
+    },
+    {
+      "version": "20260928220155",
+      "name": "exclude_validation_rows_from_inbox_snapshot_v1",
+      "statement_count": 1
+    },
+    {
+      "version": "20260928220243",
+      "name": "routing_learning_validation_contract_v1",
+      "statement_count": 1
+    },
+    {
+      "version": "20260929192400",
+      "name": "routing_from_inbox_scope_contract",
+      "statement_count": 1
+    },
+    {
+      "version": "20260929192431",
+      "name": "routing_from_inbox_event_scope_function",
+      "statement_count": 1
+    },
+    {
+      "version": "20260929203325",
+      "name": "add_evidence_based_recovery_gate_and_handoff",
+      "statement_count": 1
+    },
+    {
+      "version": "20260929212352",
+      "name": "personal_synapse_real_data_only",
+      "statement_count": 1
+    },
+    {
+      "version": "20260929212734",
+      "name": "personal_home_include_personal_synapse",
+      "statement_count": 1
+    },
+    {
+      "version": "20260929213113",
+      "name": "personal_synapse_state_labels",
+      "statement_count": 1
+    },
+    {
+      "version": "20260930042313",
+      "name": "growth_ai_jobs_table_v1",
+      "statement_count": 1
+    },
+    {
+      "version": "20260930112002",
+      "name": "growth_logic_capability_surface_v1",
+      "statement_count": 1
+    },
+    {
+      "version": "20260930112101",
+      "name": "growth_path_artifact_trial_contract_v1",
+      "statement_count": 1
+    },
+    {
+      "version": "20260930122225",
+      "name": "growth_path_trial_single_stage_and_capability_labels_v1",
+      "statement_count": 1
+    },
+    {
+      "version": "20260930122925",
+      "name": "growth_ui_language_contract_v1",
+      "statement_count": 1
+    },
+    {
+      "version": "20260930123240",
+      "name": "growth_web_work_queue_status_projection_v1",
+      "statement_count": 1
+    },
+    {
+      "version": "20260930124803",
+      "name": "growth_ui_resilience_contract_v1",
+      "statement_count": 1
+    },
+    {
+      "version": "20260930222207",
+      "name": "growth_pre_real_usability_contract_v1",
+      "statement_count": 1
+    },
+    {
+      "version": "20260930222233",
+      "name": "growth_system_cockpit_include_pre_real_usability_contract_v1",
+      "statement_count": 1
+    },
+    {
+      "version": "20260930222423",
+      "name": "growth_pre_real_usability_selfcheck_v1",
+      "statement_count": 1
+    },
+    {
+      "version": "20260930222539",
+      "name": "growth_pre_real_usability_surface_v1",
+      "statement_count": 1
+    },
+    {
+      "version": "20260930222803",
+      "name": "growth_system_cockpit_surface_v2",
+      "statement_count": 1
+    },
+    {
+      "version": "20261001232310",
+      "name": "growth_ai_job_transition_v1",
+      "statement_count": 1
+    },
+    {
+      "version": "20261001232421",
+      "name": "enable_growth_control_rls_core_tables",
+      "statement_count": 1
+    },
+    {
+      "version": "20261002165803",
+      "name": "artifact_evidence_progress_v1",
+      "statement_count": 1
+    },
+    {
+      "version": "20261002170343",
+      "name": "artifact_context_link_artifact_evidence_kind",
+      "statement_count": 1
+    },
+    {
+      "version": "20261002170554",
+      "name": "artifact_evidence_home_next_action_v1",
+      "statement_count": 1
+    },
+    {
+      "version": "20261002190117",
+      "name": "employee_dispatch_admission_gate_v2",
+      "statement_count": 1
+    },
+    {
+      "version": "20261003075914",
+      "name": "add_tech_radar_evaluation_harness",
+      "statement_count": 1
+    },
+    {
+      "version": "20261003080229",
+      "name": "add_skill_lifecycle_metrics_view",
+      "statement_count": 1
+    }
+  ]
+}
