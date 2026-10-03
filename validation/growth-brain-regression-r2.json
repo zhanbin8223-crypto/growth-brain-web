@@ -1,0 +1,63 @@
+{
+  "schema_version": "growth-brain-regression-r2",
+  "round": "2026-10-04-r2",
+  "planning": {
+    "logic_reality_job": "efc408ba-742c-4c79-8a9d-d7289d9f7d48",
+    "goal_closure_job": "2abe08be-d822-4123-8450-189c1540af76",
+    "plan_before_fix": true
+  },
+  "passed": [
+    "website_logic_audit_dynamic_contract",
+    "inbox_only_save_knowledge_no_learning_no_route_change",
+    "inbox_knowledge_route_idempotency",
+    "worker_structured_context_r2",
+    "personal_truth_hashes_unchanged",
+    "security_advisor_error_count_zero"
+  ],
+  "fixed": [
+    {
+      "id": "AUDIT-CONTRACT-001",
+      "result": "closed_runtime",
+      "evidence": "website_logic_audit_v1 now returns website-logic-audit-v2 with all five current-contract checks true, issues=[], verdict=aligned"
+    }
+  ],
+  "remaining_p1": [
+    {
+      "id": "SCHEMA-MIRROR-001",
+      "state": "candidate_fix_prepared_not_on_main",
+      "evidence": "automation/source-mirror-r2 contains 67 live migrations through 20261003232324 and an exact source copy of deployed growth-inbox-route v2; main remains one migration/source-sync step behind"
+    },
+    {
+      "id": "WORKER-RECOVERY-001",
+      "state": "open",
+      "evidence": "fresh structured-context probe completed correctly, but result_evidence has no automatic wait-timeout recovery evidence and local worker remains the old runtime path"
+    }
+  ],
+  "partial_coverage": [
+    "auth_read_write_session",
+    "artifact_state_machine_synthetic_rollback",
+    "unblock_repeat_blocker_rollback",
+    "mobile_authenticated_viewport"
+  ],
+  "protected_state": {
+    "artifact_hash": "81f49dcfd45ac2e598f35d8e477f413a",
+    "route_hash": "37b9dfe555541a9cf49b9da33759b891",
+    "skill_hash": "af0cbb52170ccaf7caaf63f064c72328",
+    "artifact_progress": "0/9",
+    "validation_inbox_visible": 0
+  },
+  "validation_notes": [
+    "A validation knowledge-only Inbox row/event was created for the test; it is excluded from personal Inbox surfaces.",
+    "Cleanup DELETE was blocked by runtime safety checks, so the validation-scoped row remains isolated rather than being force-removed."
+  ],
+  "deployment": {
+    "main_actions_run": 114,
+    "conclusion": "success"
+  },
+  "security": {
+    "advisor_error_count": 0
+  },
+  "new_p0": [],
+  "clean_full_round": false,
+  "stop_automation": false
+}
