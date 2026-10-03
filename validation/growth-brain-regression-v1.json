@@ -1,0 +1,216 @@
+{
+  "schema_version": "growth-brain-regression-v1",
+  "purpose": "Non-destructive regression suite. Reproduce before fix; never mutate personal truth for validation.",
+  "protected_data": [
+    "real_artifact_evidence",
+    "artifact_skill_evidence_state",
+    "selected_personal_route",
+    "real_performance_data"
+  ],
+  "completion_rule": {
+    "required": "two consecutive full rounds with no new P0/P1",
+    "security": "no new security advisor ERROR",
+    "contamination": "zero validation/system rows on personal surfaces"
+  },
+  "cases": [
+    {
+      "key": "auth_read_write_session",
+      "priority": "P1",
+      "method": "authenticated browser read/write + reload/reopen",
+      "expected": "existing primary-user session reloads and reopens; authenticated GET/POST succeeds; no second Auth user",
+      "round1": {
+        "status": "partial",
+        "evidence": [
+          "historical authenticated Growth Home GET=200",
+          "current auth.js has refresh-session path"
+        ],
+        "gap": "fresh reload/reopen authenticated browser evidence unavailable in this run"
+      }
+    },
+    {
+      "key": "artifact_state_machine",
+      "priority": "P1",
+      "method": "read-only current-state check plus rollback/synthetic transition test",
+      "expected": "candidate→current→evidence→complete→replan only advances with valid evidence",
+      "round1": {
+        "status": "partial",
+        "evidence": [
+          "current artifact remains current at 0/9",
+          "personal_artifact_complete_v1 inspected"
+        ],
+        "gap": "synthetic 9/9 rollback path not executed because DDL/write-style validation was blocked by runtime safety"
+      }
+    },
+    {
+      "key": "completion_gate_before_9_of_9",
+      "priority": "P0",
+      "method": "safe live rejection probe",
+      "expected": "completion rejected before all criteria confirmed and protected state remains unchanged",
+      "round1": {
+        "status": "passed",
+        "evidence": [
+          "0/9 completion returned artifact_evidence_progress_incomplete",
+          "artifact stayed current",
+          "confirmed stayed 0",
+          "promoted skills stayed 0"
+        ]
+      }
+    },
+    {
+      "key": "unblock_review_smallest_next_action",
+      "priority": "P1",
+      "method": "validation/rollback",
+      "expected": "first blocker creates one diagnosis; reviewer produces smallest next action; personal mastery unchanged",
+      "round1": {
+        "status": "partial",
+        "evidence": [
+          "artifact_stage_unblock_request_v1 inspected; first pending criterion only; mastery explicitly unchanged"
+        ],
+        "gap": "fresh rollback execution not run"
+      }
+    },
+    {
+      "key": "repeat_blocker_signal_count",
+      "priority": "P1",
+      "method": "validation/rollback same-stage duplicate",
+      "expected": "second report increments signal_count and does not create a duplicate diagnosis job",
+      "round1": {
+        "status": "partial",
+        "evidence": [
+          "function code has already_analyzing path with signal_count+1"
+        ],
+        "gap": "fresh rollback execution not run"
+      }
+    },
+    {
+      "key": "inbox_only_save_knowledge",
+      "priority": "P1",
+      "method": "validation/rollback",
+      "expected": "knowledge-only route creates one knowledge candidate, no learning session, no route change, idempotent re-route",
+      "round1": {
+        "status": "partial",
+        "evidence": [
+          "inbox UI explicitly classifies knowledge then routes",
+          "inbox_classify_v1 routes knowledge to synapse_ingestion_candidate and locks routed classification"
+        ],
+        "gap": "fresh knowledge-only rollback execution not run"
+      }
+    },
+    {
+      "key": "learning_no_auto_mastery",
+      "priority": "P0",
+      "method": "built-in rollback validator + pre/post audit",
+      "expected": "validation learning route never changes real learning state or mastery",
+      "round1": {
+        "status": "passed",
+        "evidence": [
+          "validate_learning_inbox_route_v1 classified/routed/session_exists=true",
+          "learning audit pre/post identical",
+          "invalid_promotion_count=0"
+        ]
+      }
+    },
+    {
+      "key": "synapse_relation_not_mastery",
+      "priority": "P0",
+      "method": "pre/post personal Synapse snapshot",
+      "expected": "validation/system excluded; source→concept edges are provenance, not mastery",
+      "round1": {
+        "status": "passed",
+        "evidence": [
+          "Synapse pre/post identical",
+          "validation_events_excluded=6",
+          "learning_evidence_count=1",
+          "policy relation-not-mastery=true"
+        ]
+      }
+    },
+    {
+      "key": "worker_structured_context_timeout_retry_recovery",
+      "priority": "P1",
+      "method": "synthetic validation job + historical timeout recovery evidence",
+      "expected": "nested JSON preserved; marker readback works; timeout is recoverable without double completion",
+      "round1": {
+        "status": "partial",
+        "evidence": [
+          "fresh nested JSON probe passed token/nested/array values",
+          "historical 115s CDP timeout recorded",
+          "compact retry later completed",
+          "marker_protocol=true"
+        ],
+        "gap": "worker has no verified automatic bounded retry/readback-after-wait-timeout path"
+      }
+    },
+    {
+      "key": "duplicate_idempotency_empty_invalid_permission",
+      "priority": "P1",
+      "method": "read-only constraints + invalid inputs",
+      "expected": "duplicates are unique-key blocked/idempotent; invalid/empty inputs fail closed; unauthorized callers cannot mutate personal truth",
+      "round1": {
+        "status": "passed_with_hardening_note",
+        "evidence": [
+          "ai_jobs unique index on person_id,project_key,idempotency_key",
+          "bad criterion rejected",
+          "short evidence rejected",
+          "short result rejected",
+          "empty unblock rejected",
+          "growth_control schema USAGE false for anon/authenticated"
+        ],
+        "note": "some internal SECURITY DEFINER functions retain PUBLIC execute ACL but growth_control schema is not usable by anon/authenticated; hardening recommended"
+      }
+    },
+    {
+      "key": "mobile_loading_error_empty",
+      "priority": "P1",
+      "method": "source contract + production shell read-only",
+      "expected": "six nav items reachable on mobile; explicit loading/error/empty states; personal home remains current-step first",
+      "round1": {
+        "status": "partial",
+        "evidence": [
+          "CSS <=640px keeps six-item bottom nav",
+          "actions wrap to full width",
+          "source has explicit loading/error/empty states",
+          "production shell states Home/System separation"
+        ],
+        "gap": "no authenticated real-browser viewport interaction in this run"
+      }
+    },
+    {
+      "key": "github_edge_db_consistency",
+      "priority": "P1",
+      "method": "GitHub main + Actions + deployed Edge functions + live migration list",
+      "expected": "canonical source can reproduce deployed frontend/Edge/DB behavior",
+      "round1": {
+        "status": "failed",
+        "defects": [
+          "SCHEMA-MIRROR-001: repo has only two migration files while live DB has many Growth Brain migrations",
+          "EDGE-MIRROR-001: deployed growth-inbox-route v2 has no matching source directory in repo",
+          "AUDIT-CONTRACT-001: website_logic_audit_v1 is hardcoded to old HOME issues and now contradicts personal-home-surface-v3"
+        ],
+        "evidence": [
+          "GitHub Actions run 111 success",
+          "production shell reachable",
+          "growth-home active v14",
+          "growth-inbox-route active v2",
+          "live latest migration 20261002190117 employee_dispatch_admission_gate_v2"
+        ]
+      }
+    }
+  ],
+  "round1_summary": {
+    "passed": 4,
+    "partial": 7,
+    "failed": 1,
+    "new_p0": 0,
+    "new_p1": [
+      "SCHEMA-MIRROR-001",
+      "AUDIT-CONTRACT-001",
+      "WORKER-RECOVERY-001"
+    ],
+    "notes": [
+      "EDGE-MIRROR-001 treated as P2 until a live caller/reference is found.",
+      "AUTH coverage remains pending fresh authenticated reload/reopen evidence; not yet classified as a product defect.",
+      "No personal artifact evidence, skill levels, selected route, or real performance data were modified by validation probes."
+    ]
+  }
+}
