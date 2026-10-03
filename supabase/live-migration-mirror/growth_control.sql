@@ -2,7 +2,7 @@
 -- Generated from supabase_migrations.schema_migrations.
 -- Purpose: reproducible source mirror for growth_control history.
 -- Do not edit this bundle by hand; regenerate from live migration history.
--- Migration count: 66
+-- Migration count: 67
 -- First: 20260926002315 require_verified_auth_person_mapping
 -- Last: 20261003080229 add_skill_lifecycle_metrics_view
 
@@ -5377,3 +5377,74 @@ left join (
   on u.person_id=r.person_id
  and u.project_key=r.project_key
  and u.skill_key=r.skill_key;
+
+
+-- 20261003232324 refresh_website_logic_audit_dynamic_v2
+create or replace function growth_control.website_logic_audit_v1(
+  p_person_id uuid,
+  p_project_key text default 'growth-brain'::text
+)
+returns jsonb
+language sql
+stable
+security invoker
+set search_path = ''
+as $function$
+with home as (
+  select growth_control.personal_home_surface_v2(p_person_id,p_project_key) as h
+),
+checks as (
+  select * from (values
+    ('personal_home_surface',
+      coalesce((select h->>'surface' from home),'')='personal_growth_home',
+      '首頁應維持個人主線，而不是系統控制台'),
+    ('current_step_first',
+      coalesce((select h->'primary_action'->>'status' from home),'') in (
+        'personal_artifact_current_step','personal_artifact_current',
+        'personal_artifact_ready_to_complete','personal_artifact_candidate_available',
+        'personal_outcome_candidate_available','needs_personal_outcome_route'
+      ),
+      '首頁主動作應來自個人作品／路徑，而不是系統建置'),
+    ('system_details_separated',
+      coalesce(((select h#>>'{system_health,show_build_details_on_personal_home}' from home))::boolean,false)=false,
+      '系統建置細節不可直接佔據個人首頁'),
+    ('learning_supporting_only',
+      coalesce((select h#>>'{learning_support,role}' from home),'')='supporting_only',
+      '學習只能支援目前作品，不可成為第二主線'),
+    ('synapse_relation_not_mastery',
+      coalesce(((select h#>>'{personal_synapse,policy,source_to_concept_edge_is_provenance_not_mastery}' from home))::boolean,false)=true,
+      '知識關係不可自動視為能力證據')
+  ) as v(check_key,passed,decision)
+),
+issues as (
+  select coalesce(
+    jsonb_agg(jsonb_build_object(
+      'id',upper(check_key),
+      'severity','high',
+      'status','failed',
+      'problem',decision
+    ) order by check_key) filter (where not passed),
+    '[]'::jsonb
+  ) as j
+  from checks
+),
+check_map as (
+  select jsonb_object_agg(check_key,passed order by check_key) as j
+  from checks
+)
+select jsonb_build_object(
+  'sv','website-logic-audit-v2',
+  'generated_at',now(),
+  'verdict',case
+    when jsonb_array_length((select j from issues))=0 then 'aligned'
+    else 'needs_attention'
+  end,
+  'legacy_hardcoded_home_issues',false,
+  'checks',(select j from check_map),
+  'issues',(select j from issues),
+  'source_surface','personal_home_surface_v2'
+);
+$function$;
+
+comment on function growth_control.website_logic_audit_v1(uuid,text)
+is 'Dynamic website logic audit derived from current personal-home contracts; replaces stale hardcoded HOME findings.';
