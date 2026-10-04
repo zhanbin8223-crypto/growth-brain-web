@@ -203,3 +203,22 @@ details>summary{cursor:pointer;color:var(--ink)}
   .graph{min-height:420px}
   .row-between{align-items:flex-start}
 }
+.subtabs{
+  position:sticky;top:0;z-index:8;display:flex;gap:6px;overflow-x:auto;padding:7px;
+  margin:0 0 18px;background:rgba(239,243,247,.94);backdrop-filter:blur(12px);
+  border:1px solid var(--line);border-radius:12px
+}
+.subtab{
+  flex:0 0 auto;border:0;background:transparent;color:var(--muted);padding:9px 12px;
+  border-radius:9px;cursor:pointer;font-weight:700;white-space:nowrap
+}
+.subtab:hover{background:var(--paper);color:var(--ink)}
+.subtab.active{background:var(--paper);color:var(--accent);box-shadow:0 1px 4px rgba(32,48,68,.08)}
+.tab-pane{min-height:260px}
+.capability-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px;margin-bottom:12px}
+.global-capture{white-space:nowrap}
+@media(max-width:640px){
+  .capability-grid{grid-template-columns:1fr}
+  .top-actions{gap:5px}.global-capture{padding:8px 10px;font-size:11px}
+  .subtabs{top:0;margin-left:-4px;margin-right:-4px}
+}
