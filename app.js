@@ -1084,8 +1084,8 @@ async function renderSystem(){
 }
 
 function setView(name){
-  $('.view').forEach(v=>v.classList.toggle('active',v.id===`view-${name}`));
-  $('.nav-item').forEach(n=>n.classList.toggle('active',n.dataset.view===name));
+  $$('.view').forEach(v=>v.classList.toggle('active',v.id===`view-${name}`));
+  $$('.nav-item').forEach(n=>n.classList.toggle('active',n.dataset.view===name));
   const t={
     home:'今天只做一件最值得做的事',
     projects:'作品：現在走到哪一關',
@@ -1172,7 +1172,7 @@ async function init(){
     renderHistory();
     authBar();
     await sendSessionLifecycleProbe();
-    $('.nav-item').forEach(b=>b.onclick=()=>setView(b.dataset.view));
+    $$('.nav-item').forEach(b=>b.onclick=()=>setView(b.dataset.view));
     document.addEventListener('click',e=>{
       const j=e.target.closest('[data-jump]');
       if(j)setView(j.dataset.jump);
