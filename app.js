@@ -852,7 +852,7 @@ async function renderCapabilities(active='cells'){
   const tabs=[['cells','能力細胞'],['playbooks','作戰手冊'],['skills','我的技能'],['relations','知識關係']];
   root.innerHTML=iaTabs(tabs,active)+'<div id="capabilityPane" class="tab-pane"><div class="empty">正在整理能力資料…</div></div>';
   const pane=$('#capabilityPane');
-  const bind=()=>$('[data-ia-tab]',root).forEach(b=>b.onclick=()=>renderCapabilities(b.dataset.iaTab));
+  const bind=()=>$$('[data-ia-tab]',root).forEach(b=>b.onclick=()=>renderCapabilities(b.dataset.iaTab));
   bind();
 
   if(active==='cells'){
@@ -888,7 +888,7 @@ async function renderResearch(active='today'){
   if(!root)return;
   const tabs=[['today','今日探索'],['ai','AI 技術'],['distribution','流量分發'],['opportunity','商業機會'],['growthbrain','Growth Brain']];
   root.innerHTML=iaTabs(tabs,active)+'<div id="researchPane" class="tab-pane"></div>';
-  $('[data-ia-tab]',root).forEach(b=>b.onclick=()=>renderResearch(b.dataset.iaTab));
+  $$('[data-ia-tab]',root).forEach(b=>b.onclick=()=>renderResearch(b.dataset.iaTab));
   const pane=$('#researchPane');
 
   if(active!=='growthbrain'){
@@ -931,7 +931,7 @@ function renderHistory(active='personal'){
           ?'<div class="section-head"><div><h2>研究歷程</h2><p>候選、試驗、採用與拒絕的時間線會放這裡。</p></div></div><div class="empty">待接研究記憶層。</div>'
           :'<div class="section-head"><div><h2>系統更新</h2><p>網站、Worker、資料庫與技能系統的更新紀錄和你的個人資料分開。</p></div></div><div class="empty">待接系統更新事件；目前不把工作包狀態複製成第二套真相。</div>'
   )+'</div>';
-  $('[data-ia-tab]',root).forEach(b=>b.onclick=()=>renderHistory(b.dataset.iaTab));
+  $$('[data-ia-tab]',root).forEach(b=>b.onclick=()=>renderHistory(b.dataset.iaTab));
 }
 
 async function renderSystem(){
