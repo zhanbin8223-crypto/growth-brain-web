@@ -833,6 +833,107 @@ async function renderSynapse(){
   });
 }
 
+
+const IA_TODO_KEYS=new Set([
+  'information-architecture-v1',
+  'capability-cells-playbooks-v1',
+  'research-history-separation-v1',
+  'external-reuse-scout-v1',
+  'assistant-channel-adapters-v1'
+]);
+
+function iaTabs(items,active){
+  return '<div class="subtabs" role="tablist">'+items.map(([key,label])=>'<button class="subtab '+(key===active?'active':'')+'" data-ia-tab="'+esc(key)+'">'+esc(label)+'</button>').join('')+'</div>';
+}
+
+async function renderCapabilities(active='cells'){
+  const root=$('#view-capabilities');
+  if(!root)return;
+  const tabs=[['cells','能力細胞'],['playbooks','作戰手冊'],['skills','我的技能'],['relations','知識關係']];
+  root.innerHTML=iaTabs(tabs,active)+'<div id="capabilityPane" class="tab-pane"><div class="empty">正在整理能力資料…</div></div>';
+  const pane=$('#capabilityPane');
+  const bind=()=>$('[data-ia-tab]',root).forEach(b=>b.onclick=()=>renderCapabilities(b.dataset.iaTab));
+  bind();
+
+  if(active==='cells'){
+    pane.innerHTML=`
+      <div class="section-head"><div><h2>能力細胞</h2><p>最小、可重用、會持續更新的能力單元。存在不代表你已經學會。</p></div><span class="pill warn">建置中</span></div>
+      <div class="capability-grid">
+        ${['任務定義','Context 脈絡','搜尋與證據','工具／Agent 調度','評估與除錯','自動化工作流','事件拆解','可被發現性'].map(x=>'<article class="surface"><b>'+esc(x)+'</b><p>先整理成可快速使用的能力資源，再用作品證據決定是否真的掌握。</p></article>').join('')}
+      </div>
+      <div class="surface"><b>目前狀態</b><p>資料模型還沒硬建；先用這個介面驗證哪些能力真的值得長期保存與組合。</p></div>`;
+  }else if(active==='playbooks'){
+    pane.innerHTML=`
+      <div class="section-head"><div><h2>作戰手冊</h2><p>把多個能力細胞組成「遇到事情可以直接拿來用」的方法，而不是從零研究。</p></div><span class="pill warn">建置中</span></div>
+      <div class="stack">
+        ${['研究一個陌生主題','建立可運行網站','開始內容／短影音驗證','分析商業機會與資訊差','拆解一個新事件'].map(x=>'<article class="surface"><b>'+esc(x)+'</b><p>預計提供：快速使用、核心原理、需要的工具、常見失敗、實戰與最新研究。</p></article>').join('')}
+      </div>`;
+  }else if(active==='skills'){
+    if(A.liveStatus!=='live'){pane.innerHTML='<div class="empty">登入後才顯示有真實證據的技能狀態。</div>';return;}
+    try{
+      const artifacts=await A.getPersonalArtifacts({force:true});
+      const skills=artifacts?.current?.skills||[];
+      pane.innerHTML='<div class="section-head"><div><h2>我的技能</h2><p>只看有正式作品／回答／操作證據的能力；AI 研究結果本身不算學會。</p></div></div>'+
+        (skills.length?'<div class="stack">'+skills.map(s=>'<article class="surface"><div class="row-between"><b>'+esc(s.name_zh||human(s.skill_key))+'</b>'+pill(s.evidence_state||'unknown')+'</div><p>'+esc(s.why||'')+'</p></article>').join('')+'</div>':'<div class="empty">目前作品還沒有形成可展示的正式技能證據。</div>');
+    }catch(e){pane.innerHTML='<div class="empty">技能資料載入失敗：'+esc(e.message||e)+'</div>'}
+  }else{
+    pane.innerHTML=`
+      <div class="section-head"><div><h2>知識關係</h2><p>來源、概念與作品怎麼連起來；關係本身不代表已學會。</p></div></div>
+      <article class="surface"><b>知識關係圖仍保留原本正式資料</b><p>目前先從頂層導覽移入能力庫；下一段會把完整內容直接嵌入這個分頁。</p><button class="ghost-btn" data-jump="synapse">開啟目前知識關係</button></article>`;
+  }
+}
+
+async function renderResearch(active='today'){
+  const root=$('#view-research');
+  if(!root)return;
+  const tabs=[['today','今日探索'],['ai','AI 技術'],['distribution','流量分發'],['opportunity','商業機會'],['growthbrain','Growth Brain']];
+  root.innerHTML=iaTabs(tabs,active)+'<div id="researchPane" class="tab-pane"></div>';
+  $('[data-ia-tab]',root).forEach(b=>b.onclick=()=>renderResearch(b.dataset.iaTab));
+  const pane=$('#researchPane');
+
+  if(active!=='growthbrain'){
+    const copy={
+      today:['今日探索','只放值得繼續研究的候選；沒有重要新東西也可以是空的。'],
+      ai:['AI 技術','AIHOT、新工具、新 Skill、新方法先進候選，再查證與試驗。'],
+      distribution:['流量分發','短影音、社群推薦、SEO／AI Search、地域與轉換的研究。'],
+      opportunity:['商業機會','資訊差、需求／供給、成本、風險與可交付性的研究。']
+    }[active];
+    pane.innerHTML='<div class="section-head"><div><h2>'+esc(copy[0])+'</h2><p>'+esc(copy[1])+'</p></div><span class="pill warn">候選／研究區</span></div><div class="empty">這一區先建立清楚邊界；研究結果只有通過試驗與採用流程後，才會進正式能力或作品。</div>';
+    return;
+  }
+
+  pane.innerHTML='<div class="empty">正在讀取 Growth Brain 正式待做事項…</div>';
+  if(A.liveStatus!=='live'){pane.innerHTML='<div class="empty">登入後才能讀取正式系統待辦。</div>';return;}
+  try{
+    SYSTEM=SYSTEM||await A.getSystemCockpit();
+    const pkgs=(SYSTEM?.work_queue?.packages||[]).filter(p=>IA_TODO_KEYS.has(p.package_key));
+    pane.innerHTML='<div class="section-head"><div><h2>Growth Brain 正式待做</h2><p>這些是已確認要做但尚未完成的系統工作；不和你的個人作品進度混在一起。</p></div><span>'+pkgs.length+' 項</span></div>'+
+      (pkgs.length?'<div class="stack">'+pkgs.sort((a,b)=>(b.priority||0)-(a.priority||0)).map(p=>{
+        const steps=Array.isArray(p.steps)?p.steps:[];
+        const st=String(p.status||'ready');
+        return '<article class="surface"><div class="row-between"><div><b>'+esc(p.title||p.package_key)+'</b><p>'+esc(p.objective||'')+'</p></div>'+pill(st)+'</div>'+
+          (steps.length?'<div class="flow">'+steps.map(s=>'<span>'+(['completed'].includes(s.status)?'✓ ':['current','in_progress'].includes(s.status)?'→ ':'')+esc(s.title||'')+'</span>').join('<i>›</i>')+'</div>':'')+
+          '</article>';
+      }).join('')+'</div>':'<div class="empty">目前沒有這一組正式待做事項。</div>');
+  }catch(e){pane.innerHTML='<div class="empty">正式待辦載入失敗：'+esc(e.message||e)+'</div>'}
+}
+
+function renderHistory(active='personal'){
+  const root=$('#view-history');
+  if(!root)return;
+  const tabs=[['personal','我的歷程'],['skills','能力變化'],['research','研究歷程'],['system','系統更新']];
+  root.innerHTML=iaTabs(tabs,active)+'<div class="tab-pane">'+(
+    active==='personal'
+      ?'<div class="section-head"><div><h2>我的歷程</h2><p>之後只記錄「何時發生什麼」，目前真實狀態仍回作品與能力庫查看。</p></div></div><div class="empty">歷程事件層尚未建置；不會用現有資料硬湊成歷史。</div>'
+      :active==='skills'
+        ?'<div class="section-head"><div><h2>能力變化</h2><p>只顯示有證據的能力狀態變化，不把 AI 建議當升級。</p></div></div><div class="empty">待建立獨立事件紀錄。</div>'
+        :active==='research'
+          ?'<div class="section-head"><div><h2>研究歷程</h2><p>候選、試驗、採用與拒絕的時間線會放這裡。</p></div></div><div class="empty">待接研究記憶層。</div>'
+          :'<div class="section-head"><div><h2>系統更新</h2><p>網站、Worker、資料庫與技能系統的更新紀錄和你的個人資料分開。</p></div></div><div class="empty">待接系統更新事件；目前不把工作包狀態複製成第二套真相。</div>'
+  )+'</div>';
+  $('[data-ia-tab]',root).forEach(b=>b.onclick=()=>renderHistory(b.dataset.iaTab));
+}
+
 async function renderSystem(){
   const root=$('#view-ceo');
   if(A.liveStatus!=='live'){
@@ -983,9 +1084,27 @@ async function renderSystem(){
 }
 
 function setView(name){
-  $$('.view').forEach(v=>v.classList.toggle('active',v.id===`view-${name}`));
-  $$('.nav-item').forEach(n=>n.classList.toggle('active',n.dataset.view===name));
-  const t={home:'今天只做一件最值得做的事',projects:'把方向變成作品，一步一步驗證',inbox:'快速收進第二大腦',learn:'只學現在作品真正需要的東西',synapse:'看來源、概念與證據怎麼連起來',ceo:'看 AI 團隊、工作包與目前卡點'};$('#pageTitle').textContent=t[name]||t.home;if(name==='projects')renderProjects();if(name==='learn')renderLearn();if(name==='synapse')renderSynapse();if(name==='ceo')renderSystem();
+  $('.view').forEach(v=>v.classList.toggle('active',v.id===`view-${name}`));
+  $('.nav-item').forEach(n=>n.classList.toggle('active',n.dataset.view===name));
+  const t={
+    home:'今天只做一件最值得做的事',
+    projects:'作品：現在走到哪一關',
+    capabilities:'能力庫：需要時直接拿來用',
+    research:'研究室：先探索，再決定要不要採用',
+    ceo:'團隊：現在誰在幫我',
+    history:'歷程：過去發生了什麼',
+    inbox:'快速丟進第二大腦',
+    learn:'只補目前真正需要的學習',
+    synapse:'知識關係'
+  };
+  $('#pageTitle').textContent=t[name]||t.home;
+  if(name==='projects')renderProjects();
+  if(name==='capabilities')renderCapabilities();
+  if(name==='research')renderResearch();
+  if(name==='history')renderHistory();
+  if(name==='learn')renderLearn();
+  if(name==='synapse')renderSynapse();
+  if(name==='ceo')renderSystem();
 }
 
 function detectSessionLifecycleProbe(){
@@ -1041,7 +1160,26 @@ function loginModal(){
 }
 
 async function init(){
-  try{await A.initialize();D=await A.getSnapshot();renderHome();await renderProjects();await renderLearn();await renderSynapse();authBar();await sendSessionLifecycleProbe();$$('.nav-item').forEach(b=>b.onclick=()=>setView(b.dataset.view));document.addEventListener('click',e=>{const j=e.target.closest('[data-jump]');if(j)setView(j.dataset.jump);if(e.target.closest('[data-auth]'))loginModal()});$('#refreshBtn').onclick=()=>location.reload();}
-  catch(e){$('.main').innerHTML=`<div class="empty">第二大腦 初始化失敗：${esc(e.message||e)}</div>`}
+  try{
+    await A.initialize();
+    D=await A.getSnapshot();
+    renderHome();
+    await renderProjects();
+    await renderLearn();
+    await renderSynapse();
+    renderCapabilities();
+    renderResearch();
+    renderHistory();
+    authBar();
+    await sendSessionLifecycleProbe();
+    $('.nav-item').forEach(b=>b.onclick=()=>setView(b.dataset.view));
+    document.addEventListener('click',e=>{
+      const j=e.target.closest('[data-jump]');
+      if(j)setView(j.dataset.jump);
+      if(e.target.closest('[data-auth]'))loginModal();
+    });
+    $('#captureBtn').onclick=()=>setView('inbox');
+    $('#refreshBtn').onclick=()=>location.reload();
+  }catch(e){$('.main').innerHTML=`<div class="empty">第二大腦 初始化失敗：${esc(e.message||e)}</div>`}
 }
 init();
