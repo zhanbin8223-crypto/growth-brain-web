@@ -1083,6 +1083,135 @@ async function renderSystem(){
     <div class="stack">${usageHtml||'<div class="empty">目前還沒有員工使用紀錄。</div>'}</div>`;
 }
 
+
+const TEAM_ROLE_LABELS={
+  'ceo-orchestrator':'Growth Brain CEO',
+  'goal-closure-operator':'達案執行官',
+  'logic-reality-analyst':'邏輯／真實性分析員',
+  'product-flow-architect':'產品流程架構師',
+  'impeccable':'介面審查員',
+  'frontend-design-lead':'前端視覺設計主管',
+  'evaluation':'員工考核官',
+  'plugin-resource-scout':'工具／資源偵查員',
+  'synapse-visualization-specialist':'知識連結視覺化研究員',
+  'architect':'系統架構師',
+  'supabase-engineer':'Supabase 後端工程師',
+  'github-operator':'GitHub 操作員',
+  'work-browser-qa':'瀏覽器驗收員',
+  'work-web-operator':'網站實作員'
+};
+
+function teamRoleName(r){
+  const key=r?.skill_key||'';
+  return TEAM_ROLE_LABELS[key]||r?.role_name||human(key||'AI 角色');
+}
+
+async function renderProjectsIA(active='current'){
+  const root=$('#view-projects');
+  if(!root)return;
+  const tabs=[['current','目前作品'],['path','作品路徑'],['done','已完成']];
+
+  if(active==='current'){
+    await renderProjectsIA();
+    root.insertAdjacentHTML('afterbegin',iaTabs(tabs,active));
+  }else{
+    root.innerHTML=iaTabs(tabs,active)+'<div id="projectIaPane" class="tab-pane"><div class="empty">正在整理作品資料…</div></div>';
+    const pane=$('#projectIaPane');
+
+    if(A.liveStatus!=='live'){
+      pane.innerHTML='<div class="empty">登入後才會顯示正式作品資料。</div>';
+    }else{
+      try{
+        const artifacts=await A.getPersonalArtifacts({force:true});
+        const current=artifacts?.current||null;
+        const history=Array.isArray(artifacts?.history)?artifacts.history:[];
+
+        if(active==='path'){
+          if(!current){
+            pane.innerHTML='<div class="empty">目前沒有進行中的作品路徑。</div>';
+          }else{
+            const items=Array.isArray(current.evidence_progress)?current.evidence_progress:[];
+            const nextNo=Number(current?.next_evidence_item?.criterion_no||0);
+            const nodes=items.map(item=>{
+              const n=Number(item.criterion_no||0);
+              const state=item.status==='confirmed'?'done':n===nextNo?'current':'future';
+              const mark=state==='done'?'✓':String(n||'○');
+              const label=state==='done'?'已完成':state==='current'?'現在':'後續';
+              return '<div class="path-node '+state+'"><div class="path-dot">'+esc(mark)+'</div><div class="path-copy"><small>'+esc(label)+'</small><b>'+esc(item.criterion_text||('第 '+n+' 步'))+'</b>'+(item.status==='confirmed'&&item.evidence?.text?'<p>'+esc(item.evidence.text)+'</p>':'')+'</div></div>';
+            }).join('');
+            pane.innerHTML='<div class="page-intro"><span class="kicker">作品旅程</span><h2>'+esc(current.title||'目前作品')+'</h2><p>只把正式完成證據畫成已完成節點；未來步驟仍只是後續路徑。</p></div>'+
+              '<div class="journey-path">'+(nodes||'<div class="empty">這件作品還沒有正式路徑節點。</div>')+'</div>'+
+              (current.next_evidence_item?'<div class="context-bar"><div><b>現在只做這一步</b><span>'+esc(current.next_evidence_item.criterion_text||'')+'</span></div><button class="primary-btn" data-project-current>回到目前作品</button></div>':'');
+          }
+        }else{
+          const completed=history.filter(x=>['completed','done'].includes(String(x.status||'').toLowerCase())||x.completed_at);
+          pane.innerHTML='<div class="page-intro"><span class="kicker">完成紀錄</span><h2>已完成作品</h2><p>這裡只展示已存在的正式作品紀錄，不用系統工作包冒充個人成果。</p></div>'+
+            (completed.length?'<div class="completed-grid">'+completed.map(a=>'<article class="completed-item"><span class="completed-mark">✓</span><div><b>'+esc(a.title||'已完成作品')+'</b><p>'+esc(a.objective||a.summary||'')+'</p><small>'+esc(a.completed_at?new Date(a.completed_at).toLocaleString('zh-TW'):'已有完成紀錄')+'</small></div></article>').join('')+'</div>':'<div class="empty">目前還沒有正式完成作品。</div>');
+        }
+      }catch(e){
+        pane.innerHTML='<div class="empty">作品資料載入失敗：'+esc(e.message||e)+'</div>';
+      }
+    }
+  }
+
+  $('[data-ia-tab]',root).forEach(b=>b.onclick=()=>renderProjectsIA(b.dataset.iaTab));
+  $('[data-project-current]',root)?.addEventListener('click',()=>renderProjectsIA('current'));
+}
+
+async function renderTeamIA(active='working'){
+  const root=$('#view-ceo');
+  if(!root)return;
+  const tabs=[['working','正在工作'],['teachers','我的老師'],['researchers','研究員'],['system','系統維護']];
+
+  if(active==='system'){
+    await renderSystem();
+    root.insertAdjacentHTML('afterbegin',iaTabs(tabs,active));
+    $('[data-ia-tab]',root).forEach(b=>b.onclick=()=>renderTeamIA(b.dataset.iaTab));
+    return;
+  }
+
+  root.innerHTML=iaTabs(tabs,active)+'<div id="teamIaPane" class="tab-pane"><div class="empty">正在整理團隊狀態…</div></div>';
+  const pane=$('#teamIaPane');
+
+  if(A.liveStatus!=='live'){
+    pane.innerHTML='<div class="empty">登入後才會顯示正式團隊與工作狀態。</div>';
+  }else{
+    try{
+      SYSTEM=SYSTEM||await A.getSystemCockpit();
+      const team=SYSTEM?.skill_team||{};
+      const roles=Array.isArray(team.executable_roles)?team.executable_roles:[];
+      const planned=Array.isArray(team.planned_roles)?team.planned_roles:[];
+      const recent=Array.isArray(team.recent_usage)?team.recent_usage:[];
+      const packages=Array.isArray(SYSTEM?.work_queue?.packages)?SYSTEM.work_queue.packages:[];
+
+      const roleStage=r=>'<article class="role-stage"><div class="role-avatar">'+esc((teamRoleName(r)||'AI').slice(0,1))+'</div><div class="role-copy"><small>AI 團隊</small><b>'+esc(teamRoleName(r))+'</b><p>'+esc(r.notes||r.trigger_summary||'依目前任務需要提供專業支援。')+'</p></div><span class="role-state">'+(r.usefulness!=null?'最近 '+esc(r.usefulness)+'/5':'可調用')+'</span></article>';
+
+      if(active==='working'){
+        const activeRoles=recent.slice(0,5);
+        const openPkgs=packages.filter(p=>!['completed','cancelled'].includes(String(p.status||'').toLowerCase())).sort((a,b)=>(b.priority||0)-(a.priority||0)).slice(0,5);
+        pane.innerHTML='<div class="page-intro"><span class="kicker">AI 團隊辦公室</span><h2>現在誰在幫我</h2><p>先看角色與正在推進的工作；技術 runtime 細節全部移到「系統維護」。</p></div>'+
+          '<div class="role-stage-list">'+(activeRoles.length?activeRoles.map(roleStage).join(''):'<div class="empty">目前沒有新的員工調用紀錄。</div>')+'</div>'+
+          '<div class="work-rail"><div class="work-rail-head"><b>目前系統工作</b><span>'+openPkgs.length+' 項</span></div>'+
+          (openPkgs.length?openPkgs.map(p=>'<div class="work-rail-item"><span class="work-dot '+(p.status==='in_progress'?'current':'')+'"></span><div><b>'+esc(p.title||p.package_key)+'</b><p>'+esc(p.objective||'')+'</p></div>'+pill(p.status||'ready')+'</div>').join(''):'<div class="empty">目前沒有系統待做工作包。</div>')+'</div>';
+      }else if(active==='teachers'){
+        const teacherKeys=new Set(['ceo-orchestrator','goal-closure-operator','logic-reality-analyst','product-flow-architect','impeccable','frontend-design-lead','evaluation']);
+        const teachers=roles.filter(r=>teacherKeys.has(r.skill_key));
+        pane.innerHTML='<div class="page-intro"><span class="kicker">陪你完成作品</span><h2>我的老師</h2><p>老師負責拆解、教學、驗證與陪跑；不是每次任務都全部出動。</p></div>'+
+          '<div class="role-stage-list">'+(teachers.length?teachers.map(roleStage).join(''):'<div class="empty">目前沒有已驗證可直接調用的老師。</div>')+'</div>';
+      }else{
+        const researchKeys=/scout|architect|synapse|research|impeccable|frontend/i;
+        const researchers=[...roles,...planned].filter((r,i,a)=>researchKeys.test(r.skill_key||'')&&a.findIndex(x=>x.skill_key===r.skill_key)===i);
+        pane.innerHTML='<div class="page-intro"><span class="kicker">背景研究</span><h2>研究員</h2><p>研究員找新方法、工具與風險；研究結果先進候選／試驗，不直接改你的正式能力或作品。</p></div>'+
+          '<div class="role-stage-list">'+(researchers.length?researchers.map(roleStage).join(''):'<div class="empty">目前沒有研究員資料。</div>')+'</div>';
+      }
+    }catch(e){
+      pane.innerHTML='<div class="empty">團隊資料載入失敗：'+esc(e.message||e)+'</div>';
+    }
+  }
+
+  $('[data-ia-tab]',root).forEach(b=>b.onclick=()=>renderTeamIA(b.dataset.iaTab));
+}
+
 function setView(name){
   $$('.view').forEach(v=>v.classList.toggle('active',v.id===`view-${name}`));
   $$('.nav-item').forEach(n=>n.classList.toggle('active',n.dataset.view===name));
@@ -1098,13 +1227,13 @@ function setView(name){
     synapse:'知識關係'
   };
   $('#pageTitle').textContent=t[name]||t.home;
-  if(name==='projects')renderProjects();
+  if(name==='projects')renderProjectsIA();
   if(name==='capabilities')renderCapabilities();
   if(name==='research')renderResearch();
   if(name==='history')renderHistory();
   if(name==='learn')renderLearn();
   if(name==='synapse')renderSynapse();
-  if(name==='ceo')renderSystem();
+  if(name==='ceo')renderTeamIA();
 }
 
 function detectSessionLifecycleProbe(){
