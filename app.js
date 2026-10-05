@@ -939,7 +939,7 @@ function renderHistory(active='personal'){
     pane.innerHTML='<div class="page-intro"><span class="kicker">和個人資料分開</span><h2>系統更新</h2><p>網站、Worker、資料庫與 Skill 系統的更新只放這裡，不混進你的作品與能力。</p></div><div class="timeline"><article class="timeline-item"><time>待接系統更新事件</time><b>更新頁面已經獨立</b><p>下一步只接正式更新事件，不把「目前工作包狀態」複製成另一套真相。</p></article></div>';
   }
 
-  $$$('[data-ia-tab]',root).forEach(b=>b.onclick=()=>renderHistory(b.dataset.iaTab));
+  $('[data-ia-tab]',root).forEach(b=>b.onclick=()=>renderHistory(b.dataset.iaTab));
 }
 
 async function renderSystem(){
