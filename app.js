@@ -1112,7 +1112,7 @@ async function renderProjectsIA(active='current'){
   const tabs=[['current','目前作品'],['path','作品路徑'],['done','已完成']];
 
   if(active==='current'){
-    await renderProjectsIA();
+    await renderProjects();
     root.insertAdjacentHTML('afterbegin',iaTabs(tabs,active));
   }else{
     root.innerHTML=iaTabs(tabs,active)+'<div id="projectIaPane" class="tab-pane"><div class="empty">正在整理作品資料…</div></div>';
@@ -1293,7 +1293,7 @@ async function init(){
     await A.initialize();
     D=await A.getSnapshot();
     renderHome();
-    await renderProjects();
+    await renderProjectsIA();
     await renderLearn();
     await renderSynapse();
     renderCapabilities();
