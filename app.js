@@ -391,7 +391,7 @@ async function renderProjects(notice=''){
       await A.savePersonalOutcomeCandidate({title,successEvidence,whyNow,directionKey:dir.key||null});
       D=await A.getSnapshot();
       renderHome();
-      await renderProjects('已保存。完成 GPT 整理後會先產生一件候選作品，由你確認是否開始。');
+      await renderProjectsIA('已保存。完成 GPT 整理後會先產生一件候選作品，由你確認是否開始。');
     }catch(e){msg.textContent=e.message||'保存失敗';}
   });
 
@@ -401,7 +401,7 @@ async function renderProjects(notice=''){
       await A.decidePersonalOutcomeCandidate({routeId:candidate.id,decision:'select'});
       D=await A.getSnapshot();
       renderHome();
-      await renderProjects('已確認為正式主線。現在可以確認 GPT 建議的第一件作品。');
+      await renderProjectsIA('已確認為正式主線。現在可以確認 GPT 建議的第一件作品。');
     }catch(e){btn.disabled=false;const msg=$('#projectMsg');if(msg)msg.textContent=e.message||'設定失敗';}
   });
 
@@ -411,7 +411,7 @@ async function renderProjects(notice=''){
       await A.decidePersonalOutcomeCandidate({routeId:candidate.id,decision:'reject'});
       D=await A.getSnapshot();
       renderHome();
-      await renderProjects('這個方向與底下尚未開始的候選作品都已退出主線。');
+      await renderProjectsIA('這個方向與底下尚未開始的候選作品都已退出主線。');
     }catch(e){btn.disabled=false;const msg=$('#projectMsg');if(msg)msg.textContent=e.message||'拒絕失敗';}
   });
 
@@ -443,7 +443,7 @@ async function renderProjects(notice=''){
       });
       D=await A.getSnapshot();
       renderHome();
-      await renderProjects('這一步的證據已保存，現在前進到下一個完成條件。');
+      await renderProjectsIA('這一步的證據已保存，現在前進到下一個完成條件。');
     }catch(err){
       submit.disabled=false;
       if(msg) msg.textContent=err.message||'作品證據保存失敗';
@@ -468,7 +468,7 @@ async function renderProjects(notice=''){
       });
       D=await A.getSnapshot();
       renderHome();
-      await renderProjects('已開始拆解目前這一步；完成後只會留下最小下一步。');
+      await renderProjectsIA('已開始拆解目前這一步；完成後只會留下最小下一步。');
     }catch(err){
       submit.disabled=false;
       if(msg) msg.textContent=err.message||'卡點拆解任務建立失敗';
@@ -504,7 +504,7 @@ async function renderProjects(notice=''){
       });
       D=await A.getSnapshot();
       renderHome();
-      await renderProjects('作品已完成並保存證據。下一件作品只會先以候選方式產生，等你確認後才開始。');
+      await renderProjectsIA('作品已完成並保存證據。下一件作品只會先以候選方式產生，等你確認後才開始。');
     }catch(err){
       submit.disabled=false;
       if(msg) msg.textContent=err.message||'作品完成提交失敗';
@@ -516,7 +516,7 @@ async function renderProjects(notice=''){
     btn.disabled=true;
     try{
       await A.decidePersonalArtifact({artifactId:candidateArtifact.id,decision:'start'});
-      await renderProjects('作品已開始。之後新增的學習、概念與證據會自動掛回這件作品。');
+      await renderProjectsIA('作品已開始。之後新增的學習、概念與證據會自動掛回這件作品。');
     }catch(e){btn.disabled=false;if(msg)msg.textContent=e.message||'開始作品失敗';}
   });
 
@@ -525,7 +525,7 @@ async function renderProjects(notice=''){
     btn.disabled=true;
     try{
       await A.decidePersonalArtifact({artifactId:candidateArtifact.id,decision:'reject'});
-      await renderProjects('這件候選作品已拒絕。主線本身不受影響，之後可以重新產生下一個候選作品。');
+      await renderProjectsIA('這件候選作品已拒絕。主線本身不受影響，之後可以重新產生下一個候選作品。');
     }catch(e){btn.disabled=false;if(msg)msg.textContent=e.message||'拒絕作品失敗';}
   });
 }
