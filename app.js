@@ -852,7 +852,7 @@ async function renderCapabilities(active='cells'){
   const tabs=[['cells','能力細胞'],['playbooks','作戰手冊'],['skills','我的技能'],['relations','知識關係']];
   root.innerHTML=iaTabs(tabs,active)+'<div id="capabilityPane" class="tab-pane"><div class="empty">正在整理能力資料…</div></div>';
   const pane=$('#capabilityPane');
-  const bind=()=>$('[data-ia-tab]',root).forEach(b=>b.onclick=()=>renderCapabilities(b.dataset.iaTab));
+  const bind=()=>$$('[data-ia-tab]',root).forEach(b=>b.onclick=()=>renderCapabilities(b.dataset.iaTab));
   bind();
 
   if(active==='cells'){
@@ -888,7 +888,7 @@ async function renderResearch(active='today'){
   if(!root)return;
   const tabs=[['today','今日探索'],['ai','AI 技術'],['distribution','流量分發'],['opportunity','商業機會'],['growthbrain','Growth Brain']];
   root.innerHTML=iaTabs(tabs,active)+'<div id="researchPane" class="tab-pane"></div>';
-  $('[data-ia-tab]',root).forEach(b=>b.onclick=()=>renderResearch(b.dataset.iaTab));
+  $$('[data-ia-tab]',root).forEach(b=>b.onclick=()=>renderResearch(b.dataset.iaTab));
   const pane=$('#researchPane');
 
   if(active!=='growthbrain'){
@@ -939,7 +939,7 @@ function renderHistory(active='personal'){
     pane.innerHTML='<div class="page-intro"><span class="kicker">和個人資料分開</span><h2>系統更新</h2><p>網站、Worker、資料庫與 Skill 系統的更新只放這裡，不混進你的作品與能力。</p></div><div class="timeline"><article class="timeline-item"><time>待接系統更新事件</time><b>更新頁面已經獨立</b><p>下一步只接正式更新事件，不把「目前工作包狀態」複製成另一套真相。</p></article></div>';
   }
 
-  $$('[data-ia-tab]',root).forEach(b=>b.onclick=()=>renderHistory(b.dataset.iaTab));
+  $$$('[data-ia-tab]',root).forEach(b=>b.onclick=()=>renderHistory(b.dataset.iaTab));
 }
 
 async function renderSystem(){
@@ -1162,7 +1162,7 @@ async function renderProjectsIA(active='current'){
     }
   }
 
-  $('[data-ia-tab]',root).forEach(b=>b.onclick=()=>renderProjectsIA(b.dataset.iaTab));
+  $$('[data-ia-tab]',root).forEach(b=>b.onclick=()=>renderProjectsIA(b.dataset.iaTab));
   $('[data-project-current]',root)?.addEventListener('click',()=>renderProjectsIA('current'));
 }
 
@@ -1174,7 +1174,7 @@ async function renderTeamIA(active='working'){
   if(active==='system'){
     await renderSystem();
     root.insertAdjacentHTML('afterbegin',iaTabs(tabs,active));
-    $('[data-ia-tab]',root).forEach(b=>b.onclick=()=>renderTeamIA(b.dataset.iaTab));
+    $$('[data-ia-tab]',root).forEach(b=>b.onclick=()=>renderTeamIA(b.dataset.iaTab));
     return;
   }
 
@@ -1217,7 +1217,7 @@ async function renderTeamIA(active='working'){
     }
   }
 
-  $('[data-ia-tab]',root).forEach(b=>b.onclick=()=>renderTeamIA(b.dataset.iaTab));
+  $$('[data-ia-tab]',root).forEach(b=>b.onclick=()=>renderTeamIA(b.dataset.iaTab));
 }
 
 function setView(name){
