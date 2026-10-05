@@ -898,7 +898,9 @@ async function renderResearch(active='today'){
       distribution:['流量分發','短影音、社群推薦、SEO／AI Search、地域與轉換的研究。'],
       opportunity:['商業機會','資訊差、需求／供給、成本、風險與可交付性的研究。']
     }[active];
-    pane.innerHTML='<div class="section-head"><div><h2>'+esc(copy[0])+'</h2><p>'+esc(copy[1])+'</p></div><span class="pill warn">候選／研究區</span></div><div class="empty">這一區先建立清楚邊界；研究結果只有通過試驗與採用流程後，才會進正式能力或作品。</div>';
+    pane.innerHTML='<div class="page-intro"><span class="kicker">候選／研究區</span><h2>'+esc(copy[0])+'</h2><p>'+esc(copy[1])+'</p></div>'+
+      '<div class="research-funnel"><div class="research-step"><span>1</span><b>候選</b><small>先收進研究室</small></div><i>›</i><div class="research-step"><span>2</span><b>試驗</b><small>用 validation 驗證</small></div><i>›</i><div class="research-step"><span>3</span><b>證據</b><small>比較真實改善</small></div><i>›</i><div class="research-step"><span>4</span><b>採用／拒絕</b><small>才決定是否進正式系統</small></div></div>'+
+      '<div class="empty research-empty">目前沒有需要冒充成正式成果的資料；有候選時才會出現在這裡。</div>';
     return;
   }
 
@@ -922,16 +924,22 @@ function renderHistory(active='personal'){
   const root=$('#view-history');
   if(!root)return;
   const tabs=[['personal','我的歷程'],['skills','能力變化'],['research','研究歷程'],['system','系統更新']];
-  root.innerHTML=iaTabs(tabs,active)+'<div class="tab-pane">'+(
-    active==='personal'
-      ?'<div class="section-head"><div><h2>我的歷程</h2><p>之後只記錄「何時發生什麼」，目前真實狀態仍回作品與能力庫查看。</p></div></div><div class="empty">歷程事件層尚未建置；不會用現有資料硬湊成歷史。</div>'
-      :active==='skills'
-        ?'<div class="section-head"><div><h2>能力變化</h2><p>只顯示有證據的能力狀態變化，不把 AI 建議當升級。</p></div></div><div class="empty">待建立獨立事件紀錄。</div>'
-        :active==='research'
-          ?'<div class="section-head"><div><h2>研究歷程</h2><p>候選、試驗、採用與拒絕的時間線會放這裡。</p></div></div><div class="empty">待接研究記憶層。</div>'
-          :'<div class="section-head"><div><h2>系統更新</h2><p>網站、Worker、資料庫與技能系統的更新紀錄和你的個人資料分開。</p></div></div><div class="empty">待接系統更新事件；目前不把工作包狀態複製成第二套真相。</div>'
-  )+'</div>';
-  $('[data-ia-tab]',root).forEach(b=>b.onclick=()=>renderHistory(b.dataset.iaTab));
+  root.innerHTML=iaTabs(tabs,active)+'<div id="historyPane" class="tab-pane"></div>';
+  const pane=$('#historyPane');
+
+  if(active==='personal'){
+    const items=Array.isArray(home()?.recent_real_progress?.items)?home().recent_real_progress.items:[];
+    pane.innerHTML='<div class="page-intro"><span class="kicker">只讀歷史</span><h2>我的歷程</h2><p>只回答「以前發生了什麼」；現在的真實狀態仍回作品與能力庫查看。</p></div>'+
+      (items.length?'<div class="timeline">'+items.slice(0,12).map(p=>'<article class="timeline-item"><time>'+esc(p.occurred_at?new Date(p.occurred_at).toLocaleString('zh-TW'):'時間未記錄')+'</time><b>'+esc(p.title||'真實進展')+'</b><p>'+esc(p.summary||'')+'</p><small class="muted">來源：'+esc(p.source_type||'正式資料')+(p.evidence_level?' · 證據：'+esc(statusText(p.evidence_level)):'')+'</small></article>').join('')+'</div>':'<div class="timeline"><article class="timeline-item"><time>目前</time><b>還沒有可列入個人歷程的正式事件</b><p>只有真實完成、確認或有證據的事情才會進來。</p></article></div>');
+  }else if(active==='skills'){
+    pane.innerHTML='<div class="page-intro"><span class="kicker">證據才算變化</span><h2>能力變化</h2><p>未來只記錄「哪個證據讓能力狀態改變」，不把 AI 建議或研究當成學會。</p></div><div class="timeline"><article class="timeline-item"><time>待接事件層</time><b>目前不複製技能現況來假裝歷史</b><p>能力變化事件模型建立後才會顯示真正的前後狀態。</p></article></div>';
+  }else if(active==='research'){
+    pane.innerHTML='<div class="page-intro"><span class="kicker">研究生命週期</span><h2>研究歷程</h2><p>候選、試驗、採用與拒絕會各自留下事件；研究紀錄不會升級你的正式能力。</p></div><div class="timeline"><article class="timeline-item"><time>待接研究記憶層</time><b>研究歷程尚未正式持久化</b><p>目前研究仍留在研究室與工作包，等事件層完成後再接入。</p></article></div>';
+  }else{
+    pane.innerHTML='<div class="page-intro"><span class="kicker">和個人資料分開</span><h2>系統更新</h2><p>網站、Worker、資料庫與 Skill 系統的更新只放這裡，不混進你的作品與能力。</p></div><div class="timeline"><article class="timeline-item"><time>待接系統更新事件</time><b>更新頁面已經獨立</b><p>下一步只接正式更新事件，不把「目前工作包狀態」複製成另一套真相。</p></article></div>';
+  }
+
+  $$('[data-ia-tab]',root).forEach(b=>b.onclick=()=>renderHistory(b.dataset.iaTab));
 }
 
 async function renderSystem(){
