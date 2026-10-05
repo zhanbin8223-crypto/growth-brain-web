@@ -189,7 +189,9 @@
 
   function bind(){
     const nav=$('.nav-item[data-view="inbox"]');
+    const capture=$('#captureBtn');
     nav?.addEventListener('click',()=>queueMicrotask(()=>renderInbox()));
+    capture?.addEventListener('click',()=>queueMicrotask(()=>renderInbox()));
     if($('#view-inbox')?.classList.contains('active')) renderInbox();
   }
 
