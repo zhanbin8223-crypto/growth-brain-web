@@ -36,6 +36,7 @@ jobs:
           node --test validation/event-lab.test.mjs
           node --test validation/auth-link.test.mjs
           node --test validation/project-ia.test.mjs
+          node --test validation/capability-library.test.mjs
           for file in worker/*.mjs; do
             node --check "$file"
           done
