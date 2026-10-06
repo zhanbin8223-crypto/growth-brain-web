@@ -890,3 +890,61 @@ input:focus,textarea:focus,select:focus{
   .studio-panel{padding:19px}
   .studio-empty-scene{min-height:300px;padding:28px 18px}
 }
+/* History archive V1 - 2026-10-06 */
+.history-intro{max-width:900px}
+.version-archive{
+  position:relative;display:grid;gap:0;max-width:1040px;margin:8px 0 34px
+}
+.version-archive:before{
+  content:"";position:absolute;left:35px;top:34px;bottom:34px;width:2px;
+  background:linear-gradient(#c99550,#d9ccba)
+}
+.version-stage{
+  position:relative;display:grid;grid-template-columns:72px minmax(0,1fr);
+  gap:18px;padding:0 0 22px
+}
+.version-marker{position:relative;z-index:1;padding-top:4px}
+.version-marker span{
+  width:72px;height:72px;display:grid;place-items:center;border-radius:22px;
+  border:1px solid #ddcfba;background:#fffdf8;color:#66543d;
+  font-size:17px;font-weight:900;box-shadow:0 10px 24px rgba(82,61,35,.07)
+}
+.version-stage.now .version-marker span{
+  border-color:#d6aa69;background:#fee9c7;color:#6b4720;
+  box-shadow:0 12px 28px rgba(183,123,53,.14)
+}
+.version-stage-copy{
+  padding:18px 20px;border:1px solid #e4d8c6;border-radius:22px;
+  background:rgba(255,253,248,.78);box-shadow:0 10px 26px rgba(80,62,39,.045)
+}
+.version-stage.now .version-stage-copy{
+  background:linear-gradient(135deg,#fffdf8,#fbf1df);border-color:#dec49e
+}
+.version-stage-head{display:flex;justify-content:space-between;align-items:flex-start;gap:14px}
+.version-stage-head small{display:block;font-size:9px;color:#9a8564;font-weight:800;margin-bottom:3px}
+.version-stage-head h3{margin:0;font-size:20px;line-height:1.3}
+.version-stage-copy p{margin:8px 0 12px;color:var(--muted);font-size:12px;line-height:1.65}
+.version-points{display:flex;flex-wrap:wrap;gap:6px}
+.version-points span{
+  display:inline-flex;padding:6px 9px;border-radius:999px;background:#f3ecdf;
+  color:#6f6352;font-size:9px;border:1px solid #e7dac6
+}
+.version-stage.now .version-points span{background:#fff5e5;border-color:#ead1aa}
+.history-evidence-log{
+  max-width:1040px;padding-top:8px;border-top:1px solid #e1d5c3
+}
+.history-evidence-log .section-head{margin-top:18px}
+.history-archive{max-width:920px}
+.history-signed-out{
+  min-height:320px;display:grid;align-content:center;justify-items:start;
+  padding:34px;border:1px solid #e4d7c2;border-radius:26px;background:#fffdf8
+}
+@media(max-width:680px){
+  .version-archive:before{left:25px}
+  .version-stage{grid-template-columns:52px minmax(0,1fr);gap:12px;padding-bottom:16px}
+  .version-marker span{width:52px;height:52px;border-radius:16px;font-size:13px}
+  .version-stage-copy{padding:16px;border-radius:18px}
+  .version-stage-head{align-items:flex-start}
+  .version-stage-head h3{font-size:17px}
+  .version-points span{font-size:8px}
+}
