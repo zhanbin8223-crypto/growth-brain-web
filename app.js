@@ -1318,35 +1318,63 @@ async function renderTeamIA(active='working'){
   const pane=$('#teamIaPane');
 
   if(A.liveStatus!=='live'){
-    pane.innerHTML='<div class="empty">登入後才會顯示正式團隊與工作狀態。</div>';
+    pane.innerHTML='<div class="team-signed-out"><div class="studio-empty-scene"><span>✦</span><b>登入後，AI 團隊才會回到工作室</b><p>這裡只顯示資料庫裡真的存在的角色、工作與關聯，不用示範資料冒充你的團隊。</p><button class="primary-btn" data-auth>登入查看團隊</button></div></div>';
   }else{
     try{
-      SYSTEM=SYSTEM||await A.getSystemCockpit();
+      const [system,artifactData]=await Promise.all([
+        SYSTEM||A.getSystemCockpit(),
+        A.getPersonalArtifacts({force:false}).catch(()=>null)
+      ]);
+      SYSTEM=system;
       const team=SYSTEM?.skill_team||{};
       const roles=Array.isArray(team.executable_roles)?team.executable_roles:[];
       const planned=Array.isArray(team.planned_roles)?team.planned_roles:[];
       const recent=Array.isArray(team.recent_usage)?team.recent_usage:[];
       const packages=Array.isArray(SYSTEM?.work_queue?.packages)?SYSTEM.work_queue.packages:[];
+      const artifacts=[
+        artifactData?.current,
+        artifactData?.candidate,
+        ...(Array.isArray(artifactData?.history)?artifactData.history:[])
+      ].filter(Boolean);
+      const currentArtifact=artifactData?.current||null;
       const byKey=new Map([...roles,...planned].map(r=>[r.skill_key,r]));
       const mergeUsage=u=>({...byKey.get(u.skill_key),...u,skill_key:u.skill_key});
       const unique=list=>list.filter((r,i,a)=>r?.skill_key&&a.findIndex(x=>x?.skill_key===r.skill_key)===i);
       const allRoles=unique([...roles,...planned,...recent.map(mergeUsage)]);
 
-      const relatedPackages=key=>packages.filter(p=>JSON.stringify(p).includes('"'+key+'"')).slice(0,4);
+      const packageText=p=>JSON.stringify(p||{});
+      const relatedPackages=key=>packages.filter(p=>packageText(p).includes('"'+key+'"')).slice(0,6);
       const relatedRoles=key=>{
         const ps=relatedPackages(key);
-        return allRoles.filter(r=>r.skill_key!==key&&ps.some(p=>JSON.stringify(p).includes('"'+r.skill_key+'"'))).slice(0,5);
+        return allRoles.filter(r=>r.skill_key!==key&&ps.some(p=>packageText(p).includes('"'+r.skill_key+'"'))).slice(0,6);
       };
-      const roleTools=r=>(Array.isArray(r.runtime_skill_uris)?r.runtime_skill_uris:[]).map(x=>String(x).split('/').pop()).filter(Boolean);
+      const relatedArtifacts=key=>{
+        const ps=relatedPackages(key);
+        if(!ps.length)return [];
+        return artifacts.filter(a=>a?.id&&ps.some(p=>packageText(p).includes('"'+a.id+'"'))).slice(0,4);
+      };
+      const roleTools=r=>(Array.isArray(r.runtime_skill_uris)?r.runtime_skill_uris:[])
+        .map(x=>String(x).split('/').pop()).filter(Boolean);
       const roleCapability=r=>r.category?human(r.category):'尚未標記';
+      const roleState=r=>{
+        const catalog=String(r.catalog_state||'').toLowerCase();
+        const status=String(r.status||'').toLowerCase();
+        if(catalog==='trial'||status==='candidate')return {text:'試用中',cls:'trial'};
+        if(catalog==='planned'||r.availability==='planned')return {text:'候選',cls:'planned'};
+        if(catalog==='runtime'||['active','available','installed','builtin'].includes(status)||['builtin','installed'].includes(r.availability))return {text:'可調用',cls:'ready'};
+        return {text:'待驗證',cls:'unknown'};
+      };
       const roleCard=r=>{
         const name=teamRoleName(r);
-        const pkgCount=relatedPackages(r.skill_key).length;
+        const ps=relatedPackages(r.skill_key);
         const tools=roleTools(r);
+        const state=roleState(r);
+        const recentlyUsed=recent.some(x=>x.skill_key===r.skill_key);
         return '<button class="studio-person" type="button" data-team-role="'+esc(r.skill_key)+'">'+
-          '<span class="studio-avatar">'+esc((name||'AI').slice(0,1))+'</span>'+
+          '<span class="studio-avatar" aria-hidden="true">'+esc((name||'AI').slice(0,1))+'</span>'+
           '<span class="studio-person-copy"><small>'+esc(roleCapability(r))+'</small><b>'+esc(name)+'</b><span>'+esc(r.notes||r.trigger_summary||'依目前任務需要提供專業支援。')+'</span></span>'+
-          '<span class="studio-meta">'+(r.usefulness!=null?'最近 '+esc(r.usefulness)+'/5':pkgCount?pkgCount+' 個關聯工作':'可調用')+'</span>'+
+          '<span class="studio-meta"><i class="role-state-dot '+esc(state.cls)+'"></i>'+esc(state.text)+(recentlyUsed?' · 最近有使用':'')+'</span>'+
+          (ps.length?'<span class="studio-work-dot">工作 '+ps.length+'</span>':'')+
           (tools.length?'<span class="studio-tool-dot" title="'+esc(tools.join('、'))+'">工具 '+tools.length+'</span>':'')+
         '</button>';
       };
@@ -1356,56 +1384,86 @@ async function renderTeamIA(active='working'){
       if(active==='working'){
         shown=unique(recent.map(mergeUsage)).slice(0,8);
         if(!shown.length) shown=roles.slice(0,8);
-        intro='<div class="page-intro"><span class="kicker">AI 團隊工作室</span><h2>現在誰在幫我</h2><p>碰到一個角色，就能看到它跟工作、能力、工具和其他角色的關係；沒有正式關聯的地方會直接標示未知。</p></div>';
+        intro='<div class="page-intro team-intro"><span class="kicker">AI 團隊工作室</span><h2>現在誰在幫我</h2><p>先看正在參與工作的角色。碰到一個人，只亮起有正式資料關聯的工作與合作角色；沒有證據的關聯不補猜。</p></div>';
       }else if(active==='teachers'){
-        const teacherKeys=new Set(['ceo-orchestrator','goal-closure-operator','logic-reality-analyst','product-flow-architect','impeccable','frontend-design-lead','evaluation']);
+        const teacherKeys=new Set(['ceo-orchestrator','goal-closure-operator','logic-reality-analyst','product-flow-architect','impeccable','frontend-design-lead','evaluation','instructional-design-specialist']);
         shown=allRoles.filter(r=>teacherKeys.has(r.skill_key));
-        intro='<div class="page-intro"><span class="kicker">陪你完成作品</span><h2>我的老師</h2><p>只顯示拆解、教學、驗證與陪跑相關角色；候選角色不會冒充正式已驗證員工。</p></div>';
+        intro='<div class="page-intro team-intro"><span class="kicker">陪你完成作品</span><h2>我的老師</h2><p>拆解、教學、驗證與陪跑角色集中在這裡。候選與試用角色會清楚標示，不會冒充正式已驗證員工。</p></div>';
       }else{
-        const researchKeys=/scout|architect|synapse|research|impeccable|frontend/i;
+        const researchKeys=/scout|architect|synapse|research|impeccable|frontend|graph|instructional/i;
         shown=allRoles.filter(r=>researchKeys.test(r.skill_key||''));
-        intro='<div class="page-intro"><span class="kicker">探索區</span><h2>研究員</h2><p>研究結果先進候選／試驗，不直接改你的作品、能力或正式真相。</p></div>';
+        intro='<div class="page-intro team-intro"><span class="kicker">探索區</span><h2>研究員</h2><p>研究員負責把未知變成可驗證候選。研究結果先進候選／試驗，不直接改作品、能力或正式真相。</p></div>';
       }
 
+      const activePackages=packages.filter(p=>['in_progress','active','current','ready'].includes(String(p.status||'').toLowerCase()));
+      const blockedPackages=packages.filter(p=>String(p.status||'').toLowerCase().includes('block'));
+      const readyCount=shown.filter(r=>roleState(r).cls==='ready').length;
+      const trialCount=shown.filter(r=>['trial','planned'].includes(roleState(r).cls)).length;
+      const currentArtifactHtml=currentArtifact
+        ?'<button class="team-context-artifact" type="button" data-jump="projects"><span>目前作品</span><b>'+esc(currentArtifact.title||'目前作品')+'</b><small>只作為團隊工作背景，不代表每位角色都與它有正式關聯。</small></button>'
+        :'<div class="team-context-artifact is-empty"><span>目前作品</span><b>尚未選定</b><small>先維持一條主線；團隊不會自行新增作品。</small></div>';
+
       pane.innerHTML=intro+
+        '<div class="team-context-bar">'+
+          '<div class="team-stat"><strong>'+shown.length+'</strong><span>這一區角色</span></div>'+
+          '<div class="team-stat"><strong>'+readyCount+'</strong><span>可直接調用</span></div>'+
+          '<div class="team-stat"><strong>'+trialCount+'</strong><span>候選／試用</span></div>'+
+          '<div class="team-stat"><strong>'+activePackages.length+'</strong><span>進行中工作</span></div>'+
+          (blockedPackages.length?'<div class="team-stat alert"><strong>'+blockedPackages.length+'</strong><span>受阻工作</span></div>':'')+
+          currentArtifactHtml+
+        '</div>'+
         '<div class="team-studio">'+
           '<section class="studio-floor" aria-label="AI 團隊角色">'+
-            '<div class="studio-scene"><span class="studio-window"></span><span class="studio-plant">⌁</span><span class="studio-desk">工作桌</span></div>'+
+            '<div class="studio-scene" aria-hidden="true">'+
+              '<span class="studio-window"></span><span class="studio-shelf"><i></i><i></i><i></i></span>'+
+              '<span class="studio-lamp">⌁</span><span class="studio-plant">❧</span><span class="studio-desk">Growth Brain 工作桌</span>'+
+            '</div>'+
             '<div class="studio-people">'+(shown.length?shown.map(roleCard).join(''):'<div class="empty">目前沒有符合這個區域的正式角色資料。</div>')+'</div>'+
           '</section>'+
-          '<aside class="studio-panel" id="studioPanel"><span class="kicker">關係面板</span><h3>選一位角色</h3><p>點擊人物後，看它實際關聯的工作、能力、工具與合作角色。</p></aside>'+
+          '<aside class="studio-panel" id="studioPanel"><span class="kicker">關係面板</span><h3>選一位角色</h3><p>點擊人物後，只顯示資料庫可以支持的工作、能力、工具、合作角色與作品關聯。</p><div class="studio-panel-hint"><span>Hover</span><b>看關係高亮</b><span>Click</span><b>固定看詳細</b></div></aside>'+
         '</div>';
 
       const panel=$('#studioPanel',pane);
       const cards=$$('.studio-person',pane);
+      function relationSet(key){return new Set(relatedRoles(key).map(r=>r.skill_key))}
       function focusRole(key){
+        const related=relationSet(key);
         cards.forEach(c=>{
           const same=c.dataset.teamRole===key;
-          const related=relatedRoles(key).some(r=>r.skill_key===c.dataset.teamRole);
+          const isRelated=related.has(c.dataset.teamRole);
           c.classList.toggle('is-focus',same);
-          c.classList.toggle('is-related',!same&&related);
-          c.classList.toggle('is-dim',!same&&!related);
+          c.classList.toggle('is-related',!same&&isRelated);
+          c.classList.toggle('is-dim',!same&&!isRelated);
         });
       }
       function clearFocus(){cards.forEach(c=>c.classList.remove('is-focus','is-related','is-dim'))}
+      function openRole(key){
+        const r=allRoles.find(x=>x.skill_key===key)||{};
+        const ps=relatedPackages(r.skill_key);
+        const rr=relatedRoles(r.skill_key);
+        const tools=roleTools(r);
+        const ars=relatedArtifacts(r.skill_key);
+        const state=roleState(r);
+        panel.innerHTML='<div class="studio-panel-head"><span class="studio-avatar large">'+esc((teamRoleName(r)||'AI').slice(0,1))+'</span><div><span class="kicker">角色詳細</span><h3>'+esc(teamRoleName(r))+'</h3><span class="role-state-label '+esc(state.cls)+'">'+esc(state.text)+'</span></div></div>'+
+          '<p>'+esc(r.notes||r.trigger_summary||'目前只有角色註冊資料，尚沒有更完整的工作說明。')+'</p>'+
+          '<div class="studio-rel"><b>能力領域</b><span>'+esc(roleCapability(r))+'</span></div>'+
+          '<div class="studio-rel"><b>現在／近期工作</b>'+(ps.length?ps.map(p=>'<span class="relation-chip">'+esc(p.title||p.package_key)+' · '+esc(statusText(p.status||'unknown'))+'</span>').join(''):'<span class="muted">尚無正式關聯工作</span>')+'</div>'+
+          '<div class="studio-rel"><b>合作角色</b>'+(rr.length?rr.map(x=>'<button type="button" class="relation-chip role-link" data-related-role="'+esc(x.skill_key)+'">'+esc(teamRoleName(x))+'</button>').join(''):'<span class="muted">尚無正式合作關聯證據</span>')+'</div>'+
+          '<div class="studio-rel"><b>工具</b>'+(tools.length?tools.map(x=>'<span class="relation-chip">'+esc(x)+'</span>').join(''):'<span class="muted">未登記專用工具</span>')+'</div>'+
+          '<div class="studio-rel"><b>作品關聯</b>'+(ars.length?ars.map(a=>'<button type="button" data-jump="projects" class="relation-chip">'+esc(a.title||'作品')+'</button>').join(''):'<span class="muted">目前沒有可由正式 ID 關聯確認的作品</span>')+'</div>'+
+          '<small class="studio-proof-note">只顯示可追溯關聯。共同出現在同一工作包才視為合作線；作品必須有正式 ID 關聯才顯示。</small>';
+        $$('[data-related-role]',panel).forEach(btn=>btn.onclick=()=>{
+          const target=cards.find(c=>c.dataset.teamRole===btn.dataset.relatedRole);
+          if(target){target.click();target.focus();target.scrollIntoView({block:'nearest',behavior:'smooth'});}
+        });
+      }
+
       cards.forEach(c=>{
         c.addEventListener('mouseenter',()=>focusRole(c.dataset.teamRole));
         c.addEventListener('mouseleave',clearFocus);
         c.addEventListener('focus',()=>focusRole(c.dataset.teamRole));
         c.addEventListener('blur',clearFocus);
-        c.addEventListener('click',()=>{
-          const r=allRoles.find(x=>x.skill_key===c.dataset.teamRole)||{};
-          const ps=relatedPackages(r.skill_key);
-          const rr=relatedRoles(r.skill_key);
-          const tools=roleTools(r);
-          panel.innerHTML='<span class="kicker">角色詳細</span><h3>'+esc(teamRoleName(r))+'</h3>'+
-            '<p>'+esc(r.notes||r.trigger_summary||'目前只有角色註冊資料，尚沒有更完整的工作說明。')+'</p>'+
-            '<div class="studio-rel"><b>能力領域</b><span>'+esc(roleCapability(r))+'</span></div>'+
-            '<div class="studio-rel"><b>關聯工作</b>'+(ps.length?ps.map(p=>'<button data-jump="ceo" class="relation-chip">'+esc(p.title||p.package_key)+'</button>').join(''):'<span class="muted">尚無正式關聯證據</span>')+'</div>'+
-            '<div class="studio-rel"><b>合作角色</b>'+(rr.length?rr.map(x=>'<span class="relation-chip">'+esc(teamRoleName(x))+'</span>').join(''):'<span class="muted">尚無正式關聯證據</span>')+'</div>'+
-            '<div class="studio-rel"><b>工具</b>'+(tools.length?tools.map(x=>'<span class="relation-chip">'+esc(x)+'</span>').join(''):'<span class="muted">未登記專用工具</span>')+'</div>'+
-            '<small class="muted">作品關聯只有在資料庫已有正式證據時才顯示，不用推測補齊。</small>';
-        });
+        c.addEventListener('click',()=>openRole(c.dataset.teamRole));
       });
     }catch(e){
       pane.innerHTML='<div class="empty">團隊資料載入失敗：'+esc(e.message||e)+'</div>';
