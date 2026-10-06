@@ -32,6 +32,8 @@ jobs:
           node --check config.js
           node --check data.js
           node --check inbox.js
+          node --check event-lab.js
+          node --test validation/event-lab.test.mjs
           for file in worker/*.mjs; do
             node --check "$file"
           done

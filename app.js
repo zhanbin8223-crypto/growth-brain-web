@@ -77,7 +77,7 @@ function renderHome(){
 
   $('#view-home').innerHTML=`${modeStrip()}
   <div class="hero-grid">
-    <article class="hero-card"><span class="kicker">現在最重要</span><h2>${esc(action.title||'先選一個真實下一步')}</h2><p>${esc(action.why||'目前還沒有足夠證據替你自動選唯一主線。')}</p><div class="evidence-box"><b>做到什麼算完成</b><span>${esc(action.success_evidence||'產生一個真實作品或行動證據。')}</span></div>${cta}</article>
+    <article class="hero-card"><span class="kicker">現在最重要</span><h2>${esc(action.title||'先選一個真實下一步')}</h2><p>${esc(action.why||'目前還沒有足夠證據替你自動選唯一主線。')}</p><div class="evidence-box"><b>做到什麼算完成</b><span>${esc(action.success_evidence||'產生一個真實作品或行動證據。')}</span></div><div class="project-actions">${cta}${A.liveStatus==='live'&&action.title?`<button class="ghost-btn" data-funnel-kind="${currentArtifact?'current_artifact':'user_event'}" data-funnel-id="${esc(currentArtifact?.id||'')}" data-funnel-goal="${esc(currentArtifact?.next_evidence_item?.criterion_text||action.title)}">拆解這件事</button>`:''}</div></article>
     <article class="direction-card"><span class="kicker">方向</span><h3>${esc(dir.key?human(dir.key):'尚未同步')}</h3><p>${esc(dir.goal||'登入後同步目前方向。')}</p><div class="row-between"><span>信心 ${pct(dir.confidence)}</span>${pill(dir.status)}</div></article>
   </div>
   ${currentArtifact?`<div class="metrics"><div><strong>${esc(artifactProgress?.confirmed??0)}/${esc(artifactProgress?.total??0)}</strong><span>作品完成條件</span></div><div><strong>${esc(currentArtifact.next_evidence_item?.criterion_no||'—')}</strong><span>目前第幾步</span></div><div><strong>${esc(artifactEvidence)}</strong><span>已留下正式證據</span></div></div>`:`<div class="metrics"><div><strong>${esc(summary.unverified_count??0)}</strong><span>未驗證概念</span></div><div><strong>${esc(summary.forming_count??0)}</strong><span>形成證據中</span></div><div><strong>${A.candidateEvidenceCount()}</strong><span>候選作答</span></div></div>`}
@@ -246,6 +246,7 @@ async function renderProjects(notice=''){
           </div>
         </article>
 
+        ${nextEvidence?`<div class="context-bar"><div><b>這一步還不清楚？</b><span>先拆出卡點與一個最小動作。</span></div><button class="ghost-btn" data-funnel-kind="current_artifact" data-funnel-id="${esc(currentArtifact.id)}" data-funnel-goal="${esc(nextEvidence.criterion_text)}">拆解這件事</button></div>`:''}
         ${nextEvidenceHtml}
         ${progressHtml}
         ${unblockResultHtml}
@@ -886,36 +887,24 @@ async function renderCapabilities(active='cells'){
 async function renderResearch(active='today'){
   const root=$('#view-research');
   if(!root)return;
+  if(active!=='growthbrain')return window.GROWTH_BRAIN_LAB.renderResearch(root,active);
   const tabs=[['today','今日探索'],['ai','AI 技術'],['distribution','流量分發'],['opportunity','商業機會'],['growthbrain','Growth Brain']];
   root.innerHTML=iaTabs(tabs,active)+'<div id="researchPane" class="tab-pane"></div>';
   $$('[data-ia-tab]',root).forEach(b=>b.onclick=()=>renderResearch(b.dataset.iaTab));
   const pane=$('#researchPane');
 
-  if(active!=='growthbrain'){
-    const copy={
-      today:['今日探索','只放值得繼續研究的候選；沒有重要新東西也可以是空的。'],
-      ai:['AI 技術','AIHOT、新工具、新 Skill、新方法先進候選，再查證與試驗。'],
-      distribution:['流量分發','短影音、社群推薦、SEO／AI Search、地域與轉換的研究。'],
-      opportunity:['商業機會','資訊差、需求／供給、成本、風險與可交付性的研究。']
-    }[active];
-    pane.innerHTML='<div class="page-intro"><span class="kicker">候選／研究區</span><h2>'+esc(copy[0])+'</h2><p>'+esc(copy[1])+'</p></div>'+
-      '<div class="research-funnel"><div class="research-step"><span>1</span><b>候選</b><small>先收進研究室</small></div><i>›</i><div class="research-step"><span>2</span><b>試驗</b><small>用 validation 驗證</small></div><i>›</i><div class="research-step"><span>3</span><b>證據</b><small>比較真實改善</small></div><i>›</i><div class="research-step"><span>4</span><b>採用／拒絕</b><small>才決定是否進正式系統</small></div></div>'+
-      '<div class="empty research-empty">目前沒有需要冒充成正式成果的資料；有候選時才會出現在這裡。</div>';
-    return;
-  }
-
   pane.innerHTML='<div class="empty">正在讀取 Growth Brain 正式待做事項…</div>';
   if(A.liveStatus!=='live'){pane.innerHTML='<div class="empty">登入後才能讀取正式系統待辦。</div>';return;}
   try{
     SYSTEM=SYSTEM||await A.getSystemCockpit();
-    const pkgs=(SYSTEM?.work_queue?.packages||[]).filter(p=>IA_TODO_KEYS.has(p.package_key));
+    const pkgs=(SYSTEM?.work_queue?.packages||[]).filter(p=>(IA_TODO_KEYS.has(p.package_key)||p.package_key==='event-funnel-self-exploration-v1')&&!['completed','cancelled'].includes(p.status));
     pane.innerHTML='<div class="section-head"><div><h2>Growth Brain 正式待做</h2><p>這些是已確認要做但尚未完成的系統工作；不和你的個人作品進度混在一起。</p></div><span>'+pkgs.length+' 項</span></div>'+
       (pkgs.length?'<div class="stack">'+pkgs.sort((a,b)=>(b.priority||0)-(a.priority||0)).map(p=>{
         const steps=Array.isArray(p.steps)?p.steps:[];
         const st=String(p.status||'ready');
         return '<article class="surface"><div class="row-between"><div><b>'+esc(p.title||p.package_key)+'</b><p>'+esc(p.objective||'')+'</p></div>'+pill(st)+'</div>'+
           (steps.length?'<div class="flow">'+steps.map(s=>'<span>'+(['completed'].includes(s.status)?'✓ ':['current','in_progress'].includes(s.status)?'→ ':'')+esc(s.title||'')+'</span>').join('<i>›</i>')+'</div>':'')+
-          '</article>';
+          '<button class="ghost-btn small" data-funnel-kind="system_work_package" data-funnel-id="'+esc(p.package_key)+'" data-funnel-goal="'+esc(p.objective||p.title)+'">拆解這件事</button></article>';
       }).join('')+'</div>':'<div class="empty">目前沒有這一組正式待做事項。</div>');
   }catch(e){pane.innerHTML='<div class="empty">正式待辦載入失敗：'+esc(e.message||e)+'</div>'}
 }
@@ -934,7 +923,7 @@ function renderHistory(active='personal'){
   }else if(active==='skills'){
     pane.innerHTML='<div class="page-intro"><span class="kicker">證據才算變化</span><h2>能力變化</h2><p>未來只記錄「哪個證據讓能力狀態改變」，不把 AI 建議或研究當成學會。</p></div><div class="timeline"><article class="timeline-item"><time>待接事件層</time><b>目前不複製技能現況來假裝歷史</b><p>能力變化事件模型建立後才會顯示真正的前後狀態。</p></article></div>';
   }else if(active==='research'){
-    pane.innerHTML='<div class="page-intro"><span class="kicker">研究生命週期</span><h2>研究歷程</h2><p>候選、試驗、採用與拒絕會各自留下事件；研究紀錄不會升級你的正式能力。</p></div><div class="timeline"><article class="timeline-item"><time>待接研究記憶層</time><b>研究歷程尚未正式持久化</b><p>目前研究仍留在研究室與工作包，等事件層完成後再接入。</p></article></div>';
+    pane.innerHTML='<div class="page-intro"><span class="kicker">研究生命週期</span><h2>研究歷程</h2><p>研究紀錄不會升級你的正式能力。</p></div><div class="timeline"><article class="timeline-item"><time>研究室 > 今日探索</time><b>探索候選與試驗紀錄已保存</b><p>目前請到研究室查看保留、忽略與試驗狀態；完整事件時間軸尚未接入。</p></article></div>';
   }else{
     pane.innerHTML='<div class="page-intro"><span class="kicker">和個人資料分開</span><h2>系統更新</h2><p>網站、Worker、資料庫與 Skill 系統的更新只放這裡，不混進你的作品與能力。</p></div><div class="timeline"><article class="timeline-item"><time>待接系統更新事件</time><b>更新頁面已經獨立</b><p>下一步只接正式更新事件，不把「目前工作包狀態」複製成另一套真相。</p></article></div>';
   }
@@ -1220,7 +1209,7 @@ async function renderTeamIA(active='working'){
   $$('[data-ia-tab]',root).forEach(b=>b.onclick=()=>renderTeamIA(b.dataset.iaTab));
 }
 
-function setView(name){
+function setView(name,subtab){
   $$('.view').forEach(v=>v.classList.toggle('active',v.id===`view-${name}`));
   $$('.nav-item').forEach(n=>n.classList.toggle('active',n.dataset.view===name));
   const t={
@@ -1235,13 +1224,13 @@ function setView(name){
     synapse:'知識關係'
   };
   $('#pageTitle').textContent=t[name]||t.home;
-  if(name==='projects')renderProjectsIA();
-  if(name==='capabilities')renderCapabilities();
-  if(name==='research')renderResearch();
+  if(name==='projects')renderProjectsIA(subtab||'current');
+  if(name==='capabilities')renderCapabilities(subtab||'cells');
+  if(name==='research')renderResearch(subtab||'today');
   if(name==='history')renderHistory();
   if(name==='learn')renderLearn();
   if(name==='synapse')renderSynapse();
-  if(name==='ceo')renderTeamIA();
+  if(name==='ceo')renderTeamIA(subtab||'working');
 }
 
 function detectSessionLifecycleProbe(){
@@ -1311,10 +1300,14 @@ async function init(){
     await sendSessionLifecycleProbe();
     $$('.nav-item').forEach(b=>b.onclick=()=>setView(b.dataset.view));
     document.addEventListener('click',e=>{
+      const f=e.target.closest('[data-funnel-kind]');
+      if(f)window.GROWTH_BRAIN_LAB.openFunnel({kind:f.dataset.funnelKind,id:f.dataset.funnelId||null,goal:f.dataset.funnelGoal||''});
       const j=e.target.closest('[data-jump]');
       if(j)setView(j.dataset.jump);
       if(e.target.closest('[data-auth]'))loginModal();
     });
+    document.addEventListener('growth-lab:navigate',e=>setView(e.detail.view,e.detail.subtab));
+    document.addEventListener('growth-lab:system-research',()=>renderResearch('growthbrain'));
     $('#captureBtn').onclick=()=>setView('inbox');
     $('#refreshBtn').onclick=()=>location.reload();
   }catch(e){$('.main').innerHTML=`<div class="empty">第二大腦 初始化失敗：${esc(e.message||e)}</div>`}

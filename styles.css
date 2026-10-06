@@ -174,6 +174,38 @@ details>summary{cursor:pointer;color:var(--ink)}
 .modal-card h2{margin:8px 0}
 .modal-card p{color:var(--muted)}
 @media(prefers-reduced-motion:reduce){*{scroll-behavior:auto!important;transition:none!important}}
+.funnel-modal{width:min(740px,100%);max-height:88vh;overflow:auto;padding:28px}
+.funnel-modal input{margin:0}
+.funnel-modal .project-form{gap:10px}
+.funnel-modal textarea{min-height:70px;margin:0}
+.funnel-result{border-top:1px solid var(--line);margin-top:22px;padding-top:18px}
+.funnel-result h3{margin:0;font-size:20px}
+.lab-summary{display:grid;gap:12px;margin:18px 0}
+.lab-summary>div{display:grid;grid-template-columns:76px minmax(0,1fr);gap:10px}
+.lab-summary dt{color:var(--muted);font-weight:700}
+.lab-summary dd{margin:0;overflow-wrap:anywhere}
+.lab-summary small{display:block;font-size:11px;color:var(--muted)}
+.lab-detail{margin:14px 0}
+.lab-toolbar{display:flex;justify-content:space-between;gap:12px;flex-wrap:wrap;margin:18px 0}
+.lab-filters{display:flex;gap:6px;flex-wrap:wrap}
+.lab-filters .selected{background:var(--accent-soft);border-color:var(--accent);color:var(--accent)}
+.exploration-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:14px;align-items:start}
+.exploration-grid>.empty{grid-column:1/-1}
+.exploration-card{padding:18px;overflow-wrap:anywhere}
+.exploration-card h3{font-size:18px;line-height:1.4;margin:12px 0}
+.exploration-card p{font-size:13px}
+.exploration-card .evidence-box{margin:14px 0}
+.exploration-card .project-actions{margin:16px 0 8px}
+.exploration-card details{margin-top:12px}
+.lab-sources{padding-left:20px}
+.lab-sources small{display:block;color:var(--muted);font-size:11px}
+.lab-job{display:flex;gap:10px;align-items:center;flex-wrap:wrap;padding:12px 15px;margin:12px 0;background:var(--accent-soft);border-radius:10px}
+.lab-job span{color:var(--muted);font-size:12px}
+.lab-message{color:var(--danger);font-size:12px;min-height:1em;margin:6px 0}
+.lab-policy{margin-top:20px}
+.lab-mobile-detail{display:none}
+@media(max-width:1150px){.exploration-grid{grid-template-columns:1fr}.exploration-card details{max-width:70ch}}
+@media(max-width:640px){.funnel-modal{padding:22px 16px;max-height:86dvh}.lab-toolbar{display:grid}.lab-toolbar .project-actions{justify-content:flex-start}.lab-summary>div{grid-template-columns:1fr;gap:2px}.funnel-result .row-between{flex-wrap:wrap}.exploration-card>p,.exploration-card>.evidence-box,.exploration-card>.project-actions,.exploration-card>small{display:none}.lab-mobile-detail{display:block}.lab-mobile-detail.project-actions{display:flex}}
 @media(max-width:980px){
   .app-shell{grid-template-columns:78px 1fr}
   .brand>div:not(.brand-mark),.nav-item b,.side-note{display:none}

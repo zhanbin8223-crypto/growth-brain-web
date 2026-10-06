@@ -109,11 +109,17 @@ Deno.serve(async (req: Request) => {
     if (req.method === "GET") {
       const url = new URL(req.url);
       const surface = url.searchParams.get("surface") || "personal_home";
-      if (!["personal_home", "personal_outcome", "personal_artifacts", "system_cockpit", "inbox", "learning", "personal_synapse"].includes(surface)) {
+      if (!["personal_home", "personal_outcome", "personal_artifacts", "system_cockpit", "inbox", "learning", "personal_synapse", "event_lab"].includes(surface)) {
         return json({ ok: false, reason: "unsupported_surface" }, 400);
       }
 
-      const result = surface === "inbox"
+      const result = surface === "event_lab"
+        ? await adminRpc("growth_event_lab_service_v1", {
+            p_auth_user_id: verified.user.id,
+            p_action: "snapshot",
+            p_payload: {},
+          })
+        : surface === "inbox"
         ? await adminRpc("growth_inbox_snapshot_service_v1", {
             p_auth_user_id: verified.user.id,
           })
@@ -134,7 +140,7 @@ Deno.serve(async (req: Request) => {
             p_surface: surface,
           });
 
-      if (result?.authorized === false) {
+      if (result?.authorized === false || result?.accepted === false) {
         return json(
           { ok: false, reason: result.reason || "profile_not_mapped" },
           403,
@@ -150,6 +156,24 @@ Deno.serve(async (req: Request) => {
 
     if (req.method === "POST") {
       const body = await req.json().catch(() => ({}));
+
+      if (body?.action === "event_lab") {
+        const allowed = ["decompose", "explore", "keep", "ignore", "trial", "send_research", "retry"];
+        if (!allowed.includes(body?.lab_action) || !body?.payload ||
+          typeof body.payload !== "object" || Array.isArray(body.payload)) {
+          return json({ ok: false, reason: "valid_lab_action_and_payload_required" }, 400);
+        }
+        const result = await adminRpc("growth_event_lab_service_v1", {
+          p_auth_user_id: verified.user.id,
+          p_action: body.lab_action,
+          p_payload: body.payload,
+        });
+        if (result?.accepted === false) {
+          return json({ ok: false, reason: result.reason, data: result },
+            result.reason?.includes("verified") ? 403 : 400);
+        }
+        return json({ ok: true, data: result }, 200);
+      }
 
       if (body?.action === "create_learning_text") {
         const rawContent =

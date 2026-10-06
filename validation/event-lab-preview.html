@@ -1,0 +1,35 @@
+<!doctype html>
+<html lang="zh-Hant"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>事件漏斗合成驗收</title><link rel="stylesheet" href="../styles.css"><style>
+body{padding:16px}.preview-note{padding:12px;background:#fff6e8;border:1px solid #efd7ae;border-radius:10px;margin-bottom:12px}.preview-actions{display:flex;gap:8px;flex-wrap:wrap;margin:12px 0}.preview-frame{width:390px;height:860px;border:1px solid #d9e1e8;display:none;background:white;max-width:100%}.mobile-preview .preview-frame{display:block}.mobile-preview #previewMain{display:none}
+</style></head><body>
+<div class="preview-note"><b>合成驗收資料</b> · 此頁不連資料庫，所有操作只影響目前示範畫面；不代表使用者的作品、技能或市場結果。</div>
+<div class="preview-actions" id="previewControls"><button class="ghost-btn" id="previewDesktop">桌面預覽</button><button class="ghost-btn" id="previewMobile">手機預覽</button><button class="ghost-btn" id="previewFunnel">拆解示範</button><button class="ghost-btn" id="previewFailure">失敗示範</button><button class="ghost-btn" id="previewEmpty">空狀態示範</button></div>
+<iframe class="preview-frame" id="phoneFrame" title="手機合成驗收"></iframe><main id="previewMain"><section id="previewResearch" class="view active"></section></main>
+<script>
+const copy=x=>JSON.parse(JSON.stringify(x));
+const fixtureItem=(id,title,category)=>({id,title,topic_key:id,category,state:'active',evidence_status:'hypothesis',why_now:'先測一個小方法能不能降低返工。',question:'是否能用一次可重現測試改善結果？',finding:'目前只有研究假設，尚未證明改善。',sources:[{url:'https://supabase.com/docs',title:'參考來源，仍須查核'},{url:'javascript:alert(1)',title:'這個危險連結不應顯示'}],unknowns:['實際改善幅度'],required_evidence:['同條件前後比較'],next_step:'選一個範例，記錄一次前後比較。',stop_condition:'兩輪没有新資訊就停止。'});
+let state={items:[fixtureItem('fixture-a','用小型驗收降低返工','growthbrain'),fixtureItem('fixture-b','找到可查核的來源','ai'),fixtureItem('fixture-c','測試一個內容分發假設','distribution')],jobs:[],trials:[],context:{employees:[{skill_key:'evaluation',role_name:'驗收員'}],tools:[{key:'web-search',name:'網頁搜尋',availability:'available',status:'active'}],capability_cells:['搜尋與證據'],work_packages:[{key:'fixture-package',title:'示範系統工作包'}]},worker_health:{status:'online'}};
+let failing=false;
+window.GROWTH_BRAIN_ADAPTER={liveStatus:'live',async getEventLab(){return copy(state);},async actEventLab(action,p={}){
+  if(action==='decompose'){
+    const existing=state.jobs.find(j=>j.request_id===p.request_id);if(existing)return {job_id:existing.id,snapshot:copy(state)};
+    const j={id:'fixture-job-'+state.jobs.length,task_type:'event_funnel_v1',target_kind:p.target_kind,target_id:p.target_id,goal:p.goal,status:failing?'failed':'completed',request_id:p.request_id,output:{goal:p.goal,boundaries:['只驗收這一步，不改正式真相'],key_hub:'先確認可重現證據',dependencies:['現有能力與執行器'],unknowns:['真實執行結果'],failure_points:['把 AI 建議當成證據'],required_evidence:['一次可重現操作紀錄'],minimum_artifact:'一個小型驗收結果',bottleneck:'還缺一次相同條件測試',primary_route:{kind:'research',key:'',reason:'先在研究沙盒測試'},next_step:'保存測試條件，再跑一次比較。',topic_key:'fixture-funnel',sources:[]}};state.jobs.unshift(j);return {job_id:j.id,snapshot:copy(state)};
+  }
+  if(action==='keep'||action==='ignore'){state.items=state.items.map(x=>x.id===p.item_id?{...x,state:action==='keep'?'saved':'ignored'}:x);}
+  if(action==='trial'){const x=state.items.find(x=>x.id===p.item_id);x.state='trial';x.trial_id='fixture-trial-'+x.id;state.trials.push({id:x.trial_id,status:'planned',decision:'pending'});}
+  if(action==='send_research'&&!state.items.some(x=>x.id==='fixture-funnel')){state.items.push({...fixtureItem('fixture-funnel','事件拆解產生的研究候選','other'),state:'saved'});}
+  if(action==='retry'){const j=state.jobs.find(j=>j.id===p.job_id);j.status='completed';}
+  if(action==='explore')return {created:false,snapshot:copy(state)};
+  return {snapshot:copy(state)};
+}};
+</script><script src="../event-lab.js"></script><script>
+const root=document.querySelector('#previewResearch');
+GROWTH_BRAIN_LAB.renderResearch(root);
+document.querySelector('#previewFunnel').onclick=()=>GROWTH_BRAIN_LAB.openFunnel({kind:'user_event',goal:'驗收一個新的研究方法'});
+document.querySelector('#previewFailure').onclick=()=>{failing=true;GROWTH_BRAIN_LAB.openFunnel({kind:'user_event',goal:'驗收失敗後重試'});};
+document.querySelector('#previewEmpty').onclick=()=>{state.items=[];GROWTH_BRAIN_LAB.renderResearch(root);};
+document.querySelector('#previewMobile').onclick=()=>{document.body.classList.add('mobile-preview');document.querySelector('#phoneFrame').src='event-lab-preview.html?frame=1';};
+document.querySelector('#previewDesktop').onclick=()=>document.body.classList.remove('mobile-preview');
+document.addEventListener('growth-lab:navigate',()=>GROWTH_BRAIN_LAB.renderResearch(root));
+if(new URLSearchParams(location.search).has('frame')){document.querySelector('#previewControls').remove();document.querySelector('#phoneFrame').remove();}
+</script></body></html>

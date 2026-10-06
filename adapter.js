@@ -297,6 +297,16 @@
       this.systemCockpit=extractSurface(result);
       return clone(this.systemCockpit);
     },
+    async getEventLab(){
+      if(this.mode!=='live') throw new Error('請先登入，才能讀取研究沙盒。');
+      const result=await liveRequest('GET',undefined,'event_lab');
+      return clone(extractSurface(result));
+    },
+    async actEventLab(action,payload={}){
+      if(this.mode!=='live') throw new Error('請先登入。');
+      const result=await liveRequest('POST',{action:'event_lab',lab_action:action,payload});
+      return clone(result?.data||{});
+    },
     async listAttempts(){return listLocalAttempts();},
     async submitAttempt({unitId,response,evidenceType}){
       const clean=(response||'').trim();
