@@ -51,12 +51,13 @@ function harness(fixture=projectFixture()){
   return {root,document,fixture,writes,adapter,render:(active='gateway',notice='')=>context.renderProjectsIA(active,notice),html:()=>root.querySelector('#projectIaPane')?.innerHTML||root.innerHTML,click:async selector=>{const e=root.querySelector(selector);assert.ok(e,selector);await e.fire('click');}};
 }
 
-test('Case 1: 真實 renderer 輸出縮圖、名稱、系列版本、status、進度及 artifact id',async()=>{
+test('Case 1: 第一層是選作品卡，只顯示縮圖、工作名、版本、狀態、進度',async()=>{
   const h=harness();await h.render();const html=h.html();
-  for(const text of ['測試作品名稱','測試系列','V2','進行中','0 / 9 個目標完成','進入作品 →'])assert.ok(html.includes(text),text);
+  for(const text of ['蝦皮分潤工作','看作品目標','蝦皮分潤 V1','進行中','0 / 9 個目標完成','進入作品 →'])assert.ok(html.includes(text),text);
   assert.match(html,/data-artifact-id="artifact-fixture"/);
-  assert.match(html,/class="project-cover"[^>]*role="img"/);
+  assert.match(html,/class="project-cover"/);
   assert.doesNotMatch(html,/V8/); // Route revision is not the artifact sequence.
+  assert.ok(!html.includes(h.fixture.artifacts.current.title),'第一層不可直接顯示長作品 title');
 });
 
 test('Case 2: 第一層 HTML 不輸出 objective、交付要求、步驟、證據或能力說明',async()=>{
@@ -101,8 +102,17 @@ test('只有主線時不把長描述當卡片，不捏造作品版本或 artifac
   assert.doesNotMatch(h.html(),/data-artifact-id|V8/);await h.click('[data-open-project-detail]');assert.ok(h.root.querySelector('[data-project-gateway]'));
 });
 
-test('替換作品資料後名稱、版本、status 與 id 都跟著資料更新',async()=>{
-  const f=projectFixture();Object.assign(f.artifacts.current,{id:'another-artifact',title:'另一件作品',sequence_no:7,status:'paused'});
-  const h=harness(f);await h.render();for(const text of ['另一件作品','V7','暫停','another-artifact'])assert.ok(h.html().includes(text),text);
-  assert.doesNotMatch(h.html(),/測試作品名稱|蝦皮分潤/);
+test('替換 artifact title 不會污染第一層工作卡，但版本、status 與 id 仍跟正式資料更新',async()=>{
+  const f=projectFixture();Object.assign(f.artifacts.current,{id:'another-artifact',title:'另一件很長的作品目標標題',sequence_no:7,status:'paused'});
+  const h=harness(f);await h.render();for(const text of ['蝦皮分潤工作','蝦皮分潤 V7','暫停','another-artifact'])assert.ok(h.html().includes(text),text);
+  assert.ok(!h.html().includes('另一件很長的作品目標標題'));
+});
+
+
+test('作品卡視覺層級是縮圖在上、內容在下，版本下方就是狀態',()=>{
+  assert.match(css,/\.project-gateway-card\{[^}]*display:flex;[^}]*flex-direction:column/s);
+  assert.match(css,/\.project-cover\{[^}]*width:100%;[^}]*aspect-ratio:/s);
+  assert.match(app,/project-version-title/);
+  assert.match(app,/project-status/);
+  assert.ok(app.indexOf('project-version-title')<app.indexOf('project-status'));
 });
