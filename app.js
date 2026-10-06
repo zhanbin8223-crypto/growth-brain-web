@@ -56,46 +56,108 @@ function renderHome(){
   const artifactProgress=currentArtifact?.progress_summary||null;
   const currentSkills=Array.isArray(currentArtifact?.skills)?currentArtifact.skills:[];
   const skillPreview=currentSkills.slice(0,3);
-  const parallelBlockers=Number(sys.parallel_blocker_count||0);
-  const systemTitle=sys.current_blocked?'系統主線受阻':sys.build_in_progress?'系統持續建置中':'系統穩定';
-  const systemNote=sys.current_blocked
-    ?`${parallelBlockers} 個待處理阻塞`
-    :parallelBlockers
-      ?`${parallelBlockers} 個旁支待處理，不影響目前作品主線`
-      :'目前沒有系統阻塞';
-  let cta='';
-  if(A.liveStatus==='signed_out') cta='<button class="primary-btn" data-auth>登入同步我的資料</button>';
-  else if(action.status==='needs_personal_outcome_route') cta='<button class="primary-btn" data-jump="projects">建立候選主線</button>';
-  else if(action.status==='personal_outcome_candidate_available') cta='<button class="primary-btn" data-jump="projects">確認候選主線</button>';
-  else if(action.status==='personal_artifact_candidate_available') cta='<button class="primary-btn" data-jump="projects">確認並開始這件作品</button>';
-  else if(action.status==='personal_artifact_current'||action.status==='personal_artifact_current_step') cta='<button class="primary-btn" data-jump="projects">繼續目前作品</button>';
-  else if(action.status==='personal_artifact_ready_to_complete') cta='<button class="primary-btn" data-jump="projects">完成這件作品</button>';
-  else if(action.status==='personal_artifact_replanning') cta='<button class="primary-btn" data-jump="projects">查看重新規劃進度</button>';
-  else cta='<button class="primary-btn" data-jump="projects">查看我的主線</button>';
+  const hour=new Date().getHours();
+  const greeting=hour<11?'早安':hour<17?'午安':'晚安';
+  const confirmed=Number(artifactProgress?.confirmed||0);
+  const total=Number(artifactProgress?.total||0);
+  const progressPct=total?Math.max(0,Math.min(100,Math.round(confirmed/total*100))):0;
+  const currentTitle=currentArtifact?.title||dir.goal||dir.title||'尚未選定目前作品';
+  const currentSummary=currentArtifact?.objective||dir.goal||'登入後會顯示目前作品、完成條件與下一步。';
+  const currentPhase=currentArtifact?.status==='current'?'MVP 驗證階段':currentArtifact?.status?statusText(currentArtifact.status):'等待同步';
 
-  const relationArtifact=currentArtifact
-    ?'<div class="today-relation"><small>目前作品</small><b>'+esc(currentArtifact.title||'目前作品')+'</b><span>'+esc((artifactProgress?.confirmed??0)+' / '+(artifactProgress?.total??0)+' 個完成條件已有證據')+'</span><button class="ghost-btn small" data-jump="projects">打開作品</button></div>'
-    :'<div class="today-relation"><small>目前作品</small><b>尚未選定</b><span>先由上方唯一下一步決定要不要建立作品。</span></div>';
-  const relationSkills=skillPreview.length
-    ?'<div class="today-relation"><small>這一步牽涉的能力</small><div class="today-skill-chips">'+skillPreview.map(s=>'<button class="relation-chip" data-jump="capabilities">'+esc(s.name_zh||s.name||human(s.skill_key||'能力'))+' · '+esc(String(s.evidence_state||'unknown').toLowerCase()==='unknown'?'待驗證':statusText(s.evidence_state))+'</button>').join('')+'</div></div>'
-    :'<div class="today-relation"><small>這一步牽涉的能力</small><span>目前沒有需要先處理的正式能力目標。</span></div>';
+  let cta='';
+  if(A.liveStatus==='signed_out') cta='<button class="primary-btn today-primary-action" data-auth>登入同步我的資料</button>';
+  else if(action.status==='needs_personal_outcome_route') cta='<button class="primary-btn today-primary-action" data-jump="projects">建立候選主線</button>';
+  else if(action.status==='personal_outcome_candidate_available') cta='<button class="primary-btn today-primary-action" data-jump="projects">確認候選主線</button>';
+  else if(action.status==='personal_artifact_candidate_available') cta='<button class="primary-btn today-primary-action" data-jump="projects">確認並開始這件作品</button>';
+  else if(action.status==='personal_artifact_current'||action.status==='personal_artifact_current_step') cta='<button class="primary-btn today-primary-action" data-jump="projects">開始執行 →</button>';
+  else if(action.status==='personal_artifact_ready_to_complete') cta='<button class="primary-btn today-primary-action" data-jump="projects">完成這件作品</button>';
+  else if(action.status==='personal_artifact_replanning') cta='<button class="primary-btn today-primary-action" data-jump="projects">查看重新規劃進度</button>';
+  else cta='<button class="primary-btn today-primary-action" data-jump="projects">查看我的主線</button>';
+
+  const skillCards=skillPreview.length
+    ?skillPreview.map((s,i)=>'<button class="today-skill-mini" data-jump="capabilities"><span class="today-skill-icon">'+['▣','◇','✦'][i%3]+'</span><b>'+esc(s.name_zh||s.name||human(s.skill_key||'能力'))+'</b><small>'+esc(String(s.evidence_state||'unknown').toLowerCase()==='unknown'?'待驗證':statusText(s.evidence_state))+'</small></button>').join('')
+    :'<div class="today-empty-mini"><span class="today-skill-icon">◇</span><b>尚未連結能力</b><small>登入後依目前作品顯示</small></div>';
+
+  const evidenceItems=[];
+  if(action.success_evidence) evidenceItems.push(action.success_evidence);
+  if(total) evidenceItems.push('完成條件已有 '+confirmed+' / '+total+' 項留下正式證據');
+  if(progress.length) evidenceItems.push('最近已有 '+progress.length+' 筆可追溯進展');
+  if(!evidenceItems.length) evidenceItems.push('登入後顯示這一步需要留下的完成證據');
+
+  const systemState=sys.current_blocked?'有阻塞需要處理':sys.build_in_progress?'系統持續建置中':'系統穩定';
 
   $('#view-home').innerHTML=`
-    <div class="today-layout">
-      <article class="today-focus">
-        <span class="kicker">現在唯一主線</span>
-        <h2>${esc(action.title||'先選一個真實下一步')}</h2>
-        <div class="today-why"><b>為什麼現在先做</b><p>${esc(action.why||'目前還沒有足夠證據替你自動選唯一主線。')}</p></div>
-        <div class="evidence-box"><b>做到什麼算完成</b><span>${esc(action.success_evidence||'產生一個真實作品或行動證據。')}</span></div>
-        <div class="project-actions">${cta}${A.liveStatus==='live'&&action.title?`<button class="ghost-btn" data-funnel-kind="${currentArtifact?'current_artifact':'user_event'}" data-funnel-id="${esc(currentArtifact?.id||'')}" data-funnel-goal="${esc(currentArtifact?.next_evidence_item?.criterion_text||action.title)}">拆解這件事</button>`:''}</div>
+    <section class="today-hero">
+      <div class="today-hero-copy">
+        <span class="today-overline">Growth Brain · 今天</span>
+        <h2>${esc(greeting)}，<br>今天我們繼續推進主線 <span aria-hidden="true">💡</span></h2>
+        <p>把輸入、研究、能力、AI 員工、作品與證據串起來；今天只推進最值得做的那一步。</p>
+      </div>
+      <div class="today-hero-art" aria-hidden="true">
+        <img src="assets/ui/home-hero-workspace.webp" alt="">
+      </div>
+    </section>
+
+    <section class="today-core-grid" aria-label="今天的主線與下一步">
+      <article class="today-mainline-card">
+        <header class="today-card-head">
+          <div><span class="today-card-icon">▣</span><b>目前主線</b>${currentArtifact?'<span class="today-version-pill">B+'+esc(currentArtifact.sequence_no||'')+'</span>':''}</div>
+          <button class="today-arrow" data-jump="projects" aria-label="打開目前作品">→</button>
+        </header>
+        <div class="today-mainline-body">
+          <img class="today-project-thumb" src="assets/ui/home-project-cover.webp" alt="" aria-hidden="true">
+          <div class="today-mainline-copy">
+            <h3>${esc(currentTitle)}</h3>
+            <p>${esc(currentSummary)}</p>
+            <span>目前階段：${esc(currentPhase)}</span>
+          </div>
+        </div>
+        <div class="today-progress-row">
+          <div class="today-progress-track"><i style="width:${progressPct}%"></i></div>
+          <strong>${total?progressPct+'%':'待同步'}</strong>
+        </div>
       </article>
-      <aside class="today-relations">
-        <span class="kicker">只看必要關聯</span>
-        <div class="today-relation"><small>方向</small><b>${esc(dir.goal||dir.key?dir.goal||human(dir.key):'尚未同步')}</b></div>
-        ${relationArtifact}
-        ${relationSkills}
-      </aside>
-    </div>
+
+      <article class="today-next-card">
+        <header class="today-card-head"><div><span class="today-card-icon accent">✓</span><b>今天唯一下一步</b></div></header>
+        <div class="today-next-content">
+          <span class="today-check-orb">✓</span>
+          <div>
+            <h3>${esc(action.title||'先選一個真實下一步')}</h3>
+            <p>${esc(action.why||'目前還沒有足夠證據替你自動選唯一主線。')}</p>
+          </div>
+        </div>
+        <div class="today-proof-hint">
+          <b>為什麼現在先做？</b>
+          <span>${esc(action.success_evidence||'完成後要留下可追溯的作品或行動證據。')}</span>
+        </div>
+        <div class="today-next-actions">${cta}${A.liveStatus==='live'&&action.title?`<button class="ghost-btn" data-funnel-kind="${currentArtifact?'current_artifact':'user_event'}" data-funnel-id="${esc(currentArtifact?.id||'')}" data-funnel-goal="${esc(currentArtifact?.next_evidence_item?.criterion_text||action.title)}">拆解這一步</button>`:''}</div>
+      </article>
+    </section>
+
+    <section class="today-support-cards" aria-label="今天的必要關聯">
+      <article class="today-support-card">
+        <header><span>♧</span><b>相關角色</b></header>
+        <div class="today-role-row">
+          <div><span class="today-role-avatar">產</span><b>產品規劃</b></div>
+          <div><span class="today-role-avatar">工</span><b>執行／工程</b></div>
+          <div><span class="today-role-avatar">驗</span><b>驗收</b></div>
+        </div>
+        <small>角色只代表系統可用分工；正式任務關聯請到「團隊」查看。</small>
+      </article>
+
+      <article class="today-support-card">
+        <header><span>✎</span><b>相關能力</b></header>
+        <div class="today-skill-mini-grid">${skillCards}</div>
+      </article>
+
+      <article class="today-support-card">
+        <header><span>✣</span><b>預期證據</b></header>
+        <div class="today-evidence-list">${evidenceItems.slice(0,3).map((item,i)=>'<div><span>'+['✓','○','○'][i]+'</span><p>'+esc(item)+'</p></div>').join('')}</div>
+        <small>${esc(systemState)} · ${esc(learn.primary_card?.next_action||'需要時再補學習，不先展開支線。')}</small>
+      </article>
+    </section>
 
     <details class="surface today-secondary">
       <summary><b>最近進展與其他資訊</b><span class="muted">需要時再展開</span></summary>
@@ -108,7 +170,7 @@ function renderHome(){
         <div class="today-support-grid">
           <div><b>學習</b><p>${esc(learn.primary_card?.description||'目前沒有需要先處理的學習。')}</p><small class="muted">${esc(learn.primary_card?.next_action||'只有卡到知識缺口時才需要先學。')}</small></div>
           <div><b>知識連結</b><p>${nodes.length?nodes.map(n=>esc(human(n.label||n.k))).join('、'):'目前沒有需要優先查看的知識節點。'}</p><button class="ghost-btn small" data-jump="synapse">查看知識連結</button></div>
-          <div><b>系統</b><p>${esc(systemTitle)} · ${esc(systemNote)}</p><button class="ghost-btn small" data-jump="ceo">查看系統</button></div>
+          <div><b>系統</b><p>${esc(systemState)}</p><button class="ghost-btn small" data-jump="ceo">查看系統</button></div>
         </div>
       </div>
     </details>`;
