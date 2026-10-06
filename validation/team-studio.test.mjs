@@ -13,7 +13,8 @@ test('團隊首頁以目前作品為中心的角色 stage 呈現',()=>{
   assert.match(block,/team-current-work/);
   assert.match(block,/team-role-node/);
   assert.match(block,/team-role-detail/);
-  assert.doesNotMatch(block,/studio-scene-image|studio-floor-spatial|home-hero-workspace/);
+  assert.doesNotMatch(block,/studio-scene-image|studio-floor-spatial/);
+  assert.match(block,/home-hero-workspace\.webp/);
   assert.match(css,/\.team-orbit-stage/);
   assert.match(css,/\.team-role-node/);
 });
