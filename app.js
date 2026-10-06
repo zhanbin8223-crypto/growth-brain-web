@@ -1225,18 +1225,25 @@ async function renderProjectsIA(active='gateway',notice=''){
           const items=Array.isArray(current.evidence_progress)?current.evidence_progress:[];
           const total=p.total??items.length;
           const confirmed=p.confirmed??items.filter(x=>x.status==='confirmed').length;
-          // The live contract has a title and sequence, but no separate display name,
-          // artifact version or thumbnail. Vn denotes that existing sequence only;
-          // selected_route.version is a route revision and must not be substituted.
-          const series=selected?.id===current.route_id?selected.title:null;
+          // 第一層是「選作品」而不是作品摘要。完整 title/objective 留在第二層。
+          // 系列名優先由使用者已確認的專案背景推導；route revision 不能當作品版本。
+          const projectGoal=selected?.source_evidence?.prior_confirmed_project_context?.goal||'';
+          const goalFamilyMatch=String(projectGoal).match(/^建立\s*(.+?)(?:自動化|工作流|網站|導流|，|。)/);
+          const fallbackFamily=selected?.title?String(selected.title).replace(/(?:系統|路線|方案)$/,'').trim():'作品';
+          const family=(goalFamilyMatch?.[1]||fallbackFamily||'作品').trim();
+          const workName=family.endsWith('工作')?family:family+'工作';
           const version=current.sequence_no?('V'+current.sequence_no):'版本未提供';
+          const versionTitle=family+' '+version;
           const status=current.status==='current'?'進行中':statusText(current.status||'unknown');
-          cards.push('<button class="project-gateway-card is-current" type="button" data-open-project-detail data-artifact-id="'+esc(current.id)+'" aria-label="進入作品：'+esc(current.title||'未命名作品')+'">'+
+          cards.push('<button class="project-gateway-card is-current" type="button" data-open-project-detail data-artifact-id="'+esc(current.id)+'" aria-label="進入作品：'+esc(workName)+'">'+
             '<span class="project-cover" role="img" aria-label="作品縮圖尚未提供"><svg viewBox="0 0 64 48" aria-hidden="true" focusable="false"><rect x="5" y="5" width="54" height="38" rx="4"/><circle cx="22" cy="18" r="4"/><path d="m8 38 16-13 11 9 9-7 12 11"/></svg></span>'+
-            '<span class="project-gateway-copy"><b class="project-name">'+esc(current.title||'未命名作品')+'</b>'+
-            '<span class="project-version">'+esc(series?series+' · '+version:version)+'</span>'+
-            '<span class="project-status">'+esc(status)+'</span>'+
-            '<span class="project-progress">'+esc(confirmed)+' / '+esc(total)+' 個目標完成</span></span>'+
+            '<span class="project-gateway-copy">'+
+              '<span class="project-family-row"><b class="project-name">'+esc(workName)+'</b><span class="project-goal-link">看作品目標</span></span>'+
+              '<span class="project-version-kicker">系列＋版本</span>'+
+              '<b class="project-version-title">'+esc(versionTitle)+'</b>'+
+              '<span class="project-status">'+esc(status)+'</span>'+
+              '<span class="project-progress">'+esc(confirmed)+' / '+esc(total)+' 個目標完成</span>'+
+            '</span>'+
             '<span class="project-enter">進入作品 →</span></button>');
         }else if(selected){
           cards.push('<button class="project-gateway-card" type="button" data-open-project-detail>'+
