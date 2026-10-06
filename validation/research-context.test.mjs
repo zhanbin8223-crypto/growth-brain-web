@@ -28,3 +28,13 @@ test('研究室顯示資料庫記憶與可用資源摘要',()=>{
   assert.match(src,/ctx\.playbooks/);
   assert.match(css,/\.research-context/);
 });
+
+test('研究室第一層改成探索卡與狀態切換，Context 收進次要區',()=>{
+  assert.match(src,/research-page-hero/);
+  assert.match(src,/research-state-tabs/);
+  assert.match(src,/research-card-grid/);
+  assert.match(src,/research-context-compact/);
+  assert.match(src,/研究候選不會直接改作品、能力或正式真相/);
+  assert.match(css,/\.research-card-grid/);
+  assert.match(css,/\.research-card-visual/);
+});
