@@ -1506,7 +1506,7 @@ function setView(name,subtab){
     capabilities:'能力庫：需要時直接拿來用',
     research:'研究室：先探索，再決定要不要採用',
     ceo:'團隊：現在誰在幫我',
-    history:'歷程：過去發生了什麼',
+    history:'歷程：看見第二大腦怎麼長出來',
     inbox:'快速丟進第二大腦',
     learn:'只補目前真正需要的學習',
     synapse:'知識關係'
