@@ -5,38 +5,29 @@ import {readFileSync} from 'node:fs';
 const app=readFileSync(new URL('../app.js',import.meta.url),'utf8');
 const css=readFileSync(new URL('../styles.css',import.meta.url),'utf8');
 
-test('作品入口使用正式縮圖素材，不回到 SVG placeholder',()=>{
+test('作品入口使用語意路徑 rail，不靠縮圖卡片牆',()=>{
   const start=app.indexOf("async function renderProjectsIA(active='gateway',notice='')");
   const end=app.indexOf("async function renderTeamIA",start);
   const block=app.slice(start,end);
-  assert.ok(block.includes('assets/ui/home-project-cover.webp'));
-  assert.doesNotMatch(block,/project-cover[^\n]*<svg/);
+  assert.match(block,/project-route-rail/);
+  assert.match(block,/project-route-node/);
+  assert.doesNotMatch(block,/project-gallery|project-cover-image|project-page-hero/);
+  assert.match(css,/\.project-route-rail/);
+  assert.match(css,/\.project-route-node/);
 });
 
-test('作品入口有清楚的頁首、卡片分層與進度視覺',()=>{
-  for(const token of ['project-page-hero','project-gallery','project-cover-image','project-progress-track']){
-    assert.ok(app.includes(token),token);
-  }
-  assert.match(css,/\.project-page-hero/);
-  assert.match(css,/\.project-cover-image/);
-  assert.match(css,/\.project-progress-track/);
+test('作品入口保留清楚的新作品路徑入口與目前作品進入點',()=>{
+  assert.match(app,/data-new-project-route/);
+  assert.match(app,/id="newProjectRouteForm"/);
+  assert.match(app,/data-open-project-detail/);
+  assert.match(app,/route-action/);
 });
 
-test('作品卡仍保留既定資訊順序',()=>{
-  const order=['project-name','project-version-title','project-status','project-progress'];
-  let last=-1;
-  for(const token of order){
-    const at=app.indexOf(token,app.indexOf("async function renderProjectsIA"));
-    assert.ok(at>last,token);
-    last=at;
-  }
-});
-
-test('作品卡第一層不重複塞目標與證據摘要',()=>{
+test('候選節點不會被視覺宣告成目前作品',()=>{
   const start=app.indexOf("async function renderProjectsIA(active='gateway',notice='')");
   const end=app.indexOf("async function renderTeamIA",start);
   const block=app.slice(start,end);
-  assert.doesNotMatch(block,/project-card-meta|project-goal-link|project-version-kicker|看作品目標|系列＋版本/);
-  assert.match(block,/進入作品 →/);
-  assert.match(block,/\['gateway','進行中'\],\['done','已完成'\],\['planned','預計作品'\]/);
+  assert.match(block,/project-route-node candidate/);
+  assert.match(block,/候選路徑|候選作品/);
+  assert.match(block,/尚未成為目前主線|還不是目前作品/);
 });
