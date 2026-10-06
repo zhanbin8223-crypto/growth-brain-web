@@ -1014,12 +1014,12 @@ async function renderResearch(active='today'){
 async function renderHistory(active='system'){
   const root=$('#view-history');
   if(!root)return;
-  const tabs=[['system','版本檔案館'],['personal','我的歷程'],['skills','能力變化'],['research','研究歷程']];
+  const tabs=[['system','版本歷程'],['personal','我的歷程'],['skills','能力變化'],['research','研究歷程']];
   root.innerHTML=iaTabs(tabs,active)+'<div id="historyPane" class="tab-pane"><div class="empty">正在讀取正式歷程…</div></div>';
   const pane=$('#historyPane');
 
   if(A.liveStatus!=='live'){
-    pane.innerHTML='<div class="history-signed-out"><div class="page-intro"><span class="kicker">成長檔案館</span><h2>登入後看見 Growth Brain 怎麼長出來</h2><p>歷程不使用快取或示範資料補空白；登入後才顯示你的正式紀錄與系統更新。</p></div><button class="primary-btn" data-auth>登入查看歷程</button></div>';
+    pane.innerHTML='<div class="v4-page-head"><span class="v4-eyebrow">HISTORY · 歷程</span><div><h2>只看真的發生過什麼</h2><p>登入後才顯示正式個人與系統歷程，不用示範資料補空白。</p></div></div><div class="v4-empty-action"><button class="primary-btn" data-auth>登入查看歷程</button></div>';
   }else{
     try{
       const H=await A.getHistory({force:true});
@@ -1029,49 +1029,41 @@ async function renderHistory(active='system'){
         research:Array.isArray(H?.research)?H.research:[],
         system:Array.isArray(H?.system)?H.system:[]
       };
-      const eventHtml=e=>'<article class="timeline-item">'+
-        '<time>'+esc(e.occurred_at?new Date(e.occurred_at).toLocaleString('zh-TW'):'時間未記錄')+'</time>'+
-        '<b>'+esc(e.title||'歷程事件')+'</b>'+
+      const eventHtml=e=>'<article class="history-event-v4">'+
+        '<div class="history-event-dot"></div>'+
+        '<div><time>'+esc(e.occurred_at?new Date(e.occurred_at).toLocaleString('zh-TW'):'時間未記錄')+'</time>'+
+        '<h3>'+esc(e.title||'歷程事件')+'</h3>'+
         (e.summary?'<p>'+esc(e.summary)+'</p>':'')+
-        '<small class="muted">'+esc(e.source_type||'正式資料')+
-        (e.status?' · '+esc(statusText(e.status)):'')+
-        (e.evidence_level?' · 證據：'+esc(statusText(e.evidence_level)):'')+
-        '</small></article>';
+        '<small>'+esc(e.source_type||'正式資料')+(e.status?' · '+esc(statusText(e.status)):'')+(e.evidence_level?' · 證據：'+esc(statusText(e.evidence_level)):'')+'</small></div>'+
+      '</article>';
 
       if(active==='system'){
         const list=groups.system;
         const stages=[
-          {version:'V3',title:'互動式 Growth Brain 網站',state:'now',image:'assets/ui/home-project-cover.webp',summary:'把今天、作品、能力、研究、AI 團隊與歷程做成可以探索、彼此有關聯的個人第二大腦。',points:['六區一致 Visual DNA','角色／作品／能力關聯','作品入口與詳細頁分層']},
-          {version:'V2',title:'Worker / 事件漏斗',state:'past',image:'assets/ui/home-hero-workspace.webp',summary:'把任務送進固定 GPT 對話、回寫結果與證據，並讓研究候選不污染正式真相。',points:['Worker 閉環','事件漏斗','候選與正式資料分離']},
-          {version:'V1.5',title:'作品、能力、員工',state:'past',image:'assets/ui/home-hero-workspace.webp',summary:'從只有資料，走到可以看作品、能力證據與 AI 員工分工。',points:['作品序列','能力證據','AI 員工／角色']},
-          {version:'V1',title:'資料庫與基本網站',state:'past',image:'assets/ui/home-project-cover.webp',summary:'建立 Supabase 與基本網站，讓資料有正式來源，而不是只存在聊天裡。',points:['正式資料來源','基本網站','資料與聊天記憶分離']}
+          {version:'V3',title:'互動式 Growth Brain',state:'now',summary:'把今天、作品、能力、研究、團隊與歷程收斂成同一條成長旅程。'},
+          {version:'V2',title:'Worker 與事件漏斗',state:'past',summary:'任務能送到固定 GPT 對話、回寫結果與證據，研究候選不污染正式真相。'},
+          {version:'V1.5',title:'作品、能力、員工',state:'past',summary:'從只有資料，走到作品序列、能力證據與 AI 角色分工。'},
+          {version:'V1',title:'資料庫與基本網站',state:'past',summary:'建立 Supabase 與基本網站，讓正式資料不只存在聊天裡。'}
         ];
-        const stageHtml=stages.map((s,i)=>'<article class="version-stage '+esc(s.state)+'">'+
-          '<div class="version-marker"><span>'+esc(s.version)+'</span></div>'+
-          '<div class="version-stage-copy">'+
-            '<div class="version-stage-head"><div><small>'+(s.state==='now'?'目前階段':'較早階段')+'</small><h3>'+esc(s.title)+'</h3></div>'+(s.state==='now'?'<span class="pill warn">進行中</span>':'')+'</div>'+
-            '<p>'+esc(s.summary)+'</p>'+
-            '<div class="version-points">'+s.points.map(p=>'<span>'+esc(p)+'</span>').join('')+'</div>'+
-          '</div>'+
-          '<img class="version-stage-image" src="'+esc(s.image)+'" alt="" aria-hidden="true">'+
+        const stageHtml=stages.map(s=>'<article class="history-version-node '+esc(s.state)+'">'+
+          '<div class="history-version-mark"><span>'+esc(s.version)+'</span></div>'+
+          '<div><small>'+(s.state==='now'?'目前階段':'較早階段')+'</small><h3>'+esc(s.title)+'</h3><p>'+esc(s.summary)+'</p></div>'+
         '</article>').join('');
-        pane.innerHTML='<div class="page-intro history-intro"><span class="kicker">成長檔案館</span><h2>不是 Git log，而是看第二大腦怎麼一階段一階段長出來</h2><p>版本區只描述產品階段；下方「正式更新紀錄」才直接讀取資料庫事件。兩者分開，避免把敘事當成證據。</p></div>'+
-          '<div class="version-archive">'+stageHtml+'</div>'+
-          '<section class="history-evidence-log">'+
-            '<div class="section-head"><div><h2>正式更新紀錄</h2><p>只列資料庫已保存的系統執行／部署紀錄；沒有的歷史不補造。</p></div><span>'+list.length+' 筆</span></div>'+
-            (list.length?'<div class="timeline history-archive">'+list.slice(0,30).map(eventHtml).join('')+'</div>':'<div class="empty">目前沒有可讀取的正式系統更新紀錄。</div>')+
-          '</section>';
+        pane.innerHTML='<div class="v4-page-head"><span class="v4-eyebrow">HISTORY · 版本歷程</span><div><h2>第二大腦怎麼一路長到現在</h2><p>版本敘事與正式更新紀錄分開；這裡不做 Git log，也不拿現在狀態冒充歷史。</p></div></div>'+
+          '<section class="history-timeline-v4">'+stageHtml+'</section>'+
+          '<details class="history-formal-log"><summary><span>正式更新紀錄</span><b>'+list.length+' 筆</b></summary>'+
+            (list.length?'<div class="history-event-list">'+list.slice(0,30).map(eventHtml).join('')+'</div>':'<div class="empty">目前沒有可讀取的正式系統更新紀錄。</div>')+
+          '</details>';
       }else{
         const meta={
-          personal:['真實成長','我的歷程','只收真實選擇、完成與有證據的個人事件。'],
-          skills:['能力證據','能力變化','只顯示真的讓能力狀態改變的證據，不把 AI 建議當成學會。'],
-          research:['探索紀錄','研究歷程','候選、試驗、採用與拒絕保留自己的生命週期，不直接升級能力。']
+          personal:['MY HISTORY · 我的歷程','我真的做過什麼','只收真實選擇、完成與有證據的個人事件。'],
+          skills:['SKILL EVIDENCE · 能力變化','哪些證據真的改變能力狀態','不把 AI 建議、看過內容或方法存在算成成長。'],
+          research:['RESEARCH · 研究歷程','候選怎麼被保留、試驗或放棄','研究生命週期獨立，不直接升級作品或能力。']
         };
         const list=groups[active]||[];
-        const [kicker,title,desc]=meta[active]||meta.personal;
-        pane.innerHTML='<div class="page-intro"><span class="kicker">'+kicker+'</span><h2>'+title+'</h2><p>'+desc+'</p></div>'+
-          (list.length?'<div class="timeline history-archive">'+list.slice(0,40).map(eventHtml).join('')+'</div>':
-          '<div class="timeline"><article class="timeline-item"><time>目前</time><b>還沒有符合條件的正式紀錄</b><p>這裡不會用目前狀態或示範資料補成假的歷史。</p></article></div>');
+        const [eyebrow,title,desc]=meta[active]||meta.personal;
+        pane.innerHTML='<div class="v4-page-head"><span class="v4-eyebrow">'+eyebrow+'</span><div><h2>'+title+'</h2><p>'+desc+'</p></div></div>'+
+          (list.length?'<section class="history-timeline-v4 event-mode">'+list.slice(0,40).map(eventHtml).join('')+'</section>':'<div class="empty">目前還沒有符合條件的正式紀錄。</div>');
       }
     }catch(e){
       pane.innerHTML='<div class="empty">歷程資料載入失敗：'+esc(e.message||e)+'</div>';
