@@ -21,7 +21,7 @@ test('作品首頁有明確的新作品路徑入口與候選保存',()=>{
 });
 
 test('能力庫使用插畫式能力地圖並保留互動節點',()=>{
-  assert.match(app,/assets\/ui\/capability-map-illustration\.webp/);
+  assert.match(app,/assets\/ui\/capability-map-illustration\.svg/);
   assert.match(app,/capability-map-stage/);
   assert.match(app,/data-capability-key/);
   const start=app.indexOf("async function renderCapabilities(active='cells')");
