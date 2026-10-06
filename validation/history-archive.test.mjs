@@ -22,8 +22,9 @@ test('版本敘事與正式資料庫更新紀錄分開',()=>{
   assert.match(css,/\.history-formal-log/);
 });
 
-test('歷程不再使用裝飾縮圖冒充資訊結構',()=>{
+test('歷程維持時間線，僅在頁首使用製圖素材',()=>{
   const block=app.slice(app.indexOf("async function renderHistory"),app.indexOf("async function renderSystem"));
-  assert.doesNotMatch(block,/version-stage-image|home-project-cover|home-hero-workspace/);
+  assert.doesNotMatch(block,/version-stage-image/);
+  assert.match(block,/home-project-cover\.webp/);
   assert.match(block,/history-version-node/);
 });
