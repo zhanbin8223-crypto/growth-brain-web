@@ -946,7 +946,7 @@ async function renderCapabilities(active='cells'){
     if(active==='cells'){
       pane.innerHTML='<div class="page-intro capability-page-intro"><span class="kicker">能力庫</span><h2>我的能力地圖</h2><p>登入後，這裡會把可重用方法與你的真實能力證據分開呈現。</p></div>'+
         '<div class="capability-visual-layout">'+
-          '<section class="capability-landscape is-locked"><div class="capability-map-stage" aria-hidden="true"><img class="capability-map-art" src="assets/ui/capability-map-illustration.webp" alt=""></div><div class="capability-locked-copy"><b>登入後載入能力地圖</b><span>不使用示範能力冒充你的資料。</span><button class="primary-btn" data-auth>登入查看能力</button></div></section>'+
+          '<section class="capability-landscape is-locked"><div class="capability-map-stage" aria-hidden="true"><img class="capability-map-art" src="assets/ui/capability-map-illustration.svg" alt=""></div><div class="capability-locked-copy"><b>登入後載入能力地圖</b><span>不使用示範能力冒充你的資料。</span><button class="primary-btn" data-auth>登入查看能力</button></div></section>'+
           '<aside class="capability-overview"><span class="kicker">能力總覽</span><div class="capability-ring" style="--evidence-angle:0deg"><strong>0</strong><span>已有證據</span></div><div class="capability-legend"><div><i class="lv-verified"></i><span>作品驗證</span><b>0</b></div><div><i class="lv-independent"></i><span>可獨立</span><b>0</b></div><div><i class="lv-developing"></i><span>發展中</span><b>0</b></div><div><i class="lv-exploring"></i><span>探索中</span><b>0</b></div></div></aside>'+
         '</div>';
     }else{
@@ -1002,7 +1002,7 @@ async function renderCapabilities(active='cells'){
       const recent=personalSkills.slice(0,5);
       pane.innerHTML='<div class="page-intro capability-page-intro"><span class="kicker">能力庫</span><h2>我的能力地圖</h2><p>從真實作品中累積能力，讓每一個技能都有證據。地圖上的方法可以探索，但不會自動算成你已經學會。</p></div>'+
         '<div class="capability-visual-layout">'+
-          '<section class="capability-landscape"><div class="capability-map-stage"><img class="capability-map-art" src="assets/ui/capability-map-illustration.webp" alt="" aria-hidden="true">'+
+          '<section class="capability-landscape"><div class="capability-map-stage"><img class="capability-map-art" src="assets/ui/capability-map-illustration.svg" alt="" aria-hidden="true">'+
             (mapNodes||'<div class="capability-locked-copy"><b>目前沒有能力方法資料</b><span>能力地圖會保持空白，不補假節點。</span></div>')+
           '</div></section>'+
           '<aside class="capability-overview"><span class="kicker">能力總覽</span><div class="capability-ring" style="--evidence-angle:'+esc(Math.round(evidencePct*3.6))+'deg"><strong>'+esc(evidenceCount)+'</strong><span>已有證據</span></div>'+
