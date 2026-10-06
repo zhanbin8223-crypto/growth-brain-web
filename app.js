@@ -83,6 +83,7 @@ function renderHome(){
     <header class="v4-page-head">
       <span class="v4-eyebrow">TODAY · 今天</span>
       <div><h2>現在只做這一步</h2><p>第二大腦的其他內容都先退後，直到它真的能幫目前這一步。</p></div>
+      <img class="v4-page-art" src="assets/ui/home-hero-workspace.webp" alt="" aria-hidden="true">
     </header>
 
     <section class="focus-stage">
@@ -922,7 +923,7 @@ async function renderCapabilities(active='cells'){
     const playbooks=Array.isArray(library?.playbooks)?library.playbooks:[];
     const personalSkills=Array.isArray(library?.personal_skills)?library.personal_skills:[];
 
-    const nameOf=x=>x?.title||x?.name||human(x?.key||x?.skill_key||'能力');
+    const nameOf=x=>x?.name_zh||x?.title||x?.name||human(x?.key||x?.skill_key||'能力');
     const stateLabel=s=>({
       unknown:'尚未驗證',exposure:'接觸過',acknowledged:'知道是什麼',understood:'已理解',
       can_explain:'能解釋',apply_with_help:'可在協助下應用',apply_independently:'可獨立應用',
@@ -1049,7 +1050,7 @@ async function renderHistory(active='system'){
           '<div class="history-version-mark"><span>'+esc(s.version)+'</span></div>'+
           '<div><small>'+(s.state==='now'?'目前階段':'較早階段')+'</small><h3>'+esc(s.title)+'</h3><p>'+esc(s.summary)+'</p></div>'+
         '</article>').join('');
-        pane.innerHTML='<div class="v4-page-head"><span class="v4-eyebrow">HISTORY · 版本歷程</span><div><h2>第二大腦怎麼一路長到現在</h2><p>版本敘事與正式更新紀錄分開；這裡不做 Git log，也不拿現在狀態冒充歷史。</p></div></div>'+
+        pane.innerHTML='<div class="v4-page-head"><span class="v4-eyebrow">HISTORY · 版本歷程</span><div><h2>第二大腦怎麼一路長到現在</h2><p>版本敘事與正式更新紀錄分開；這裡不做 Git log，也不拿現在狀態冒充歷史。</p></div><img class="v4-page-art" src="assets/ui/home-project-cover.webp" alt="" aria-hidden="true"></div>'+
           '<section class="history-timeline-v4">'+stageHtml+'</section>'+
           '<details class="history-formal-log"><summary><span>正式更新紀錄</span><b>'+list.length+' 筆</b></summary>'+
             (list.length?'<div class="history-event-list">'+list.slice(0,30).map(eventHtml).join('')+'</div>':'<div class="empty">目前沒有可讀取的正式系統更新紀錄。</div>')+
@@ -1257,7 +1258,7 @@ async function renderProjectsIA(active='gateway',notice=''){
   }else if(active==='gateway'){
     root.innerHTML=iaTabs(tabs,active)+'<div id="projectIaPane" class="tab-pane"><div class="empty">正在整理作品路徑…</div></div>';
     const pane=$('#projectIaPane');
-    const hero='<header class="v4-page-head project-v4-head"><span class="v4-eyebrow">ARTIFACTS · 作品</span><div><h2>我的作品路徑</h2><p>先看現在在哪、下一個候選在哪。目標、步驟與證據進入作品後再看。</p><button class="primary-btn project-new-route-btn" type="button" '+(A.liveStatus==='live'?'data-new-project-route':'data-auth')+'>'+(A.liveStatus==='live'?'＋ 新作品路徑':'登入後新增路徑')+'</button></div></header>';
+    const hero='<header class="v4-page-head project-v4-head"><span class="v4-eyebrow">ARTIFACTS · 作品</span><div><h2>我的作品路徑</h2><p>先看現在在哪、下一個候選在哪。登入後可直接在下方輸入一條新作品路徑。</p><button class="primary-btn project-new-route-btn" type="button" '+(A.liveStatus==='live'?'data-new-project-route':'data-auth')+'>'+(A.liveStatus==='live'?'↓ 輸入新作品路徑':'登入後新增路徑')+'</button></div><img class="v4-page-art" src="assets/ui/home-project-cover.webp" alt="" aria-hidden="true"></header>';
 
     if(A.liveStatus!=='live'){
       pane.innerHTML=hero+
@@ -1272,10 +1273,10 @@ async function renderProjectsIA(active='gateway',notice=''){
         const candidateRoute=outcome?.candidate_route||null;
         const current=artifacts?.current||null;
         const candidateArtifact=artifacts?.candidate||null;
-        const routeForm='<section class="project-new-route-panel" data-new-route-panel hidden>'+
-          '<div class="row-between"><div><span class="kicker">建立候選路徑</span><h3>新增一條作品路徑</h3><p>先說想做什麼。這只建立候選路徑，不會切換目前主線；若已有候選，會更新那一條。</p></div><button class="ghost-btn small" type="button" data-cancel-new-route>關閉</button></div>'+
-          '<form id="newProjectRouteForm" class="project-form">'+
-            '<label><b>路徑名稱／想完成什麼</b><textarea id="newProjectRouteTitle" placeholder="例如：建立一條 AI 短影音變現路徑"></textarea></label>'+
+        const routeForm='<section class="project-new-route-panel" data-new-route-panel>'+
+          '<div><span class="kicker">建立候選路徑</span><h3>直接輸入你想做的新作品路徑</h3><p>這只建立候選路徑，不會切換目前主線；若已有候選，會更新那一條。</p></div>'+
+          '<form id="newProjectRouteForm" class="project-form project-route-form-inline">'+
+            '<label><b>路徑名稱／想完成什麼</b><input id="newProjectRouteTitle" type="text" placeholder="例如：建立一條 AI 短影音變現路徑"></label>'+
             '<label><b>怎樣算往前一步（可留空）</b><textarea id="newProjectRouteEvidence" placeholder="例如：先完成 3 支內容並取得真實流量；不知道可留空"></textarea></label>'+
             '<details><summary>補充：為什麼現在想做</summary><textarea id="newProjectRouteWhy" placeholder="可選填"></textarea></details>'+
             '<div class="row-between"><div id="newProjectRouteMsg" class="muted">保存後會交給 GPT 拆候選作品；不會自動取代目前主線。</div><button class="primary-btn" type="submit">建立候選路徑</button></div>'+
@@ -1506,7 +1507,7 @@ async function renderTeamIA(active='working'){
       const workTitle=currentArtifact?.title||'目前沒有 current 作品';
       const workStep=currentArtifact?.next_evidence_item?.criterion_text||currentArtifact?.objective||'先維持單一主線，沒有證據就不製造假任務。';
 
-      pane.innerHTML='<div class="v4-page-head"><span class="v4-eyebrow">TEAM · 團隊</span><div><h2>'+esc(heading)+'</h2><p>'+esc(desc)+'</p></div></div>'+
+      pane.innerHTML='<div class="v4-page-head"><span class="v4-eyebrow">TEAM · 團隊</span><div><h2>'+esc(heading)+'</h2><p>'+esc(desc)+'</p></div><img class="v4-page-art" src="assets/ui/home-hero-workspace.webp" alt="" aria-hidden="true"></div>'+
         '<div class="team-stage-layout">'+
           '<section class="team-orbit-stage">'+
             '<button class="team-current-work" type="button" data-jump="projects"><span>目前作品</span><b>'+esc(workTitle)+'</b><small>'+esc(workStep)+'</small></button>'+
