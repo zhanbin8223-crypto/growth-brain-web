@@ -1264,12 +1264,12 @@ function loginModal(){
     m=document.createElement('div');
     m.id='loginModal';
     m.className='modal-backdrop';
-    m.innerHTML='<div class="modal-card"><button class="modal-close" id="closeLogin">×</button><span class="kicker">私人單人模式</span><h2>登入 第二大腦</h2><p>只允許既有帳號登入，不建立新帳號。</p><input id="loginEmail" type="email" placeholder="your@email.com"><button class="primary-btn" id="sendLogin">寄登入連結</button><div id="loginMsg" class="muted"></div><div class="evidence-box"><b>如果登入信點開後跑到錯的網址</b><span>不要再點舊連結。從最新、尚未使用的登入信複製完整連結，貼在下面；第二大腦 會直接驗證 token，不經過 redirect。</span></div><input id="loginLink" type="text" autocomplete="off" placeholder="貼上最新登入信的完整連結"><button class="ghost-btn" id="verifyLoginLink">直接驗證登入連結</button><div id="verifyLoginMsg" class="muted"></div></div>';
+    m.innerHTML='<div class="modal-card"><button class="modal-close" id="closeLogin">×</button><span class="kicker">私人單人模式</span><h2>登入 第二大腦</h2><p>請使用既有帳號。寄信後，直接點選最新登入信的登入按鈕；登入會保存在開啟它的瀏覽器。</p><input id="loginEmail" type="email" placeholder="your@email.com"><button class="primary-btn" id="sendLogin">寄登入連結</button><div id="loginMsg" class="muted"></div><div class="evidence-box"><b>需要在這個瀏覽器登入？</b><span>在最新、尚未點開的登入信，對登入按鈕長按或按右鍵，選「複製連結網址」，貼到下方。不要複製登入後的網址列；已點過的登入連結需重新寄送。</span></div><input id="loginLink" type="text" autocomplete="off" aria-label="登入連結" placeholder="登入信中按鈕的原始連結（尚未點開）"><button class="ghost-btn" id="verifyLoginLink">驗證原始登入連結</button><div id="verifyLoginMsg" class="muted"></div></div>';
     document.body.appendChild(m);
     $('#closeLogin').onclick=()=>m.classList.remove('show');
     $('#sendLogin').onclick=async()=>{
       const msg=$('#loginMsg');
-      try{msg.textContent='寄送中…';await A.requestMagicLink($('#loginEmail').value);msg.textContent='已送出。請只使用最新一封登入信；若點開仍回錯位置，可改用下方直接驗證。';}
+      try{msg.textContent='寄送中…';await A.requestMagicLink($('#loginEmail').value);msg.textContent='已送出。請直接點選最新登入信的登入按鈕。若要貼到此處驗證，請先複製信中按鈕的連結網址。';}
       catch(e){msg.textContent=e.message||'失敗';}
     };
     $('#verifyLoginLink').onclick=async()=>{

@@ -69,9 +69,12 @@
   }
   async function consumeMagicLinkUrl(rawLink){
     const value=(rawLink||'').trim();
-    if(!value) throw new Error('請貼上登入信裡的完整連結。');
+    if(!value) throw new Error('請從最新、尚未點開的登入信，複製登入按鈕的連結網址後貼上。');
     let url;
-    try{url=new URL(value);}catch{throw new Error('這不是有效的登入連結。');}
+    try{url=new URL(value);}catch{throw new Error('無法辨識這個連結。請在登入信的登入按鈕上長按或按右鍵，選「複製連結網址」。');}
+    if(url.origin===location.origin && !url.searchParams.has('token_hash') && !url.searchParams.has('token') && !new URLSearchParams(url.hash.slice(1)).has('access_token')){
+      throw new Error('這是登入後的網址，沒有登入資訊。請從最新、尚未點開的登入信，複製登入按鈕的連結網址；已點過的連結請重寄。');
+    }
     const expected=new URL(C.supabaseUrl);
     if(url.origin!==expected.origin || !url.pathname.endsWith('/auth/v1/verify')){
       throw new Error('這不是這個 Growth Brain 專案的 Supabase 登入連結。');
@@ -88,7 +91,13 @@
     const text=await res.text();
     let data={};
     try{data=text?JSON.parse(text):{};}catch{}
-    if(!res.ok) throw new Error(data?.msg||data?.message||data?.error_description||`登入連結驗證失敗（${res.status}）`);
+    if(!res.ok){
+      const message=data?.msg||data?.message||data?.error_description||'';
+      if((data?.code||data?.error_code)==='otp_expired' || /email link is invalid or has expired/i.test(message)){
+        throw new Error('這封登入連結已無法使用，可能已使用或已過期。請重寄最新登入信，直接點選信中的登入按鈕。');
+      }
+      throw new Error(message||`登入連結驗證失敗（${res.status}）`);
+    }
     const s=data?.session||data;
     if(!s?.access_token || !s?.refresh_token) throw new Error('登入已驗證，但沒有取得可保存的 session。');
     const session={
