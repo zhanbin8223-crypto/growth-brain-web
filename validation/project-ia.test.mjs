@@ -19,9 +19,9 @@ test('操作完成後提示文字不會被誤當成分頁名稱',()=>{
   assert.match(app,/await renderProjects\(notice\)/);
 });
 
-test('作品入口只暴露入口、路徑與完成紀錄三個一級分頁',()=>{
-  assert.match(app,/const tabs=\[\['gateway','作品入口'\],\['path','作品路徑'\],\['done','已完成'\]\]/);
-  assert.doesNotMatch(app,/\['current','目前作品'\]/);
+test('作品首頁只暴露進行中、已完成、預計作品三個一級分頁',()=>{
+  assert.match(app,/const tabs=\\[\\['gateway','進行中'\\],\\['done','已完成'\\],\\['planned','預計作品'\\]\\]/);
+  assert.doesNotMatch(app,/\\['current','目前作品'\\]|\\['path','作品路徑'\\]/);
 });
 
 // Execute the real renderers and handlers against a small DOM test double.
@@ -53,7 +53,7 @@ function harness(fixture=projectFixture()){
 
 test('Case 1: 第一層是選作品卡，只顯示縮圖、工作名、版本、狀態、進度',async()=>{
   const h=harness();await h.render();const html=h.html();
-  for(const text of ['蝦皮分潤工作','看作品目標','蝦皮分潤 V1','進行中','0 / 9 個目標完成','進入作品 →'])assert.ok(html.includes(text),text);
+  for(const text of ['蝦皮分潤工作','蝦皮分潤 V1','進行中','0 / 9 個目標完成','進入作品 →'])assert.ok(html.includes(text),text);
   assert.match(html,/data-artifact-id="artifact-fixture"/);
   assert.match(html,/class="project-cover"/);
   assert.doesNotMatch(html,/V8/); // Route revision is not the artifact sequence.

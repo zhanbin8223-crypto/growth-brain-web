@@ -14,7 +14,7 @@ test('作品入口使用正式縮圖素材，不回到 SVG placeholder',()=>{
 });
 
 test('作品入口有清楚的頁首、卡片分層與進度視覺',()=>{
-  for(const token of ['project-page-hero','project-gallery','project-cover-image','project-card-meta','project-progress-track']){
+  for(const token of ['project-page-hero','project-gallery','project-cover-image','project-progress-track']){
     assert.ok(app.includes(token),token);
   }
   assert.match(css,/\.project-page-hero/);
@@ -30,4 +30,13 @@ test('作品卡仍保留既定資訊順序',()=>{
     assert.ok(at>last,token);
     last=at;
   }
+});
+
+test('作品卡第一層不重複塞目標與證據摘要',()=>{
+  const start=app.indexOf("async function renderProjectsIA(active='gateway',notice='')");
+  const end=app.indexOf("async function renderTeamIA",start);
+  const block=app.slice(start,end);
+  assert.doesNotMatch(block,/project-card-meta|project-goal-link|project-version-kicker|看作品目標|系列＋版本/);
+  assert.match(block,/進入作品 →/);
+  assert.match(block,/\['gateway','進行中'\],\['done','已完成'\],\['planned','預計作品'\]/);
 });

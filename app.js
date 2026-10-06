@@ -1288,7 +1288,7 @@ function teamRoleName(r){
 async function renderProjectsIA(active='gateway',notice=''){
   const root=$('#view-projects');
   if(!root)return;
-  const tabs=[['gateway','作品入口'],['path','作品路徑'],['done','已完成']];
+  const tabs=[['gateway','進行中'],['done','已完成'],['planned','預計作品']];
 
   if(active==='current'){
     await renderProjects(notice);
@@ -1298,7 +1298,7 @@ async function renderProjectsIA(active='gateway',notice=''){
   }else if(active==='gateway'){
     root.innerHTML=iaTabs(tabs,active)+'<div id="projectIaPane" class="tab-pane"><div class="empty">正在整理作品入口…</div></div>';
     const pane=$('#projectIaPane');
-    const hero='<section class="project-page-hero"><div><span class="today-overline">ARTIFACTS · 作品</span><h2>把主線變成看得見的作品</h2><p>第一層只用來選作品：縮圖、名稱、版本、狀態、進度。目標、步驟與證據進入作品後再看。</p></div><div class="project-hero-mark" aria-hidden="true"><span></span><span></span><span></span><b>MAKE<br>IT REAL</b></div></section>';
+    const hero='<section class="project-page-hero"><div><span class="today-overline">ARTIFACTS · 作品</span><h2>我的作品</h2><p>選定路徑的作品，從想法走向可見成果。第一層只看作品本身；目標、步驟與證據進入作品後再看。</p></div><img class="project-hero-image" src="assets/ui/home-project-cover.webp" alt="" aria-hidden="true"></section>';
 
     if(A.liveStatus!=='live'){
       pane.innerHTML=hero+
@@ -1330,19 +1330,19 @@ async function renderProjectsIA(active='gateway',notice=''){
           cards.push('<button class="project-gateway-card is-current" type="button" data-open-project-detail data-artifact-id="'+esc(current.id)+'" aria-label="進入作品：'+esc(workName)+'">'+
             '<span class="project-cover"><img class="project-cover-image" src="assets/ui/home-project-cover.webp" alt="" aria-hidden="true"><span class="project-cover-badge">'+esc(status)+'</span></span>'+
             '<span class="project-gateway-copy">'+
-              '<span class="project-family-row"><b class="project-name">'+esc(workName)+'</b><span class="project-goal-link">看作品目標</span></span>'+
-              '<span class="project-version-kicker">系列＋版本</span>'+
+              '<span class="project-family-row"><b class="project-name">'+esc(workName)+'</b></span>'+
+
               '<b class="project-version-title">'+esc(versionTitle)+'</b>'+
               '<span class="project-status">'+esc(status)+'</span>'+
               '<span class="project-progress">'+esc(confirmed)+' / '+esc(total)+' 個目標完成</span>'+
               '<span class="project-progress-track"><i style="width:'+esc(progressPct)+'%"></i></span>'+
-              '<span class="project-card-meta"><span>作品證據</span><b>'+esc(confirmed)+' / '+esc(total)+'</b></span>'+
+
             '</span>'+
             '<span class="project-enter">進入作品 →</span></button>');
         }else if(selected){
           cards.push('<button class="project-gateway-card" type="button" data-open-project-detail>'+
             '<span class="project-cover"><img class="project-cover-image" src="assets/ui/home-project-cover.webp" alt="" aria-hidden="true"><span class="project-cover-badge muted">等待開始</span></span>'+
-            '<span class="project-gateway-copy"><span class="project-family-row"><b class="project-name">'+esc(selected.title||'已選定作品路徑')+'</b></span><b class="project-version-title">第一件作品尚未建立</b><span class="project-status">等待第一件作品</span><span class="project-progress">主線已選定，尚未進入作品執行</span><span class="project-progress-track"><i style="width:0%"></i></span><span class="project-card-meta"><span>下一步</span><b>查看路徑</b></span></span>'+
+            '<span class="project-gateway-copy"><span class="project-family-row"><b class="project-name">'+esc(selected.title||'已選定作品路徑')+'</b></span><b class="project-version-title">第一件作品尚未建立</b><span class="project-status">等待開始</span><span class="project-progress">主線已選定，尚未進入作品執行</span><span class="project-progress-track"><i style="width:0%"></i></span></span>'+
             '<span class="project-enter">查看路徑 →</span></button>');
         }
         pane.innerHTML=hero+
@@ -1362,25 +1362,26 @@ async function renderProjectsIA(active='gateway',notice=''){
       try{
         const artifacts=await A.getPersonalArtifacts({force:true});
         const current=artifacts?.current||null;
+        const candidate=artifacts?.candidate||null;
+        const planningJob=artifacts?.next_plan_job||null;
         const history=Array.isArray(artifacts?.history)?artifacts.history:[];
 
-        if(active==='path'){
-          if(!current){
-            pane.innerHTML='<div class="empty">目前沒有進行中的作品路徑。</div>';
-          }else{
-            const items=Array.isArray(current.evidence_progress)?current.evidence_progress:[];
-            const nextNo=Number(current?.next_evidence_item?.criterion_no||0);
-            const nodes=items.map(item=>{
-              const n=Number(item.criterion_no||0);
-              const state=item.status==='confirmed'?'done':n===nextNo?'current':'future';
-              const mark=state==='done'?'✓':String(n||'○');
-              const label=state==='done'?'已完成':state==='current'?'現在':'後續';
-              return '<div class="path-node '+state+'"><div class="path-dot">'+esc(mark)+'</div><div class="path-copy"><small>'+esc(label)+'</small><b>'+esc(item.criterion_text||('第 '+n+' 步'))+'</b>'+(item.status==='confirmed'&&item.evidence?.text?'<p>'+esc(item.evidence.text)+'</p>':'')+'</div></div>';
-            }).join('');
-            pane.innerHTML='<div class="page-intro"><span class="kicker">作品旅程</span><h2>'+esc(current.title||'目前作品')+'</h2><p>只把正式完成證據畫成已完成節點；未來步驟仍只是後續路徑。</p></div>'+
-              '<div class="journey-path">'+(nodes||'<div class="empty">這件作品還沒有正式路徑節點。</div>')+'</div>'+
-              (current.next_evidence_item?'<div class="context-bar"><div><b>現在只做這一步</b><span>'+esc(current.next_evidence_item.criterion_text||'')+'</span></div><button class="primary-btn" data-project-current>回到目前作品</button></div>':'');
+        if(active==='planned'){
+          const plannedCards=[];
+          if(candidate){
+            plannedCards.push('<article class="project-gateway-card is-locked">'+
+              '<span class="project-cover"><img class="project-cover-image" src="assets/ui/home-project-cover.webp" alt="" aria-hidden="true"><span class="project-cover-badge muted">預計作品</span></span>'+
+              '<span class="project-gateway-copy"><span class="project-family-row"><b class="project-name">'+esc(candidate.title||'下一件候選作品')+'</b></span><b class="project-version-title">等待你確認</b><span class="project-status">'+esc(statusText(candidate.status||'candidate'))+'</span><span class="project-progress">確認後才會進入正式作品，不會先算成進度。</span><span class="project-progress-track"><i style="width:0%"></i></span></span>'+
+            '</article>');
           }
+          if(planningJob&&planningJob.status&&!['completed','cancelled'].includes(String(planningJob.status).toLowerCase())){
+            plannedCards.push('<article class="project-gateway-card is-locked">'+
+              '<span class="project-cover"><img class="project-cover-image" src="assets/ui/home-project-cover.webp" alt="" aria-hidden="true"><span class="project-cover-badge muted">規劃中</span></span>'+
+              '<span class="project-gateway-copy"><span class="project-family-row"><b class="project-name">下一件作品正在整理</b></span><b class="project-version-title">等待 GPT 規劃結果</b><span class="project-status">'+esc(statusText(planningJob.status||'pending'))+'</span><span class="project-progress">這只是規劃狀態，尚未成為正式作品。</span><span class="project-progress-track"><i style="width:0%"></i></span></span>'+
+            '</article>');
+          }
+          pane.innerHTML='<div class="page-intro"><span class="kicker">接下來</span><h2>預計作品</h2><p>只顯示已存在的候選或規劃中作品；沒有正式資料就保持空白，不補假的作品。</p></div>'+
+            (plannedCards.length?'<div class="project-gallery">'+plannedCards.join('')+'</div>':'<div class="empty">目前沒有預計作品。</div>');
         }else{
           const completed=history.filter(x=>['completed','done'].includes(String(x.status||'').toLowerCase())||x.completed_at);
           pane.innerHTML='<div class="page-intro"><span class="kicker">完成紀錄</span><h2>已完成作品</h2><p>這裡只展示已存在的正式作品紀錄，不用系統工作包冒充個人成果。</p></div>'+
