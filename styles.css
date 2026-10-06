@@ -610,3 +610,186 @@ button.relation-chip{cursor:pointer}
 .today-support-grid p{color:var(--muted);font-size:11px;line-height:1.55}
 @media(max-width:900px){.today-layout{grid-template-columns:1fr}.today-focus{min-height:0}.today-relations{grid-template-columns:repeat(2,minmax(0,1fr));gap:0 18px}.today-relations>.kicker{grid-column:1/-1}.today-support-grid{grid-template-columns:1fr}}
 @media(max-width:640px){.today-focus{padding:24px 20px;border-radius:22px}.today-focus h2{font-size:30px}.today-relations{grid-template-columns:1fr}.today-secondary>summary{align-items:flex-start;flex-direction:column;gap:4px}}
+/* Growth Brain Visual DNA shell v2 - 2026-10-06 */
+:root{
+  --bg:#f6f0e5;
+  --paper:#fffdf8;
+  --paper2:#faf5eb;
+  --ink:#29251f;
+  --muted:#766f64;
+  --muted2:#9a9081;
+  --line:#e6dccb;
+  --accent:#c98533;
+  --accent-soft:#fff0d8;
+  --green:#5f8064;
+  --green-soft:#eef5eb;
+  --warn:#9a6a2f;
+  --warn-soft:#fff3df;
+  --danger:#a75349;
+  --danger-soft:#fcecea;
+  --r:18px;
+  --shadow:0 14px 34px rgba(79,61,37,.08);
+  --journey-line:#d9cdbb;
+  --journey-soft:#faf2e4;
+  --journey-ink:#514635;
+  --role-soft:#f4ead7
+}
+html{background:var(--bg)}
+body{
+  min-height:100vh;
+  background:
+    radial-gradient(circle at 7% 0%,rgba(224,190,126,.18),transparent 25rem),
+    radial-gradient(circle at 92% 10%,rgba(157,177,139,.13),transparent 28rem),
+    var(--bg);
+  color:var(--ink)
+}
+body:before{
+  content:"";position:fixed;inset:0;pointer-events:none;z-index:-1;opacity:.22;
+  background-image:radial-gradient(rgba(103,84,53,.20) .55px,transparent .55px);
+  background-size:18px 18px
+}
+a{color:#8d6230}
+button:focus-visible,input:focus-visible,textarea:focus-visible,summary:focus-visible{
+  outline:3px solid rgba(201,133,51,.22);outline-offset:3px
+}
+.app-shell{display:block;min-height:100vh}
+.sidebar{
+  position:sticky;top:0;z-index:40;height:auto;width:100%;
+  display:grid;grid-template-columns:auto minmax(0,1fr) auto;align-items:center;gap:24px;
+  padding:10px clamp(18px,4vw,54px);border:0;border-bottom:1px solid rgba(188,166,128,.32);
+  background:rgba(255,253,248,.88);backdrop-filter:blur(18px);
+  box-shadow:0 6px 24px rgba(88,68,36,.04)
+}
+.brand{display:flex;align-items:center;gap:10px;padding:0;white-space:nowrap}
+.brand-mark{
+  width:34px;height:34px;border-radius:50%;
+  background:#e4c98f;color:#4e3f27;border:1px solid #d4b875;
+  box-shadow:inset 0 0 0 4px rgba(255,255,255,.42)
+}
+.brand-title{font-size:14px;letter-spacing:-.01em}
+.brand-subtitle{display:none}
+.nav{display:flex;justify-content:center;align-items:center;gap:3px}
+.nav-item{
+  display:flex;align-items:center;gap:7px;padding:8px 11px;border-radius:12px;
+  color:#665f55;white-space:nowrap
+}
+.nav-item span{
+  width:20px;height:20px;background:transparent!important;border-radius:7px;
+  color:#756b5d;font-size:11px
+}
+.nav-item b{font-size:12px}
+.nav-item:hover{background:#f7eedf;color:#2f2a23}
+.nav-item.active{
+  background:#fee8c4;color:#4b3820;box-shadow:inset 0 0 0 1px rgba(190,130,55,.12)
+}
+.nav-item.active span{color:#a76621}
+.side-note{
+  position:static;padding:0;border:0;display:flex;align-items:center;gap:8px
+}
+.side-note-title,.side-note p{display:none}
+.status-row{margin:0;font-size:10px;color:#776c5b}
+.main{
+  width:min(1320px,100%);max-width:none;margin:0 auto;
+  padding:28px clamp(18px,4vw,54px) 84px
+}
+.topbar{
+  align-items:center;margin-bottom:24px;padding:0 0 18px;border-bottom:1px solid rgba(204,186,158,.56)
+}
+.eyebrow{color:#927e60;font-size:10px;letter-spacing:.06em}
+.topbar h1{
+  font-family:"PingFang TC","Noto Sans TC","Microsoft JhengHei",system-ui,sans-serif;
+  font-size:clamp(22px,2.5vw,30px);font-weight:800;letter-spacing:-.03em;color:#2d2923
+}
+.avatar{border-color:#e4d7c3;background:#f7ead2;color:#614825}
+.primary-btn{
+  border-color:#d89440;background:#edae5c;color:#3f2b16;
+  box-shadow:0 7px 18px rgba(205,142,65,.15)
+}
+.primary-btn:hover{background:#e7a24e}
+.ghost-btn{border-color:#dfd4c3;background:#fffdf8;color:#554c40}
+.ghost-btn:hover{background:#f9f2e7}
+.kicker,.system-kicker{color:#a1682b}
+.pill.success{color:#52705a;border-color:#cfe0c9;background:#edf5e9}
+.pill.warn{color:#8d642d;border-color:#ecd4ae;background:#fff3df}
+.surface,.lesson-detail,.graph,.hero-card,.direction-card{
+  border-color:#e7dece;background:rgba(255,253,248,.9)
+}
+.surface,.lesson-detail,.hero-card,.direction-card,.today-focus,.today-relations,
+.project-gateway-card,.capability-cell,.capability-detail,.research-context,.studio-floor,.studio-panel{
+  box-shadow:0 12px 30px rgba(88,68,36,.055)
+}
+.page-intro h2,.hero-card h2,.surface h2,.lesson-detail h2{
+  font-family:"PingFang TC","Noto Sans TC","Microsoft JhengHei",system-ui,sans-serif;
+  font-weight:800
+}
+.subtabs{
+  top:56px;background:rgba(246,240,229,.90);border-bottom-color:#dfd2be
+}
+.subtab{color:#7b6e5b}
+.subtab.active{background:#4f473b;color:#fff}
+.today-focus{
+  background:
+    radial-gradient(circle at 90% 0%,rgba(229,184,105,.18),transparent 28%),
+    #fffdf8
+}
+.today-relations{background:#f3eadb;border-color:#e2d3bc}
+.today-relation{border-top-color:#ddceb7}
+.relation-chip{border-color:#ded1bd;background:#fffdf8;color:#625646}
+.project-gateway-card{background:#fffdf8;border-color:#e4d7c3}
+.project-gateway-card:hover{border-color:#c79b5d;background:#fff8ea}
+.project-cover{background:linear-gradient(145deg,#efe3cd,#f8f0df);color:#9d7d50}
+.capability-cell,.capability-detail,.research-context,.studio-panel{background:#fffdf8;border-color:#e5d9c7}
+.capability-cell:hover,.capability-cell:focus-visible,.capability-cell.is-focus{
+  border-color:#aeba9d;background:#fbfff7
+}
+.studio-floor{
+  border-color:#e5d8c4;
+  background:
+    radial-gradient(circle at 10% 10%,rgba(244,221,176,.38),transparent 34%),
+    linear-gradient(145deg,#fffdf8,#f5ecdd)
+}
+.studio-window{border-color:#ead8bb;background:linear-gradient(#e8f0ef,#fffdf7)}
+.studio-desk{background:#d6b679;color:#5e4726}
+.studio-person{background:rgba(255,253,248,.72)}
+.studio-person:hover,.studio-person:focus-visible,.studio-person.is-focus{
+  border-color:#c99b58;background:#fffefb
+}
+.studio-avatar{background:#f0dec0;border-color:#dfc79f;color:#654d2c}
+.studio-tool-dot{background:#f1eadf}
+.context-bar{background:#f8efe0;border-color:#e5d2b5}
+.graph{
+  background:
+    linear-gradient(rgba(195,177,150,.13) 1px,transparent 1px),
+    linear-gradient(90deg,rgba(195,177,150,.13) 1px,transparent 1px),
+    #fffdf8;
+  background-size:28px 28px
+}
+.empty{border-color:#d8c9b2;background:rgba(255,253,248,.52)}
+.modal-card{background:#fffdf8;border-color:#e2d5c1}
+input,textarea,select{background:#fffdf8;border-color:#dfd2bf;color:#3a342d}
+input:focus,textarea:focus,select:focus{
+  border-color:#d1a467;box-shadow:0 0 0 3px rgba(201,133,51,.09)
+}
+@media(max-width:980px){
+  .sidebar{grid-template-columns:auto 1fr;padding:9px 18px;gap:14px}
+  .side-note{display:none}
+  .brand>div:not(.brand-mark){display:block}
+  .nav-item b{display:block}
+  .main{padding:24px 18px 76px}
+}
+@media(max-width:760px){
+  .sidebar{
+    position:fixed;top:auto;bottom:0;left:0;right:0;height:70px;
+    display:block;padding:7px 8px;border-top:1px solid #dfd2be;border-bottom:0;
+    background:rgba(255,253,248,.94)
+  }
+  .brand,.side-note{display:none}
+  .nav{display:grid;grid-template-columns:repeat(6,1fr);gap:2px}
+  .nav-item{display:grid;place-items:center;gap:1px;padding:5px 2px;border-radius:11px}
+  .nav-item span{width:auto;height:auto}
+  .nav-item b{display:block;font-size:9px}
+  .main{padding:18px 13px 92px}
+  .subtabs{top:0}
+  .topbar{align-items:flex-start}
+  .topbar h1{font-size:22px}
+}
