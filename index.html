@@ -5,7 +5,7 @@
   <meta name="viewport" content="width=device-width,initial-scale=1" />
   <meta name="theme-color" content="#f6f0e5" />
   <title>第二大腦</title>
-  <link rel="stylesheet" href="styles.css?v=history-archive-v1-20261006" />
+  <link rel="stylesheet" href="styles.css?v=today-visual-v1-20261007" />
 </head>
 <body>
   <div class="app-shell">
@@ -27,24 +27,16 @@
         <button class="nav-item" data-view="history"><span>↺</span><b>歷程</b></button>
       </nav>
 
-      <div class="side-note">
-        <div class="side-note-title">現在模式</div>
-        <div class="status-row"><span class="dot amber"></span><span>私人單人模式</span></div>
-        <p>首頁與系統建置分離；登入後首頁只讀個人資料；系統建置資訊只在系統頁載入。</p>
+      <div class="nav-tools" aria-label="快速工具">
+        <button class="nav-tool nav-capture" id="captureBtn" aria-label="丟進第二大腦">＋</button>
+        <button class="nav-tool" id="refreshBtn" aria-label="重新整理">↻</button>
+        <div class="avatar">劉</div>
       </div>
     </aside>
 
     <main class="main">
-      <header class="topbar">
-        <div>
-          <div class="eyebrow">個人成長系統</div>
-          <h1 id="pageTitle">今天只做一件最值得做的事</h1>
-        </div>
-        <div class="top-actions">
-          <button class="primary-btn global-capture" id="captureBtn">＋ 丟進來</button>
-          <button class="ghost-btn" id="refreshBtn">重新整理</button>
-          <div class="avatar">劉</div>
-        </div>
+      <header class="topbar" aria-hidden="true">
+        <h1 id="pageTitle">今天</h1>
       </header>
 
       <section class="view active" id="view-home"></section>
@@ -66,7 +58,7 @@
   <script src="auth.js?v=login-link-help-20261006"></script>
   <script src="adapter.js?v=capability-map-v1-20261006"></script>
   <script src="event-lab.js?v=research-memory-v1-20261006"></script>
-  <script src="app.js?v=history-archive-v1-20261006"></script>
+  <script src="app.js?v=today-visual-v1-20261007"></script>
   <script src="inbox.js"></script>
 </body>
 </html>
