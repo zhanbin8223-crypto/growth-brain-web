@@ -1298,8 +1298,15 @@ async function renderProjectsIA(active='gateway',notice=''){
   }else if(active==='gateway'){
     root.innerHTML=iaTabs(tabs,active)+'<div id="projectIaPane" class="tab-pane"><div class="empty">正在整理作品入口…</div></div>';
     const pane=$('#projectIaPane');
+    const hero='<section class="project-page-hero"><div><span class="today-overline">ARTIFACTS · 作品</span><h2>把主線變成看得見的作品</h2><p>第一層只用來選作品：縮圖、名稱、版本、狀態、進度。目標、步驟與證據進入作品後再看。</p></div><div class="project-hero-mark" aria-hidden="true"><span></span><span></span><span></span><b>MAKE<br>IT REAL</b></div></section>';
+
     if(A.liveStatus!=='live'){
-      pane.innerHTML='<div class="empty">登入後才會顯示你已選定的作品路徑。</div>';
+      pane.innerHTML=hero+
+        '<div class="project-gallery"><article class="project-gateway-card is-locked">'+
+          '<span class="project-cover"><img class="project-cover-image" src="assets/ui/home-project-cover.webp" alt=""><span class="project-cover-badge">尚未同步</span></span>'+
+          '<span class="project-gateway-copy"><span class="project-family-row"><b class="project-name">登入後讀取你的作品</b></span><b class="project-version-title">作品版本</b><span class="project-status">等待正式資料</span><span class="project-progress">完成進度會顯示在這裡</span><span class="project-progress-track"><i style="width:0%"></i></span></span>'+
+          '<button class="primary-btn" data-auth>登入同步作品</button>'+
+        '</article></div>';
     }else{
       try{
         const [outcome,artifacts]=await Promise.all([A.getPersonalOutcome(),A.getPersonalArtifacts({force:true})]);
@@ -1311,8 +1318,7 @@ async function renderProjectsIA(active='gateway',notice=''){
           const items=Array.isArray(current.evidence_progress)?current.evidence_progress:[];
           const total=p.total??items.length;
           const confirmed=p.confirmed??items.filter(x=>x.status==='confirmed').length;
-          // 第一層是「選作品」而不是作品摘要。完整 title/objective 留在第二層。
-          // 系列名優先由使用者已確認的專案背景推導；route revision 不能當作品版本。
+          const progressPct=total?Math.max(0,Math.min(100,Math.round(confirmed/total*100))):0;
           const projectGoal=selected?.source_evidence?.prior_confirmed_project_context?.goal||'';
           const goalFamilyMatch=String(projectGoal).match(/^建立\s*(.+?)(?:自動化|工作流|網站|導流|，|。)/);
           const fallbackFamily=selected?.title?String(selected.title).replace(/(?:系統|路線|方案)$/,'').trim():'作品';
@@ -1322,26 +1328,28 @@ async function renderProjectsIA(active='gateway',notice=''){
           const versionTitle=family+' '+version;
           const status=current.status==='current'?'進行中':statusText(current.status||'unknown');
           cards.push('<button class="project-gateway-card is-current" type="button" data-open-project-detail data-artifact-id="'+esc(current.id)+'" aria-label="進入作品：'+esc(workName)+'">'+
-            '<span class="project-cover" role="img" aria-label="作品縮圖尚未提供"><svg viewBox="0 0 64 48" aria-hidden="true" focusable="false"><rect x="5" y="5" width="54" height="38" rx="4"/><circle cx="22" cy="18" r="4"/><path d="m8 38 16-13 11 9 9-7 12 11"/></svg></span>'+
+            '<span class="project-cover"><img class="project-cover-image" src="assets/ui/home-project-cover.webp" alt="" aria-hidden="true"><span class="project-cover-badge">'+esc(status)+'</span></span>'+
             '<span class="project-gateway-copy">'+
               '<span class="project-family-row"><b class="project-name">'+esc(workName)+'</b><span class="project-goal-link">看作品目標</span></span>'+
               '<span class="project-version-kicker">系列＋版本</span>'+
               '<b class="project-version-title">'+esc(versionTitle)+'</b>'+
               '<span class="project-status">'+esc(status)+'</span>'+
               '<span class="project-progress">'+esc(confirmed)+' / '+esc(total)+' 個目標完成</span>'+
+              '<span class="project-progress-track"><i style="width:'+esc(progressPct)+'%"></i></span>'+
+              '<span class="project-card-meta"><span>作品證據</span><b>'+esc(confirmed)+' / '+esc(total)+'</b></span>'+
             '</span>'+
             '<span class="project-enter">進入作品 →</span></button>');
         }else if(selected){
           cards.push('<button class="project-gateway-card" type="button" data-open-project-detail>'+
-            '<span class="project-cover" role="img" aria-label="作品縮圖尚未提供"><svg viewBox="0 0 64 48" aria-hidden="true" focusable="false"><rect x="5" y="5" width="54" height="38" rx="4"/><circle cx="22" cy="18" r="4"/><path d="m8 38 16-13 11 9 9-7 12 11"/></svg></span>'+
-            '<span class="project-gateway-copy"><b class="project-name">'+esc(selected.title||'已選定作品路徑')+'</b><span class="project-status">等待第一件作品</span></span>'+
+            '<span class="project-cover"><img class="project-cover-image" src="assets/ui/home-project-cover.webp" alt="" aria-hidden="true"><span class="project-cover-badge muted">等待開始</span></span>'+
+            '<span class="project-gateway-copy"><span class="project-family-row"><b class="project-name">'+esc(selected.title||'已選定作品路徑')+'</b></span><b class="project-version-title">第一件作品尚未建立</b><span class="project-status">等待第一件作品</span><span class="project-progress">主線已選定，尚未進入作品執行</span><span class="project-progress-track"><i style="width:0%"></i></span><span class="project-card-meta"><span>下一步</span><b>查看路徑</b></span></span>'+
             '<span class="project-enter">查看路徑 →</span></button>');
         }
-        pane.innerHTML='<div class="page-intro"><h2>選一件作品，繼續前進</h2><p>進入作品查看目標、步驟與證據。</p></div>'+
-          '<div class="project-gateway-grid">'+(cards.length?cards.join(''):'<div class="empty">目前還沒有已選定的作品路徑。</div>')+'</div>';
+        pane.innerHTML=hero+
+          '<div class="project-gallery">'+(cards.length?cards.join(''):'<div class="project-empty-gallery"><span>◇</span><b>目前還沒有已選定的作品</b><p>先回「今天」確定唯一下一步；需要形成作品時，再從這裡開始。</p></div>')+'</div>';
         $('[data-open-project-detail]',pane)?.addEventListener('click',()=>renderProjectsIA('current'));
       }catch(e){
-        pane.innerHTML='<div class="empty">作品入口載入失敗：'+esc(e.message||e)+'</div>';
+        pane.innerHTML=hero+'<div class="empty">作品入口載入失敗：'+esc(e.message||e)+'</div>';
       }
     }
   }else{
