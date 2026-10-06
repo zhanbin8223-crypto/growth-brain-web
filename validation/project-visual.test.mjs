@@ -7,8 +7,8 @@ const css=readFileSync(new URL('../styles.css',import.meta.url),'utf8');
 
 test('作品入口使用語意路徑 rail，不靠縮圖卡片牆',()=>{
   const start=app.indexOf("async function renderProjectsIA(active='gateway',notice='')");
-  const end=app.indexOf("async function renderTeamIA",start);
-  const block=app.slice(start,end);
+  const gatewayEnd=app.indexOf("\n  }else{\n    root.innerHTML=iaTabs(tabs,active)",start);
+  const block=app.slice(start,gatewayEnd);
   assert.match(block,/project-route-rail/);
   assert.match(block,/project-route-node/);
   assert.doesNotMatch(block,/project-gallery|project-cover-image|project-page-hero/);
