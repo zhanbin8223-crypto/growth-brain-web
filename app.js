@@ -864,34 +864,75 @@ async function renderCapabilities(active='cells'){
     pane.innerHTML='<div class="empty">登入後才會顯示正式能力庫與個人技能證據。</div>';
     return;
   }
-  try{
-    const C=await A.getCapabilities({force:true});
-    const cells=Array.isArray(C?.cells)?C.cells:[];
-    const playbooks=Array.isArray(C?.playbooks)?C.playbooks:[];
-    const personalSkills=Array.isArray(C?.personal_skills)?C.personal_skills:[];
 
+  try{
+    const library=await A.getCapabilities({force:true});
+    const cells=Array.isArray(library?.cells)?library.cells:[];
+    const playbooks=Array.isArray(library?.playbooks)?library.playbooks:[];
+    const personalSkills=Array.isArray(library?.personal_skills)?library.personal_skills:[];
+
+    const nameOf=x=>x?.title||x?.name||human(x?.key||'能力');
     const resourceHtml=x=>{
       const rs=Array.isArray(x?.resources)?x.resources:[];
-      return rs.length?'<div class="cap-detail"><b>可用資源</b><span>'+rs.map(r=>esc(r.name||r.key)+(r.availability?'（'+esc(statusText(r.availability))+'）':'')).join('、')+'</span></div>':'';
+      const keys=Array.isArray(x?.resource_keys)?x.resource_keys:[];
+      const labels=rs.length?rs.map(r=>r.name||r.key):keys;
+      return labels.length?'<div class="cap-detail"><b>可用資源</b><span>'+labels.map(esc).join('、')+'</span></div>':'';
     };
+    const listHtml=(title,items,ordered=false)=>Array.isArray(items)&&items.length
+      ?'<div class="cap-detail"><b>'+esc(title)+'</b><'+(ordered?'ol':'ul')+'>'+items.map(s=>'<li>'+esc(typeof s==='string'?s:(s.title||s.step||String(s)))+'</li>').join('')+'</'+(ordered?'ol':'ul')+'></div>'
+      :'';
     const detailHtml=x=>
-      (Array.isArray(x.quick_use)&&x.quick_use.length?'<div class="cap-detail"><b>快速使用</b><ol>'+x.quick_use.map(s=>'<li>'+esc(s)+'</li>').join('')+'</ol></div>':'')+
-      (Array.isArray(x.failure_points)&&x.failure_points.length?'<div class="cap-detail"><b>常見失敗</b><span>'+x.failure_points.map(esc).join('、')+'</span></div>':'')+
-      (Array.isArray(x.required_evidence)&&x.required_evidence.length?'<div class="cap-detail"><b>成功證據</b><span>'+x.required_evidence.map(esc).join('、')+'</span></div>':'')+
+      (x.when_to_use?'<div class="cap-detail"><b>什麼時候用</b><span>'+esc(x.when_to_use)+'</span></div>':'')+
+      listHtml('快速使用',x.quick_use,true)+
+      listHtml('常見失敗',x.failure_points)+
+      listHtml('成功證據',x.required_evidence)+
       resourceHtml(x)+
       (x.practice?'<div class="cap-detail"><b>實作</b><span>'+esc(x.practice)+'</span></div>':'');
-    const item=x=>'<details class="surface capability-library-item"><summary><span><small>'+esc(x.when_to_use||'需要時使用')+'</small><b>'+esc(x.name||human(x.key))+'</b></span><span class="pill '+(x.personal_mastery?'success':'')+'">'+(x.personal_mastery?'已有個人證據':'參考能力')+'</span></summary>'+
-      '<p>'+esc(x.principle||'')+'</p>'+detailHtml(x)+'</details>';
+    const referenceState=x=>x.personal_mastery?'已有個人證據':'參考方法';
 
     if(active==='cells'){
-      pane.innerHTML='<div class="section-head"><div><h2>能力細胞</h2><p>最小、可重用、會持續更新的能力單元；資料庫目前有 '+cells.length+' 個。存在不代表你已經學會。</p></div><span>'+cells.length+' 個</span></div>'+
-        (cells.length?'<div class="capability-grid live-capability-grid">'+cells.map(item).join('')+'</div>':'<div class="empty">目前沒有能力細胞資料。</div>');
+      const cellCard=x=>'<button type="button" class="capability-cell" data-capability-key="'+esc(x.key||'')+'">'+
+        '<span class="capability-node"></span><small>'+esc(referenceState(x))+'</small><b>'+esc(nameOf(x))+'</b>'+
+        '<p>'+esc(x.principle||x.summary||x.when_to_use||'需要時直接拿來用，再由真實作品決定是否掌握。')+'</p></button>';
+      pane.innerHTML='<div class="page-intro"><span class="kicker">能力地圖</span><h2>能力細胞</h2><p>資料庫目前有 '+cells.length+' 個可重用方法。Hover 看焦點、點擊看使用方式；存在不代表你已經學會。</p></div>'+
+        '<div class="capability-layout"><div class="capability-map">'+
+          (cells.length?cells.map(cellCard).join(''):'<div class="empty">目前沒有能力細胞資料。</div>')+
+        '</div><aside class="capability-detail" id="capabilityDetail"><span class="kicker">能力詳細</span><h3>選一個能力細胞</h3><p>這裡會顯示怎麼用、常見失敗與要留下什麼證據。</p><small class="muted">能力細胞是參考資源，不會自動變成你的個人能力。</small></aside></div>';
+
+      const detail=$('#capabilityDetail',pane);
+      const cards=$$('.capability-cell',pane);
+      const focus=key=>cards.forEach(c=>{
+        c.classList.toggle('is-focus',c.dataset.capabilityKey===key);
+        c.classList.toggle('is-dim',c.dataset.capabilityKey!==key);
+      });
+      const clear=()=>cards.forEach(c=>c.classList.remove('is-focus','is-dim'));
+      cards.forEach(c=>{
+        c.addEventListener('mouseenter',()=>focus(c.dataset.capabilityKey));
+        c.addEventListener('mouseleave',clear);
+        c.addEventListener('focus',()=>focus(c.dataset.capabilityKey));
+        c.addEventListener('blur',clear);
+        c.addEventListener('click',()=>{
+          const x=cells.find(v=>String(v.key||'')===c.dataset.capabilityKey);
+          if(!x)return;
+          detail.innerHTML='<span class="kicker">'+esc(referenceState(x))+'</span><h3>'+esc(nameOf(x))+'</h3>'+
+            '<p>'+esc(x.principle||x.summary||'這是一個可重用的方法單元。')+'</p>'+
+            detailHtml(x)+
+            '<div class="cap-detail"><b>作品／員工／研究關聯</b><span>只有資料庫已有正式映射時才顯示；目前不使用推測補關聯。</span></div>';
+        });
+      });
     }else if(active==='playbooks'){
-      pane.innerHTML='<div class="section-head"><div><h2>作戰手冊</h2><p>把能力細胞組成可直接拿來做事的方法；資料庫目前有 '+playbooks.length+' 本。</p></div><span>'+playbooks.length+' 本</span></div>'+
-        (playbooks.length?'<div class="stack">'+playbooks.map(item).join('')+'</div>':'<div class="empty">目前沒有作戰手冊資料。</div>');
+      const card=x=>'<details class="surface playbook-card"><summary><span><small>'+esc(x.when_to_use||'需要時使用')+'</small><b>'+esc(nameOf(x))+'</b></span><span class="pill">'+esc(referenceState(x))+'</span></summary>'+
+        '<p>'+esc(x.principle||x.summary||'把多個能力細胞組成可直接執行的方法。')+'</p>'+detailHtml(x)+'</details>';
+      pane.innerHTML='<div class="page-intro"><span class="kicker">組合方法</span><h2>作戰手冊</h2><p>資料庫目前有 '+playbooks.length+' 本。先照步驟做，實際結果再決定要不要升成正式方法。</p></div>'+
+        (playbooks.length?'<div class="playbook-grid">'+playbooks.map(card).join('')+'</div>':'<div class="empty">目前沒有作戰手冊資料。</div>');
     }else{
-      pane.innerHTML='<div class="section-head"><div><h2>我的技能</h2><p>這裡跟參考能力庫分開；只有個人作品、回答或操作證據才能改變狀態。</p></div><span>'+personalSkills.length+' 項</span></div>'+
-        (personalSkills.length?'<div class="stack">'+personalSkills.map(s=>'<article class="surface"><div class="row-between"><b>'+esc(s.name_zh||s.name||human(s.skill_key||s.key))+'</b>'+pill(s.evidence_state||s.status||'unknown')+'</div><p>'+esc(s.why||s.summary||'')+'</p></article>').join('')+'</div>':'<div class="empty">目前還沒有可展示的個人技能證據。</div>');
+      const stateLabel=s=>({
+        unknown:'尚未驗證',exposure:'接觸過',acknowledged:'知道是什麼',understood:'已理解',
+        can_explain:'能解釋',apply_with_help:'可在協助下應用',apply_independently:'可獨立應用',
+        retained:'可保留使用',real_project:'真實作品驗證',commercialized:'已商業化'
+      }[String(s||'').toLowerCase()]||statusText(s||'unknown'));
+      pane.innerHTML='<div class="page-intro"><span class="kicker">證據導向</span><h2>我的技能</h2><p>這裡跟參考能力庫分開；只有個人作品、回答或操作證據才能改變狀態。</p></div>'+
+        (personalSkills.length?'<div class="personal-skill-list">'+personalSkills.map(s=>'<article class="personal-skill-item"><div><small>'+esc(s.artifact_title||'尚無關聯作品')+'</small><b>'+esc(s.name_zh||s.name||human(s.skill_key||s.key))+'</b><p>'+esc(s.why||s.summary||'')+'</p></div><span class="pill '+(s.evidence_state&&s.evidence_state!=='unknown'?'success':'')+'">'+esc(stateLabel(s.evidence_state||s.status))+'</span></article>').join('')+'</div>':'<div class="empty">目前還沒有可展示的個人技能證據。</div>');
     }
   }catch(e){
     pane.innerHTML='<div class="empty">能力庫載入失敗：'+esc(e.message||e)+'</div>';
