@@ -5,25 +5,25 @@ import {readFileSync} from 'node:fs';
 const app=readFileSync(new URL('../app.js',import.meta.url),'utf8');
 const css=readFileSync(new URL('../styles.css',import.meta.url),'utf8');
 
-test('歷程首頁預設是版本檔案館，不是流水 log',()=>{
+test('歷程首頁預設是版本時間線，不是 dashboard 或 Git log',()=>{
   assert.match(app,/async function renderHistory\(active='system'\)/);
-  assert.match(app,/\['system','版本檔案館'\]/);
-  for(const label of ['V3','互動式 Growth Brain 網站','V2','Worker \/ 事件漏斗','V1.5','作品、能力、員工','V1','資料庫與基本網站']){
+  assert.match(app,/\['system','版本歷程'\]/);
+  for(const label of ['V3','互動式 Growth Brain','V2','Worker 與事件漏斗','V1.5','作品、能力、員工','V1','資料庫與基本網站']){
     assert.ok(app.includes(label),label);
   }
+  assert.match(app,/history-timeline-v4/);
 });
 
 test('版本敘事與正式資料庫更新紀錄分開',()=>{
-  assert.ok(app.includes('版本區只描述產品階段'));
+  assert.match(app,/history-formal-log/);
   assert.ok(app.includes('正式更新紀錄'));
-  assert.ok(app.includes('只列資料庫已保存的系統執行／部署紀錄'));
-  assert.match(css,/\.version-archive/);
-  assert.match(css,/\.history-evidence-log/);
+  assert.ok(app.includes('版本敘事與正式更新紀錄分開'));
+  assert.match(css,/\.history-timeline-v4/);
+  assert.match(css,/\.history-formal-log/);
 });
 
-test('版本階段有視覺縮圖，而不是只有文字流水',()=>{
-  assert.match(app,/version-stage-image/);
-  assert.ok(app.includes("assets/ui/home-project-cover.webp"));
-  assert.ok(app.includes("assets/ui/home-hero-workspace.webp"));
-  assert.match(css,/\.version-stage-image/);
+test('歷程不再使用裝飾縮圖冒充資訊結構',()=>{
+  const block=app.slice(app.indexOf("async function renderHistory"),app.indexOf("async function renderSystem"));
+  assert.doesNotMatch(block,/version-stage-image|home-project-cover|home-hero-workspace/);
+  assert.match(block,/history-version-node/);
 });
