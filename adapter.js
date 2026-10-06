@@ -308,7 +308,7 @@
     },
     async getCapabilities({force=false}={}){
       if(!force && this.capabilityLibrary) return clone(this.capabilityLibrary);
-      if(this.mode!=='live') return {cells:[],playbooks:[],personal_skills:[],personal_mastery:[],policy:{}};
+      if(this.mode!=='live') return {cells:[],playbooks:[],personal_skills:[],personal_mastery:false,policy:{}};
       const result=await liveRequest('GET',undefined,'capabilities');
       this.capabilityLibrary=extractSurface(result);
       return clone(this.capabilityLibrary);
