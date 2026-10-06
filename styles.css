@@ -555,3 +555,25 @@ button.relation-chip{cursor:pointer}
 .personal-skill-item p{margin:4px 0 0;color:var(--muted);font-size:11px}
 @media(max-width:900px){.capability-layout{grid-template-columns:1fr}.capability-detail{position:static}.playbook-grid{grid-template-columns:1fr}}
 @media(max-width:640px){.capability-map{grid-template-columns:1fr}.capability-cell{min-height:150px;padding:18px}.personal-skill-item{grid-template-columns:1fr}.personal-skill-item>.pill{justify-self:start}}
+
+.research-context{margin:14px 0 22px;padding:22px;border:1px solid #e5dece;border-radius:24px;background:#fffdf8;box-shadow:0 12px 30px rgba(75,64,45,.05)}
+.research-context h3{margin:7px 0 4px;font-size:22px}
+.research-context p{max-width:760px;color:var(--muted)}
+.research-context-grid{display:grid;grid-template-columns:repeat(6,minmax(0,1fr));gap:8px;margin:18px 0}
+.research-context-stat{display:grid;gap:3px;padding:12px;border-top:2px solid #aebd9f;background:#faf8f2}
+.research-context-stat strong{font-size:20px}
+.research-context-stat span{font-size:9px;color:var(--muted)}
+.research-source-state{display:flex;gap:6px;flex-wrap:wrap;margin:8px 0 12px}
+.source-check.verified{color:#496846}
+.source-check.pending{color:#8a6a39}
+.research-step-list{display:grid;gap:10px;margin:10px 0 16px}
+.research-plan-step{display:grid;grid-template-columns:30px minmax(0,1fr);gap:10px;padding:12px;border:1px solid #e8e0d1;border-radius:14px;background:#fffdf8}
+.research-plan-step>span{width:28px;height:28px;display:grid;place-items:center;border-radius:50%;background:#eef2e8;color:#596d53;font-size:10px;font-weight:900}
+.research-plan-step b{font-size:12px}
+.research-plan-step p{margin:4px 0 0;font-size:10px!important;color:var(--muted)}
+.research-plan-step strong{color:#6d5f48}
+.research-provenance{display:grid;gap:4px;margin:12px 0;padding:10px 0;border-top:1px solid #ece4d6}
+.research-provenance b{font-size:10px;color:#74664f}
+.research-provenance span{font-size:10px;color:var(--muted)}
+@media(max-width:980px){.research-context-grid{grid-template-columns:repeat(3,minmax(0,1fr))}}
+@media(max-width:640px){.research-context{padding:16px}.research-context-grid{grid-template-columns:repeat(2,minmax(0,1fr))}.research-plan-step{grid-template-columns:26px minmax(0,1fr)}}
