@@ -947,7 +947,7 @@ async function renderCapabilities(active='cells'){
       pane.innerHTML='<div class="page-intro capability-page-intro"><span class="kicker">能力庫</span><h2>我的能力地圖</h2><p>登入後，這裡會把可重用方法與你的真實能力證據分開呈現。</p></div>'+
         '<div class="capability-visual-layout">'+
           '<section class="capability-landscape is-locked"><div class="capability-scene" aria-hidden="true"><i class="cap-hill h1"></i><i class="cap-hill h2"></i><i class="cap-road"></i><i class="cap-sun"></i></div><div class="capability-locked-copy"><b>登入後載入能力地圖</b><span>不使用示範能力冒充你的資料。</span><button class="primary-btn" data-auth>登入查看能力</button></div></section>'+
-          '<aside class="capability-overview"><span class="kicker">能力總覽</span><div class="capability-ring" style="--evidence-pct:0"><strong>0</strong><span>已有證據</span></div><div class="capability-legend"><div><i class="lv-verified"></i><span>作品驗證</span><b>0</b></div><div><i class="lv-independent"></i><span>可獨立</span><b>0</b></div><div><i class="lv-developing"></i><span>發展中</span><b>0</b></div><div><i class="lv-exploring"></i><span>探索中</span><b>0</b></div></div></aside>'+
+          '<aside class="capability-overview"><span class="kicker">能力總覽</span><div class="capability-ring" style="--evidence-angle:0deg"><strong>0</strong><span>已有證據</span></div><div class="capability-legend"><div><i class="lv-verified"></i><span>作品驗證</span><b>0</b></div><div><i class="lv-independent"></i><span>可獨立</span><b>0</b></div><div><i class="lv-developing"></i><span>發展中</span><b>0</b></div><div><i class="lv-exploring"></i><span>探索中</span><b>0</b></div></div></aside>'+
         '</div>';
     }else{
       pane.innerHTML='<div class="empty">登入後才會顯示正式能力庫與個人技能證據。</div>';
@@ -1005,7 +1005,7 @@ async function renderCapabilities(active='cells'){
           '<section class="capability-landscape"><div class="capability-scene" aria-hidden="true"><i class="cap-hill h1"></i><i class="cap-hill h2"></i><i class="cap-hill h3"></i><i class="cap-road"></i><i class="cap-river"></i><i class="cap-sun"></i><i class="cap-person"></i></div>'+
             (mapNodes||'<div class="capability-locked-copy"><b>目前沒有能力方法資料</b><span>能力地圖會保持空白，不補假節點。</span></div>')+
           '</section>'+
-          '<aside class="capability-overview"><span class="kicker">能力總覽</span><div class="capability-ring" style="--evidence-pct:'+esc(evidencePct)+'"><strong>'+esc(evidenceCount)+'</strong><span>已有證據</span></div>'+
+          '<aside class="capability-overview"><span class="kicker">能力總覽</span><div class="capability-ring" style="--evidence-angle:'+esc(Math.round(evidencePct*3.6))+'deg'"><strong>'+esc(evidenceCount)+'</strong><span>已有證據</span></div>'+
             '<div class="capability-legend"><div><i class="lv-verified"></i><span>作品驗證</span><b>'+groups.verified+'</b></div><div><i class="lv-independent"></i><span>可獨立</span><b>'+groups.independent+'</b></div><div><i class="lv-developing"></i><span>發展中</span><b>'+groups.developing+'</b></div><div><i class="lv-exploring"></i><span>探索中</span><b>'+groups.exploring+'</b></div></div>'+
             '<div class="capability-recent"><b>最近能力證據</b>'+(recent.length?recent.map(s=>'<button type="button" data-capability-skills><span>'+esc(s.name_zh||s.name||human(s.skill_key||s.key))+'</span><small>'+esc(stateLabel(s.evidence_state||s.status))+'</small></button>').join(''):'<span class="muted">目前還沒有個人能力證據。</span>')+'</div>'+
             '<button class="primary-btn capability-library-btn" type="button" data-capability-skills>完整能力庫 →</button>'+
