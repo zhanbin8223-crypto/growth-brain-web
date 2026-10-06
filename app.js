@@ -909,25 +909,47 @@ async function renderResearch(active='today'){
   }catch(e){pane.innerHTML='<div class="empty">正式待辦載入失敗：'+esc(e.message||e)+'</div>'}
 }
 
-function renderHistory(active='personal'){
+async function renderHistory(active='personal'){
   const root=$('#view-history');
   if(!root)return;
   const tabs=[['personal','我的歷程'],['skills','能力變化'],['research','研究歷程'],['system','系統更新']];
-  root.innerHTML=iaTabs(tabs,active)+'<div id="historyPane" class="tab-pane"></div>';
+  root.innerHTML=iaTabs(tabs,active)+'<div id="historyPane" class="tab-pane"><div class="empty">正在讀取正式歷程…</div></div>';
   const pane=$('#historyPane');
 
-  if(active==='personal'){
-    const items=Array.isArray(home()?.recent_real_progress?.items)?home().recent_real_progress.items:[];
-    pane.innerHTML='<div class="page-intro"><span class="kicker">只讀歷史</span><h2>我的歷程</h2><p>只回答「以前發生了什麼」；現在的真實狀態仍回作品與能力庫查看。</p></div>'+
-      (items.length?'<div class="timeline">'+items.slice(0,12).map(p=>'<article class="timeline-item"><time>'+esc(p.occurred_at?new Date(p.occurred_at).toLocaleString('zh-TW'):'時間未記錄')+'</time><b>'+esc(p.title||'真實進展')+'</b><p>'+esc(p.summary||'')+'</p><small class="muted">來源：'+esc(p.source_type||'正式資料')+(p.evidence_level?' · 證據：'+esc(statusText(p.evidence_level)):'')+'</small></article>').join('')+'</div>':'<div class="timeline"><article class="timeline-item"><time>目前</time><b>還沒有可列入個人歷程的正式事件</b><p>只有真實完成、確認或有證據的事情才會進來。</p></article></div>');
-  }else if(active==='skills'){
-    pane.innerHTML='<div class="page-intro"><span class="kicker">證據才算變化</span><h2>能力變化</h2><p>未來只記錄「哪個證據讓能力狀態改變」，不把 AI 建議或研究當成學會。</p></div><div class="timeline"><article class="timeline-item"><time>待接事件層</time><b>目前不複製技能現況來假裝歷史</b><p>能力變化事件模型建立後才會顯示真正的前後狀態。</p></article></div>';
-  }else if(active==='research'){
-    pane.innerHTML='<div class="page-intro"><span class="kicker">研究生命週期</span><h2>研究歷程</h2><p>研究紀錄不會升級你的正式能力。</p></div><div class="timeline"><article class="timeline-item"><time>研究室 > 今日探索</time><b>探索候選與試驗紀錄已保存</b><p>目前請到研究室查看保留、忽略與試驗狀態；完整事件時間軸尚未接入。</p></article></div>';
+  if(A.liveStatus!=='live'){
+    pane.innerHTML='<div class="empty">登入後才會顯示正式歷程與更新紀錄。</div>';
   }else{
-    pane.innerHTML='<div class="page-intro"><span class="kicker">和個人資料分開</span><h2>系統更新</h2><p>網站、Worker、資料庫與 Skill 系統的更新只放這裡，不混進你的作品與能力。</p></div><div class="timeline"><article class="timeline-item"><time>待接系統更新事件</time><b>更新頁面已經獨立</b><p>下一步只接正式更新事件，不把「目前工作包狀態」複製成另一套真相。</p></article></div>';
+    try{
+      const H=await A.getHistory({force:true});
+      const groups={
+        personal:Array.isArray(H?.personal)?H.personal:[],
+        skills:Array.isArray(H?.skills)?H.skills:[],
+        research:Array.isArray(H?.research)?H.research:[],
+        system:Array.isArray(H?.system)?H.system:[]
+      };
+      const meta={
+        personal:['成長檔案館','我的歷程','只收真實選擇、完成與有證據的個人事件。'],
+        skills:['能力證據','能力變化','只顯示真的讓能力狀態改變的證據，不把 AI 建議當成學會。'],
+        research:['探索紀錄','研究歷程','候選、試驗、採用與拒絕保留自己的生命週期，不直接升級能力。'],
+        system:['版本檔案館','系統更新','網站、Worker、資料庫與 Skill 的更新跟個人成長分開保存。']
+      };
+      const list=groups[active]||[];
+      const [kicker,title,desc]=meta[active]||meta.personal;
+      const eventHtml=e=>'<article class="timeline-item">'+
+        '<time>'+esc(e.occurred_at?new Date(e.occurred_at).toLocaleString('zh-TW'):'時間未記錄')+'</time>'+
+        '<b>'+esc(e.title||'歷程事件')+'</b>'+
+        (e.summary?'<p>'+esc(e.summary)+'</p>':'')+
+        '<small class="muted">'+esc(e.source_type||'正式資料')+
+        (e.status?' · '+esc(statusText(e.status)):'')+
+        (e.evidence_level?' · 證據：'+esc(statusText(e.evidence_level)):'')+
+        '</small></article>';
+      pane.innerHTML='<div class="page-intro"><span class="kicker">'+kicker+'</span><h2>'+title+'</h2><p>'+desc+'</p></div>'+
+        (list.length?'<div class="timeline history-archive">'+list.slice(0,40).map(eventHtml).join('')+'</div>':
+        '<div class="timeline"><article class="timeline-item"><time>目前</time><b>還沒有符合條件的正式紀錄</b><p>這裡不會用目前狀態或示範資料補成假的歷史。</p></article></div>');
+    }catch(e){
+      pane.innerHTML='<div class="empty">歷程資料載入失敗：'+esc(e.message||e)+'</div>';
+    }
   }
-
   $$('[data-ia-tab]',root).forEach(b=>b.onclick=()=>renderHistory(b.dataset.iaTab));
 }
 
