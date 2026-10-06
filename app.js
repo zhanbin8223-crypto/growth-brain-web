@@ -83,7 +83,7 @@ function renderHome(){
     <header class="v4-page-head">
       <span class="v4-eyebrow">TODAY · 今天</span>
       <div><h2>現在只做這一步</h2><p>第二大腦的其他內容都先退後，直到它真的能幫目前這一步。</p></div>
-      <img class="v4-page-art" src="assets/ui/home-hero-workspace.webp" alt="" aria-hidden="true">
+      <img class="v4-page-art" data-image-placement="today.hero" src="assets/ui/home-hero-workspace.webp" alt="" aria-hidden="true">
     </header>
 
     <section class="focus-stage">
@@ -1050,7 +1050,7 @@ async function renderHistory(active='system'){
           '<div class="history-version-mark"><span>'+esc(s.version)+'</span></div>'+
           '<div><small>'+(s.state==='now'?'目前階段':'較早階段')+'</small><h3>'+esc(s.title)+'</h3><p>'+esc(s.summary)+'</p></div>'+
         '</article>').join('');
-        pane.innerHTML='<div class="v4-page-head"><span class="v4-eyebrow">HISTORY · 版本歷程</span><div><h2>第二大腦怎麼一路長到現在</h2><p>版本敘事與正式更新紀錄分開；這裡不做 Git log，也不拿現在狀態冒充歷史。</p></div><img class="v4-page-art" src="assets/ui/home-project-cover.webp" alt="" aria-hidden="true"></div>'+
+        pane.innerHTML='<div class="v4-page-head"><span class="v4-eyebrow">HISTORY · 版本歷程</span><div><h2>第二大腦怎麼一路長到現在</h2><p>版本敘事與正式更新紀錄分開；這裡不做 Git log，也不拿現在狀態冒充歷史。</p></div><img class="v4-page-art" data-image-placement="history.hero" src="assets/ui/home-project-cover.webp" alt="" aria-hidden="true"></div>'+
           '<section class="history-timeline-v4">'+stageHtml+'</section>'+
           '<details class="history-formal-log"><summary><span>正式更新紀錄</span><b>'+list.length+' 筆</b></summary>'+
             (list.length?'<div class="history-event-list">'+list.slice(0,30).map(eventHtml).join('')+'</div>':'<div class="empty">目前沒有可讀取的正式系統更新紀錄。</div>')+
@@ -1190,6 +1190,7 @@ async function renderSystem(){
       ${latest.next_action?.action?`<div class="evidence-box"><b>下一個系統動作</b><span>${esc(latest.next_action.action)}</span></div>`:''}
     </article>
 
+    ${window.GrowthImageFlow?.render(SYSTEM?.image_flow)||''}
     <div class="section-head"><div><h2>GPT 與資料庫怎麼連起來</h2><p>GPT 負責推理；Supabase 負責長期狀態與證據。未來換 API 或本地模型，網站流程不需要重寫。</p></div></div>
     <div class="surface">
       <div class="flow"><span>網站輸入</span><i>›</i><span>Supabase 保存</span><i>›</i><span>AI 任務</span><i>›</i><span>本機執行器</span><i>›</i><span>GPT 網頁版／API</span><i>›</i><span>結果＋證據回寫</span><i>›</i><span>網站顯示</span></div>
@@ -1258,7 +1259,7 @@ async function renderProjectsIA(active='gateway',notice=''){
   }else if(active==='gateway'){
     root.innerHTML=iaTabs(tabs,active)+'<div id="projectIaPane" class="tab-pane"><div class="empty">正在整理作品路徑…</div></div>';
     const pane=$('#projectIaPane');
-    const hero='<header class="v4-page-head project-v4-head"><span class="v4-eyebrow">ARTIFACTS · 作品</span><div><h2>我的作品路徑</h2><p>先看現在在哪、下一個候選在哪。登入後可直接在下方輸入一條新作品路徑。</p><button class="primary-btn project-new-route-btn" type="button" '+(A.liveStatus==='live'?'data-new-project-route':'data-auth')+'>'+(A.liveStatus==='live'?'↓ 輸入新作品路徑':'登入後新增路徑')+'</button></div><img class="v4-page-art" src="assets/ui/home-project-cover.webp" alt="" aria-hidden="true"></header>';
+    const hero='<header class="v4-page-head project-v4-head"><span class="v4-eyebrow">ARTIFACTS · 作品</span><div><h2>我的作品路徑</h2><p>先看現在在哪、下一個候選在哪。登入後可直接在下方輸入一條新作品路徑。</p><button class="primary-btn project-new-route-btn" type="button" '+(A.liveStatus==='live'?'data-new-project-route':'data-auth')+'>'+(A.liveStatus==='live'?'↓ 輸入新作品路徑':'登入後新增路徑')+'</button></div><img class="v4-page-art" data-image-placement="projects.hero" src="assets/ui/home-project-cover.webp" alt="" aria-hidden="true"></header>';
 
     if(A.liveStatus!=='live'){
       pane.innerHTML=hero+
@@ -1376,13 +1377,13 @@ async function renderProjectsIA(active='gateway',notice=''){
           }
           if(candidate){
             plannedCards.push('<article class="project-gateway-card is-locked">'+
-              '<span class="project-cover"><img class="project-cover-image" src="assets/ui/home-project-cover.webp" alt="" aria-hidden="true"><span class="project-cover-badge muted">預計作品</span></span>'+
+              '<span class="project-cover"><img class="project-cover-image" data-image-placement="projects.cover" src="assets/ui/home-project-cover.webp" alt="" aria-hidden="true"><span class="project-cover-badge muted">預計作品</span></span>'+
               '<span class="project-gateway-copy"><span class="project-family-row"><b class="project-name">'+esc(candidate.title||'下一件候選作品')+'</b></span><b class="project-version-title">等待你確認</b><span class="project-status">'+esc(statusText(candidate.status||'candidate'))+'</span><span class="project-progress">確認後才會進入正式作品，不會先算成進度。</span><span class="project-progress-track"><i style="width:0%"></i></span></span>'+
             '</article>');
           }
           if(planningJob&&planningJob.status&&!['completed','cancelled'].includes(String(planningJob.status).toLowerCase())){
             plannedCards.push('<article class="project-gateway-card is-locked">'+
-              '<span class="project-cover"><img class="project-cover-image" src="assets/ui/home-project-cover.webp" alt="" aria-hidden="true"><span class="project-cover-badge muted">規劃中</span></span>'+
+              '<span class="project-cover"><img class="project-cover-image" data-image-placement="projects.cover" src="assets/ui/home-project-cover.webp" alt="" aria-hidden="true"><span class="project-cover-badge muted">規劃中</span></span>'+
               '<span class="project-gateway-copy"><span class="project-family-row"><b class="project-name">下一件作品正在整理</b></span><b class="project-version-title">等待 GPT 規劃結果</b><span class="project-status">'+esc(statusText(planningJob.status||'pending'))+'</span><span class="project-progress">這只是規劃狀態，尚未成為正式作品。</span><span class="project-progress-track"><i style="width:0%"></i></span></span>'+
             '</article>');
           }
@@ -1507,7 +1508,7 @@ async function renderTeamIA(active='working'){
       const workTitle=currentArtifact?.title||'目前沒有 current 作品';
       const workStep=currentArtifact?.next_evidence_item?.criterion_text||currentArtifact?.objective||'先維持單一主線，沒有證據就不製造假任務。';
 
-      pane.innerHTML='<div class="v4-page-head"><span class="v4-eyebrow">TEAM · 團隊</span><div><h2>'+esc(heading)+'</h2><p>'+esc(desc)+'</p></div><img class="v4-page-art" src="assets/ui/home-hero-workspace.webp" alt="" aria-hidden="true"></div>'+
+      pane.innerHTML='<div class="v4-page-head"><span class="v4-eyebrow">TEAM · 團隊</span><div><h2>'+esc(heading)+'</h2><p>'+esc(desc)+'</p></div><img class="v4-page-art" data-image-placement="team.hero" src="assets/ui/home-hero-workspace.webp" alt="" aria-hidden="true"></div>'+
         '<div class="team-stage-layout">'+
           '<section class="team-orbit-stage">'+
             '<button class="team-current-work" type="button" data-jump="projects"><span>目前作品</span><b>'+esc(workTitle)+'</b><small>'+esc(workStep)+'</small></button>'+

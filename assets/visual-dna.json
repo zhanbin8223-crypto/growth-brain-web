@@ -1,0 +1,10 @@
+{
+  "id": "growth-brain-warm-studio-v1",
+  "style": "Warm editorial story illustration; gentle hand-painted texture and restrained detail",
+  "palette": ["#f6f0e5", "#fffdf8", "#29251f", "#c98533", "#5f8064"],
+  "lighting": "Soft warm daylight, low contrast",
+  "composition": "One clear subject; quiet space around UI copy; never replace navigation or data",
+  "reference_assets": ["assets/ui/home-hero-workspace.webp", "assets/ui/home-project-cover.webp"],
+  "avoid": ["fake screenshots", "fake results or revenue", "mastery badges", "embedded UI text", "unnecessary decoration", "new unrelated visual style"],
+  "truth_rule": "Illustration only; never evidence of completed work, learned skills, customers or revenue"
+}

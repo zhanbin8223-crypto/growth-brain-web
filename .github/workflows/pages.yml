@@ -26,6 +26,9 @@ jobs:
 
       - name: Validate frontend logic
         run: |
+          node --check image-assets.js
+          node --test validation/image-flow.test.mjs
+          node scripts/check-image-manifest.mjs
           node --check app.js
           node --check adapter.js
           node --check auth.js

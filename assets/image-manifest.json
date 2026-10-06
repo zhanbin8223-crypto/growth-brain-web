@@ -1,0 +1,17 @@
+{
+  "schema_version": 1,
+  "entries": [
+    {
+      "request_id": "b20014f2-9c47-4435-a2ed-f9758e7a4ddb",
+      "placement": "today.hero",
+      "path": "assets/generated/47b38559a52b95dad570ecc3ca723cbcf298fe6fc9f59e5bb58d7081685ccfbc.webp",
+      "sha256": "47b38559a52b95dad570ecc3ca723cbcf298fe6fc9f59e5bb58d7081685ccfbc",
+      "width": 243,
+      "height": 142,
+      "visual_dna_id": "growth-brain-warm-studio-v1",
+      "is_real_evidence": false,
+      "usage": "illustration",
+      "status": "reviewed"
+    }
+  ]
+}

@@ -1834,3 +1834,7 @@ button.project-route-node{cursor:pointer}
   .v4-page-art{width:100%;height:130px;order:3}
   .project-new-route-panel{padding:16px}
 }
+
+.image-flow-panel details{padding:14px 0;border-top:1px solid var(--line)}
+.image-flow-panel summary{cursor:pointer;font-weight:600}
+.image-flow-panel textarea{width:100%;min-height:180px;color:var(--ink);background:var(--paper);resize:vertical}

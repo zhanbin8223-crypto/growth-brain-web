@@ -1,0 +1,4 @@
+<!doctype html><html lang="zh-Hant"><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>圖片流程驗收｜合成資料</title><link rel="stylesheet" href="../styles.css"><body><main class="main"><h1>圖片流程驗收</h1><p>本頁只用合成需求，沒有個人作品或能力資料。</p><img id="asset" src="../assets/ui/home-hero-workspace.webp" alt="既有工作室示意插圖"><div id="preview"></div></main><script src="../image-assets.js"></script><script>
+const r={reason:'這是測試用的插圖需求；不代表真實作品或能力。',image_required:true,prompt:'柔和暖色工作室插圖，沿用現有風格。',placement:'today.hero',aspect_ratio:'16:9',visual_dna:{id:'growth-brain-warm-studio-v1'},is_real_evidence:false,purpose:'illustration'};
+document.querySelector('#preview').innerHTML=GrowthImageFlow.render({requests:['awaiting_generation','asset_ready','qa_failed','completed','skipped'].map(state=>({state,request:r}))});
+</script></body></html>
