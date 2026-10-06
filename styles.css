@@ -1291,8 +1291,8 @@ button.today-skill-mini{cursor:pointer}
   box-shadow:0 12px 30px rgba(88,68,36,.055)
 }
 .capability-ring{
-  --evidence-pct:0;position:relative;width:128px;height:128px;margin:15px auto 18px;border-radius:50%;
-  display:grid;place-items:center;align-content:center;background:conic-gradient(#d19a50 calc(var(--evidence-pct)*1%),#9ab9af 0 72%,#d6c7a8 0 88%,#ece5d8 0);
+  --evidence-angle:0deg;position:relative;width:128px;height:128px;margin:15px auto 18px;border-radius:50%;
+  display:grid;place-items:center;align-content:center;background:conic-gradient(#c97e4f 0 var(--evidence-angle),#ece5d8 var(--evidence-angle) 100%);
   box-shadow:inset 0 0 0 18px #fffdf8
 }
 .capability-ring:after{content:"";position:absolute;inset:26px;border-radius:50%;background:#fffdf8}
