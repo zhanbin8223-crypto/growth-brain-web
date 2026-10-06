@@ -25,6 +25,15 @@ test('能力細胞可展開正式使用步驟與證據要求',()=>{
   assert.match(app,/quick_use/);
   assert.match(app,/required_evidence/);
   assert.match(app,/failure_points/);
-  assert.match(css,/\.capability-layout/);
-  assert.match(css,/\.capability-cell/);
+  assert.match(css,/\.capability-visual-layout/);
+  assert.match(css,/\.capability-map-node/);
+});
+
+test('能力首頁改成地圖與證據總覽，不把參考方法當個人掌握',()=>{
+  assert.ok(app.includes("['cells','能力地圖']"));
+  assert.match(app,/capability-landscape/);
+  assert.match(app,/capability-overview/);
+  assert.match(app,/capability-ring/);
+  assert.match(app,/已有證據/);
+  assert.match(app,/方法存在不等於掌握/);
 });
