@@ -1103,14 +1103,47 @@ function teamRoleName(r){
   return TEAM_ROLE_LABELS[key]||r?.role_name||human(key||'AI 角色');
 }
 
-async function renderProjectsIA(active='current'){
+async function renderProjectsIA(active='gateway'){
   const root=$('#view-projects');
   if(!root)return;
-  const tabs=[['current','目前作品'],['path','作品路徑'],['done','已完成']];
+  const tabs=[['gateway','作品入口'],['current','目前作品'],['path','作品路徑'],['done','已完成']];
 
   if(active==='current'){
     await renderProjects();
     root.insertAdjacentHTML('afterbegin',iaTabs(tabs,active));
+  }else if(active==='gateway'){
+    root.innerHTML=iaTabs(tabs,active)+'<div id="projectIaPane" class="tab-pane"><div class="empty">正在整理作品入口…</div></div>';
+    const pane=$('#projectIaPane');
+    if(A.liveStatus!=='live'){
+      pane.innerHTML='<div class="empty">登入後才會顯示你已選定的作品路徑。</div>';
+    }else{
+      try{
+        const [outcome,artifacts]=await Promise.all([A.getPersonalOutcome(),A.getPersonalArtifacts({force:true})]);
+        const selected=outcome?.selected_route||null;
+        const current=artifacts?.current||null;
+        const cards=[];
+        if(current){
+          const p=current.progress_summary||{};
+          const total=Number(p.total||current.evidence_progress?.length||0);
+          const confirmed=Number(p.confirmed||0);
+          cards.push('<button class="project-gateway-card is-current" type="button" data-open-project-detail>'+
+            '<span class="project-cover"><span>'+esc((current.title||'作品').slice(0,2))+'</span></span>'+
+            '<span class="project-gateway-copy"><small>進行中的作品</small><b>'+esc(current.title||'目前作品')+'</b><p>'+esc(current.objective||current.deliverable||'')+'</p>'+
+            '<span class="project-progress">'+esc(confirmed)+' / '+esc(total||'?')+' 個完成證據</span></span>'+
+            '<span class="project-enter">進入作品 →</span></button>');
+        }else if(selected){
+          cards.push('<button class="project-gateway-card" type="button" data-open-project-detail>'+
+            '<span class="project-cover"><span>'+esc((selected.title||'路徑').slice(0,2))+'</span></span>'+
+            '<span class="project-gateway-copy"><small>已選定路徑</small><b>'+esc(selected.title||'已選定作品路徑')+'</b><p>'+esc(selected.why_now||selected.success_evidence||'等待建立第一件正式作品。')+'</p></span>'+
+            '<span class="project-enter">查看路徑 →</span></button>');
+        }
+        pane.innerHTML='<div class="page-intro"><span class="kicker">我的作品牆</span><h2>只放我真的選定要走的作品</h2><p>第一層只用來選作品；點進去後，原本的目標、步驟、證據、能力與卡點功能全部保留。</p></div>'+
+          '<div class="project-gateway-grid">'+(cards.length?cards.join(''):'<div class="empty">目前還沒有已選定的作品路徑。</div>')+'</div>';
+        $('[data-open-project-detail]',pane)?.addEventListener('click',()=>renderProjectsIA('current'));
+      }catch(e){
+        pane.innerHTML='<div class="empty">作品入口載入失敗：'+esc(e.message||e)+'</div>';
+      }
+    }
   }else{
     root.innerHTML=iaTabs(tabs,active)+'<div id="projectIaPane" class="tab-pane"><div class="empty">正在整理作品資料…</div></div>';
     const pane=$('#projectIaPane');
@@ -1283,7 +1316,7 @@ function setView(name,subtab){
     synapse:'知識關係'
   };
   $('#pageTitle').textContent=t[name]||t.home;
-  if(name==='projects')renderProjectsIA(subtab||'current');
+  if(name==='projects')renderProjectsIA(subtab||'gateway');
   if(name==='capabilities')renderCapabilities(subtab||'cells');
   if(name==='research')renderResearch(subtab||'today');
   if(name==='history')renderHistory();
