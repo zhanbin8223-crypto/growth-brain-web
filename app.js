@@ -946,7 +946,7 @@ async function renderCapabilities(active='cells'){
     if(active==='cells'){
       pane.innerHTML='<div class="page-intro capability-page-intro"><span class="kicker">能力庫</span><h2>我的能力地圖</h2><p>登入後，這裡會把可重用方法與你的真實能力證據分開呈現。</p></div>'+
         '<div class="capability-visual-layout">'+
-          '<section class="capability-landscape is-locked"><div class="capability-scene" aria-hidden="true"><i class="cap-hill h1"></i><i class="cap-hill h2"></i><i class="cap-road"></i><i class="cap-sun"></i></div><div class="capability-locked-copy"><b>登入後載入能力地圖</b><span>不使用示範能力冒充你的資料。</span><button class="primary-btn" data-auth>登入查看能力</button></div></section>'+
+          '<section class="capability-landscape is-locked"><div class="capability-map-stage" aria-hidden="true"><img class="capability-map-art" src="assets/ui/capability-map-illustration.webp" alt=""></div><div class="capability-locked-copy"><b>登入後載入能力地圖</b><span>不使用示範能力冒充你的資料。</span><button class="primary-btn" data-auth>登入查看能力</button></div></section>'+
           '<aside class="capability-overview"><span class="kicker">能力總覽</span><div class="capability-ring" style="--evidence-angle:0deg"><strong>0</strong><span>已有證據</span></div><div class="capability-legend"><div><i class="lv-verified"></i><span>作品驗證</span><b>0</b></div><div><i class="lv-independent"></i><span>可獨立</span><b>0</b></div><div><i class="lv-developing"></i><span>發展中</span><b>0</b></div><div><i class="lv-exploring"></i><span>探索中</span><b>0</b></div></div></aside>'+
         '</div>';
     }else{
@@ -1002,9 +1002,9 @@ async function renderCapabilities(active='cells'){
       const recent=personalSkills.slice(0,5);
       pane.innerHTML='<div class="page-intro capability-page-intro"><span class="kicker">能力庫</span><h2>我的能力地圖</h2><p>從真實作品中累積能力，讓每一個技能都有證據。地圖上的方法可以探索，但不會自動算成你已經學會。</p></div>'+
         '<div class="capability-visual-layout">'+
-          '<section class="capability-landscape"><div class="capability-scene" aria-hidden="true"><i class="cap-hill h1"></i><i class="cap-hill h2"></i><i class="cap-hill h3"></i><i class="cap-road"></i><i class="cap-river"></i><i class="cap-sun"></i><i class="cap-person"></i></div>'+
+          '<section class="capability-landscape"><div class="capability-map-stage"><img class="capability-map-art" src="assets/ui/capability-map-illustration.webp" alt="" aria-hidden="true">'+
             (mapNodes||'<div class="capability-locked-copy"><b>目前沒有能力方法資料</b><span>能力地圖會保持空白，不補假節點。</span></div>')+
-          '</section>'+
+          '</div></section>'+
           '<aside class="capability-overview"><span class="kicker">能力總覽</span><div class="capability-ring" style="--evidence-angle:'+esc(Math.round(evidencePct*3.6))+'deg"><strong>'+esc(evidenceCount)+'</strong><span>已有證據</span></div>'+
             '<div class="capability-legend"><div><i class="lv-verified"></i><span>作品驗證</span><b>'+groups.verified+'</b></div><div><i class="lv-independent"></i><span>可獨立</span><b>'+groups.independent+'</b></div><div><i class="lv-developing"></i><span>發展中</span><b>'+groups.developing+'</b></div><div><i class="lv-exploring"></i><span>探索中</span><b>'+groups.exploring+'</b></div></div>'+
             '<div class="capability-recent"><b>最近能力證據</b>'+(recent.length?recent.map(s=>'<button type="button" data-capability-skills><span>'+esc(s.name_zh||s.name||human(s.skill_key||s.key))+'</span><small>'+esc(stateLabel(s.evidence_state||s.status))+'</small></button>').join(''):'<span class="muted">目前還沒有個人能力證據。</span>')+'</div>'+
@@ -1329,7 +1329,7 @@ async function renderProjectsIA(active='gateway',notice=''){
   }else if(active==='gateway'){
     root.innerHTML=iaTabs(tabs,active)+'<div id="projectIaPane" class="tab-pane"><div class="empty">正在整理作品入口…</div></div>';
     const pane=$('#projectIaPane');
-    const hero='<section class="project-page-hero"><div><span class="today-overline">ARTIFACTS · 作品</span><h2>我的作品</h2><p>選定路徑的作品，從想法走向可見成果。第一層只看作品本身；目標、步驟與證據進入作品後再看。</p></div><img class="project-hero-image" src="assets/ui/home-project-cover.webp" alt="" aria-hidden="true"></section>';
+    const hero='<section class="project-page-hero"><div class="project-hero-copy"><span class="today-overline">ARTIFACTS · 作品</span><h2>我的作品</h2><p>選定路徑的作品，從想法走向可見成果。第一層只看作品本身；目標、步驟與證據進入作品後再看。</p><div class="project-hero-actions">'+(A.liveStatus==='live'?'<button class="primary-btn project-new-route-btn" type="button" data-new-project-route>＋ 新作品路徑</button>':'<button class="primary-btn project-new-route-btn" type="button" data-auth>登入後新增路徑</button>')+'</div></div><img class="project-hero-image" src="assets/ui/home-project-cover.webp" alt="" aria-hidden="true"></section>';
 
     if(A.liveStatus!=='live'){
       pane.innerHTML=hero+
@@ -1342,8 +1342,18 @@ async function renderProjectsIA(active='gateway',notice=''){
       try{
         const [outcome,artifacts]=await Promise.all([A.getPersonalOutcome(),A.getPersonalArtifacts({force:true})]);
         const selected=outcome?.selected_route||null;
+        const candidateRoute=outcome?.candidate_route||null;
         const current=artifacts?.current||null;
         const cards=[];
+        const routeForm='<section class="project-new-route-panel" data-new-route-panel hidden>'+
+          '<div class="row-between"><div><span class="kicker">建立候選路徑</span><h3>新增一條作品路徑</h3><p>先說想做什麼；這只建立候選路徑，不會切換目前主線。一次保留一條候選，若已有候選會更新它。</p></div><button class="ghost-btn small" type="button" data-cancel-new-route>關閉</button></div>'+
+          '<form id="newProjectRouteForm" class="project-form">'+
+            '<label><b>路徑名稱／想完成什麼</b><textarea id="newProjectRouteTitle" placeholder="例如：建立一條 AI 短影音變現路徑"></textarea></label>'+
+            '<label><b>怎樣算往前一步（可留空）</b><textarea id="newProjectRouteEvidence" placeholder="例如：先完成 3 支內容並取得真實流量；不知道可留空"></textarea></label>'+
+            '<details><summary>補充：為什麼現在想做</summary><textarea id="newProjectRouteWhy" placeholder="可選填"></textarea></details>'+
+            '<div class="row-between"><div id="newProjectRouteMsg" class="muted">保存後會交給 GPT 拆候選作品；不會自動取代目前主線。</div><button class="primary-btn" type="submit">建立候選路徑</button></div>'+
+          '</form>'+
+        '</section>';
         if(current){
           const p=current.progress_summary||{};
           const items=Array.isArray(current.evidence_progress)?current.evidence_progress:[];
@@ -1377,8 +1387,38 @@ async function renderProjectsIA(active='gateway',notice=''){
             '<span class="project-enter">查看路徑 →</span></button>');
         }
         pane.innerHTML=hero+
-          '<div class="project-gallery">'+(cards.length?cards.join(''):'<div class="project-empty-gallery"><span>◇</span><b>目前還沒有已選定的作品</b><p>先回「今天」確定唯一下一步；需要形成作品時，再從這裡開始。</p></div>')+'</div>';
+          (notice?'<div class="project-route-notice">'+esc(notice)+'</div>':'')+
+          routeForm+
+          '<div class="project-gallery">'+(cards.length?cards.join(''):'<div class="project-empty-gallery"><span>◇</span><b>目前還沒有已選定的作品</b><p>你可以直接用上方「＋ 新作品路徑」建立候選，不需要先去別頁找入口。</p></div>')+'</div>';
         $('[data-open-project-detail]',pane)?.addEventListener('click',()=>renderProjectsIA('current'));
+        const routePanel=$('[data-new-route-panel]',pane);
+        $('[data-new-project-route]',pane)?.addEventListener('click',()=>{
+          routePanel.hidden=false;
+          $('#newProjectRouteTitle',pane)?.focus();
+          routePanel.scrollIntoView({behavior:'smooth',block:'nearest'});
+        });
+        $('[data-cancel-new-route]',pane)?.addEventListener('click',()=>{routePanel.hidden=true;});
+        $('#newProjectRouteForm',pane)?.addEventListener('submit',async e=>{
+          e.preventDefault();
+          const title=$('#newProjectRouteTitle',pane)?.value?.trim()||'';
+          const providedEvidence=$('#newProjectRouteEvidence',pane)?.value?.trim()||'';
+          const successEvidence=providedEvidence||'先由 GPT 拆解第一件可驗證作品，再以真實作品結果逐步確認完成標準。';
+          const whyNow=$('#newProjectRouteWhy',pane)?.value?.trim()||'';
+          const msg=$('#newProjectRouteMsg',pane);
+          const submit=e.currentTarget.querySelector('button[type="submit"]');
+          if(title.length<3){msg.textContent='請至少寫 3 個字，告訴我這條路徑想完成什麼。';return;}
+          submit.disabled=true;
+          try{
+            msg.textContent='正在保存候選路徑…';
+            await A.savePersonalOutcomeCandidate({title,successEvidence,whyNow,directionKey:null});
+            D=await A.getSnapshot();
+            renderHome();
+            await renderProjectsIA('planned','新作品路徑已保存為候選；尚未取代目前主線。');
+          }catch(err){
+            submit.disabled=false;
+            msg.textContent=err.message||'候選路徑保存失敗';
+          }
+        });
       }catch(e){
         pane.innerHTML=hero+'<div class="empty">作品入口載入失敗：'+esc(e.message||e)+'</div>';
       }
@@ -1391,14 +1431,23 @@ async function renderProjectsIA(active='gateway',notice=''){
       pane.innerHTML='<div class="empty">登入後才會顯示正式作品資料。</div>';
     }else{
       try{
-        const artifacts=await A.getPersonalArtifacts({force:true});
+        const [outcome,artifacts]=await Promise.all([A.getPersonalOutcome(),A.getPersonalArtifacts({force:true})]);
         const current=artifacts?.current||null;
         const candidate=artifacts?.candidate||null;
-        const planningJob=artifacts?.next_plan_job||null;
+        const candidateRoute=outcome?.candidate_route||null;
+        const planningJob=artifacts?.next_plan_job||candidateRoute?.path_plan||null;
         const history=Array.isArray(artifacts?.history)?artifacts.history:[];
 
         if(active==='planned'){
           const plannedCards=[];
+          if(candidateRoute){
+            plannedCards.push('<article class="project-route-candidate">'+
+              '<div><span class="kicker">候選作品路徑</span><h3>'+esc(candidateRoute.title||'未命名候選路徑')+'</h3><p>'+esc(candidateRoute.success_evidence||'等待補上完成方向')+'</p>'+
+                (candidateRoute.why_now?'<small>'+esc(candidateRoute.why_now)+'</small>':'')+
+              '</div>'+
+              '<div class="project-actions"><button class="primary-btn" type="button" data-select-route-id="'+esc(candidateRoute.id)+'">設為目前主線</button><button class="ghost-btn" type="button" data-reject-route-id="'+esc(candidateRoute.id)+'">刪除候選</button></div>'+
+            '</article>');
+          }
           if(candidate){
             plannedCards.push('<article class="project-gateway-card is-locked">'+
               '<span class="project-cover"><img class="project-cover-image" src="assets/ui/home-project-cover.webp" alt="" aria-hidden="true"><span class="project-cover-badge muted">預計作品</span></span>'+
@@ -1411,8 +1460,25 @@ async function renderProjectsIA(active='gateway',notice=''){
               '<span class="project-gateway-copy"><span class="project-family-row"><b class="project-name">下一件作品正在整理</b></span><b class="project-version-title">等待 GPT 規劃結果</b><span class="project-status">'+esc(statusText(planningJob.status||'pending'))+'</span><span class="project-progress">這只是規劃狀態，尚未成為正式作品。</span><span class="project-progress-track"><i style="width:0%"></i></span></span>'+
             '</article>');
           }
-          pane.innerHTML='<div class="page-intro"><span class="kicker">接下來</span><h2>預計作品</h2><p>只顯示已存在的候選或規劃中作品；沒有正式資料就保持空白，不補假的作品。</p></div>'+
-            (plannedCards.length?'<div class="project-gallery">'+plannedCards.join('')+'</div>':'<div class="empty">目前沒有預計作品。</div>');
+          pane.innerHTML='<div class="page-intro"><span class="kicker">接下來</span><h2>預計作品</h2><p>候選作品路徑、候選作品與規劃中的下一件作品都放在這裡；候選不等於目前主線。</p></div>'+
+            (notice?'<div class="project-route-notice">'+esc(notice)+'</div>':'')+
+            (plannedCards.length?'<div class="project-planned-stack">'+plannedCards.join('')+'</div>':'<div class="empty">目前沒有預計作品。回到「進行中」可用「＋ 新作品路徑」建立候選。</div>');
+          $('[data-select-route-id]',pane)?.addEventListener('click',async e=>{
+            const btn=e.currentTarget;btn.disabled=true;
+            try{
+              await A.decidePersonalOutcomeCandidate({routeId:btn.dataset.selectRouteId,decision:'select'});
+              D=await A.getSnapshot();renderHome();
+              await renderProjectsIA('gateway','候選路徑已設為目前主線；GPT 會依這條路徑整理下一件候選作品。');
+            }catch(err){btn.disabled=false;pane.querySelector('.project-route-notice')?.remove();alert(err.message||'設定主線失敗');}
+          });
+          $('[data-reject-route-id]',pane)?.addEventListener('click',async e=>{
+            const btn=e.currentTarget;btn.disabled=true;
+            try{
+              await A.decidePersonalOutcomeCandidate({routeId:btn.dataset.rejectRouteId,decision:'reject'});
+              D=await A.getSnapshot();renderHome();
+              await renderProjectsIA('planned','候選路徑已刪除，沒有改動目前主線。');
+            }catch(err){btn.disabled=false;alert(err.message||'刪除候選失敗');}
+          });
         }else{
           const completed=history.filter(x=>['completed','done'].includes(String(x.status||'').toLowerCase())||x.completed_at);
           pane.innerHTML='<div class="page-intro"><span class="kicker">完成紀錄</span><h2>已完成作品</h2><p>這裡只展示已存在的正式作品紀錄，不用系統工作包冒充個人成果。</p></div>'+
