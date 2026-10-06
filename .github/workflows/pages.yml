@@ -45,6 +45,7 @@ jobs:
           node --test validation/team-studio.test.mjs
           node --test validation/ux-repair-20261007.test.mjs
           node --test validation/employee-reviewed-redesign-v4.test.mjs
+          node --test validation/signedin-ux-regression.test.mjs
           for file in worker/*.mjs; do
             node --check "$file"
           done
