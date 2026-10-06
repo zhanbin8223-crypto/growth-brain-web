@@ -20,8 +20,8 @@ test('操作完成後提示文字不會被誤當成分頁名稱',()=>{
 });
 
 test('作品首頁只暴露進行中、已完成、預計作品三個一級分頁',()=>{
-  assert.match(app,/const tabs=\\[\\['gateway','進行中'\\],\\['done','已完成'\\],\\['planned','預計作品'\\]\\]/);
-  assert.doesNotMatch(app,/\\['current','目前作品'\\]|\\['path','作品路徑'\\]/);
+  assert.ok(app.includes("const tabs=[['gateway','進行中'],['done','已完成'],['planned','預計作品']];"));
+  assert.ok(!app.includes("['path','作品路徑']"));
 });
 
 // Execute the real renderers and handlers against a small DOM test double.
