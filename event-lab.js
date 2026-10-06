@@ -90,7 +90,13 @@
       const message=container.querySelector('.lab-message')||modal?.querySelector('#funnelMsg');b.disabled=true;
       try{
         if(b.dataset.labRetry)await act('retry',{job_id:b.dataset.labRetry});
-        else if(b.dataset.labSend){await act('send_research',{job_id:b.dataset.labSend});closeFunnel();navigate('research');return;}
+        else if(b.dataset.labSend){
+          const sourceId=b.dataset.labSend;
+          await act('send_research',{job_id:sourceId});
+          const output=jobs().find(j=>j.id===sourceId)?.output,topic=output?.topic_key||output?.goal;
+          const item=arr(snapshot?.items).find(x=>x.job_id===sourceId||(topic&&(x.topic_key===topic||x.title===topic)));
+          filter=item?.state||'active';closeFunnel();navigate('research');return;
+        }
         else await act(b.dataset.labDecision,{item_id:b.dataset.labItem});
         if(root?.classList.contains('active'))paintResearch();if(modal?.classList.contains('show'))renderFunnelResult();
       }catch(e){if(message)message.textContent=errorText(e);}finally{b.disabled=false;}
