@@ -41,6 +41,7 @@ jobs:
           node --test validation/research-context.test.mjs
           node --test validation/today-focus.test.mjs
           node --test validation/today-visual.test.mjs\n          node --test validation/history-archive.test.mjs
+          node --test validation/team-studio.test.mjs
           for file in worker/*.mjs; do
             node --check "$file"
           done

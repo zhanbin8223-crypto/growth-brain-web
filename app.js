@@ -1105,10 +1105,10 @@ async function renderHistory(active='system'){
       if(active==='system'){
         const list=groups.system;
         const stages=[
-          {version:'V3',title:'互動式 Growth Brain 網站',state:'now',summary:'把今天、作品、能力、研究、AI 團隊與歷程做成可以探索、彼此有關聯的個人第二大腦。',points:['六區一致 Visual DNA','角色／作品／能力關聯','作品入口與詳細頁分層']},
-          {version:'V2',title:'Worker / 事件漏斗',state:'past',summary:'把任務送進固定 GPT 對話、回寫結果與證據，並讓研究候選不污染正式真相。',points:['Worker 閉環','事件漏斗','候選與正式資料分離']},
-          {version:'V1.5',title:'作品、能力、員工',state:'past',summary:'從只有資料，走到可以看作品、能力證據與 AI 員工分工。',points:['作品序列','能力證據','AI 員工／角色']},
-          {version:'V1',title:'資料庫與基本網站',state:'past',summary:'建立 Supabase 與基本網站，讓資料有正式來源，而不是只存在聊天裡。',points:['正式資料來源','基本網站','資料與聊天記憶分離']}
+          {version:'V3',title:'互動式 Growth Brain 網站',state:'now',image:'assets/ui/home-project-cover.webp',summary:'把今天、作品、能力、研究、AI 團隊與歷程做成可以探索、彼此有關聯的個人第二大腦。',points:['六區一致 Visual DNA','角色／作品／能力關聯','作品入口與詳細頁分層']},
+          {version:'V2',title:'Worker / 事件漏斗',state:'past',image:'assets/ui/home-hero-workspace.webp',summary:'把任務送進固定 GPT 對話、回寫結果與證據，並讓研究候選不污染正式真相。',points:['Worker 閉環','事件漏斗','候選與正式資料分離']},
+          {version:'V1.5',title:'作品、能力、員工',state:'past',image:'assets/ui/home-hero-workspace.webp',summary:'從只有資料，走到可以看作品、能力證據與 AI 員工分工。',points:['作品序列','能力證據','AI 員工／角色']},
+          {version:'V1',title:'資料庫與基本網站',state:'past',image:'assets/ui/home-project-cover.webp',summary:'建立 Supabase 與基本網站，讓資料有正式來源，而不是只存在聊天裡。',points:['正式資料來源','基本網站','資料與聊天記憶分離']}
         ];
         const stageHtml=stages.map((s,i)=>'<article class="version-stage '+esc(s.state)+'">'+
           '<div class="version-marker"><span>'+esc(s.version)+'</span></div>'+
@@ -1117,6 +1117,7 @@ async function renderHistory(active='system'){
             '<p>'+esc(s.summary)+'</p>'+
             '<div class="version-points">'+s.points.map(p=>'<span>'+esc(p)+'</span>').join('')+'</div>'+
           '</div>'+
+          '<img class="version-stage-image" src="'+esc(s.image)+'" alt="" aria-hidden="true">'+
         '</article>').join('');
         pane.innerHTML='<div class="page-intro history-intro"><span class="kicker">成長檔案館</span><h2>不是 Git log，而是看第二大腦怎麼一階段一階段長出來</h2><p>版本區只描述產品階段；下方「正式更新紀錄」才直接讀取資料庫事件。兩者分開，避免把敘事當成證據。</p></div>'+
           '<div class="version-archive">'+stageHtml+'</div>'+
@@ -1489,16 +1490,15 @@ async function renderTeamIA(active='working'){
         if(catalog==='runtime'||['active','available','installed','builtin'].includes(status)||['builtin','installed'].includes(r.availability))return {text:'可調用',cls:'ready'};
         return {text:'待驗證',cls:'unknown'};
       };
-      const roleCard=r=>{
+      const roleCard=(r,i=0)=>{
         const name=teamRoleName(r);
         const ps=relatedPackages(r.skill_key);
         const tools=roleTools(r);
         const state=roleState(r);
         const recentlyUsed=recent.some(x=>x.skill_key===r.skill_key);
-        return '<button class="studio-person" type="button" data-team-role="'+esc(r.skill_key)+'">'+
+        return '<button class="studio-person s'+((i%6)+1)+'" type="button" data-team-role="'+esc(r.skill_key)+'">'+
           '<span class="studio-avatar" aria-hidden="true">'+esc((name||'AI').slice(0,1))+'</span>'+
-          '<span class="studio-person-copy"><small>'+esc(roleCapability(r))+'</small><b>'+esc(name)+'</b><span>'+esc(r.notes||r.trigger_summary||'依目前任務需要提供專業支援。')+'</span></span>'+
-          '<span class="studio-meta"><i class="role-state-dot '+esc(state.cls)+'"></i>'+esc(state.text)+(recentlyUsed?' · 最近有使用':'')+'</span>'+
+          '<span class="studio-person-copy"><b>'+esc(name)+'</b><small><i class="role-state-dot '+esc(state.cls)+'"></i>'+esc(state.text)+(recentlyUsed?' · 最近使用':'')+'</small></span>'+
           (ps.length?'<span class="studio-work-dot">工作 '+ps.length+'</span>':'')+
           (tools.length?'<span class="studio-tool-dot" title="'+esc(tools.join('、'))+'">工具 '+tools.length+'</span>':'')+
         '</button>';
@@ -1507,16 +1507,16 @@ async function renderTeamIA(active='working'){
       let shown=[];
       let intro='';
       if(active==='working'){
-        shown=unique(recent.map(mergeUsage)).slice(0,8);
-        if(!shown.length) shown=roles.slice(0,8);
+        shown=unique(recent.map(mergeUsage)).slice(0,6);
+        if(!shown.length) shown=roles.slice(0,6);
         intro='<div class="page-intro team-intro"><span class="kicker">AI 團隊工作室</span><h2>現在誰在幫我</h2><p>先看正在參與工作的角色。碰到一個人，只亮起有正式資料關聯的工作與合作角色；沒有證據的關聯不補猜。</p></div>';
       }else if(active==='teachers'){
         const teacherKeys=new Set(['ceo-orchestrator','goal-closure-operator','logic-reality-analyst','product-flow-architect','impeccable','frontend-design-lead','evaluation','instructional-design-specialist']);
-        shown=allRoles.filter(r=>teacherKeys.has(r.skill_key));
+        shown=allRoles.filter(r=>teacherKeys.has(r.skill_key)).slice(0,6);
         intro='<div class="page-intro team-intro"><span class="kicker">陪你完成作品</span><h2>我的老師</h2><p>拆解、教學、驗證與陪跑角色集中在這裡。候選與試用角色會清楚標示，不會冒充正式已驗證員工。</p></div>';
       }else{
         const researchKeys=/scout|architect|synapse|research|impeccable|frontend|graph|instructional/i;
-        shown=allRoles.filter(r=>researchKeys.test(r.skill_key||''));
+        shown=allRoles.filter(r=>researchKeys.test(r.skill_key||'')).slice(0,6);
         intro='<div class="page-intro team-intro"><span class="kicker">探索區</span><h2>研究員</h2><p>研究員負責把未知變成可驗證候選。研究結果先進候選／試驗，不直接改作品、能力或正式真相。</p></div>';
       }
 
@@ -1529,23 +1529,21 @@ async function renderTeamIA(active='working'){
         :'<div class="team-context-artifact is-empty"><span>目前作品</span><b>尚未選定</b><small>先維持一條主線；團隊不會自行新增作品。</small></div>';
 
       pane.innerHTML=intro+
-        '<div class="team-context-bar">'+
-          '<div class="team-stat"><strong>'+shown.length+'</strong><span>這一區角色</span></div>'+
-          '<div class="team-stat"><strong>'+readyCount+'</strong><span>可直接調用</span></div>'+
-          '<div class="team-stat"><strong>'+trialCount+'</strong><span>候選／試用</span></div>'+
-          '<div class="team-stat"><strong>'+activePackages.length+'</strong><span>進行中工作</span></div>'+
-          (blockedPackages.length?'<div class="team-stat alert"><strong>'+blockedPackages.length+'</strong><span>受阻工作</span></div>':'')+
+        '<div class="team-summary-strip">'+
           currentArtifactHtml+
+          '<div class="team-summary-stat"><strong>'+shown.length+'</strong><span>這一區角色</span></div>'+
+          '<div class="team-summary-stat"><strong>'+readyCount+'</strong><span>可直接調用</span></div>'+
+          '<div class="team-summary-stat"><strong>'+trialCount+'</strong><span>候選／試用</span></div>'+
+          '<div class="team-summary-stat"><strong>'+activePackages.length+'</strong><span>進行中工作</span></div>'+
+          (blockedPackages.length?'<div class="team-summary-stat alert"><strong>'+blockedPackages.length+'</strong><span>受阻</span></div>':'')+
         '</div>'+
         '<div class="team-studio">'+
-          '<section class="studio-floor" aria-label="AI 團隊角色">'+
-            '<div class="studio-scene" aria-hidden="true">'+
-              '<span class="studio-window"></span><span class="studio-shelf"><i></i><i></i><i></i></span>'+
-              '<span class="studio-lamp">⌁</span><span class="studio-plant">❧</span><span class="studio-desk">Growth Brain 工作桌</span>'+
-            '</div>'+
-            '<div class="studio-people">'+(shown.length?shown.map(roleCard).join(''):'<div class="empty">目前沒有符合這個區域的正式角色資料。</div>')+'</div>'+
+          '<section class="studio-floor studio-floor-spatial" aria-label="AI 團隊角色">'+
+            '<div class="studio-scene-image" aria-hidden="true"><img src="assets/ui/home-hero-workspace.webp" alt=""></div>'+
+            '<div class="studio-room-overlay" aria-hidden="true"><span class="studio-room-title">Growth Brain 工作室</span><span class="studio-room-note">Hover 看關係 · Click 看詳細</span></div>'+
+            '<div class="studio-people spatial">'+(shown.length?shown.map(roleCard).join(''):'<div class="empty studio-empty-inline">目前沒有符合這個區域的正式角色資料。</div>')+'</div>'+
           '</section>'+
-          '<aside class="studio-panel" id="studioPanel"><span class="kicker">關係面板</span><h3>選一位角色</h3><p>點擊人物後，只顯示資料庫可以支持的工作、能力、工具、合作角色與作品關聯。</p><div class="studio-panel-hint"><span>Hover</span><b>看關係高亮</b><span>Click</span><b>固定看詳細</b></div></aside>'+
+          '<aside class="studio-panel" id="studioPanel"><span class="kicker">關係面板</span><h3>選一位角色</h3><p>平常只看「人在哪裡、正在做什麼」。碰到一位角色時，沒有正式關聯的人會淡出；點擊才展開工作、能力、工具與作品證據。</p><div class="studio-panel-hint"><span>Hover</span><b>亮起正式合作角色</b><span>Click</span><b>固定看角色詳細</b></div></aside>'+
         '</div>';
 
       const panel=$('#studioPanel',pane);

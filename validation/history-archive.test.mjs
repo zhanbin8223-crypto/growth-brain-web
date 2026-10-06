@@ -20,3 +20,10 @@ test('版本敘事與正式資料庫更新紀錄分開',()=>{
   assert.match(css,/\.version-archive/);
   assert.match(css,/\.history-evidence-log/);
 });
+
+test('版本階段有視覺縮圖，而不是只有文字流水',()=>{
+  assert.match(app,/version-stage-image/);
+  assert.ok(app.includes("assets/ui/home-project-cover.webp"));
+  assert.ok(app.includes("assets/ui/home-hero-workspace.webp"));
+  assert.match(css,/\.version-stage-image/);
+});
