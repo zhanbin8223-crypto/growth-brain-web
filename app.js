@@ -1255,26 +1255,25 @@ async function renderProjectsIA(active='gateway',notice=''){
     $('[data-project-gateway]',root)?.addEventListener('click',()=>renderProjectsIA('gateway'));
     return;
   }else if(active==='gateway'){
-    root.innerHTML=iaTabs(tabs,active)+'<div id="projectIaPane" class="tab-pane"><div class="empty">正在整理作品入口…</div></div>';
+    root.innerHTML=iaTabs(tabs,active)+'<div id="projectIaPane" class="tab-pane"><div class="empty">正在整理作品路徑…</div></div>';
     const pane=$('#projectIaPane');
-    const hero='<section class="project-page-hero"><div class="project-hero-copy"><span class="today-overline">ARTIFACTS · 作品</span><h2>我的作品</h2><p>選定路徑的作品，從想法走向可見成果。第一層只看作品本身；目標、步驟與證據進入作品後再看。</p><div class="project-hero-actions">'+(A.liveStatus==='live'?'<button class="primary-btn project-new-route-btn" type="button" data-new-project-route>＋ 新作品路徑</button>':'<button class="primary-btn project-new-route-btn" type="button" data-auth>登入後新增路徑</button>')+'</div></div><img class="project-hero-image" src="assets/ui/home-project-cover.webp" alt="" aria-hidden="true"></section>';
+    const hero='<header class="v4-page-head project-v4-head"><span class="v4-eyebrow">ARTIFACTS · 作品</span><div><h2>我的作品路徑</h2><p>先看現在在哪、下一個候選在哪。目標、步驟與證據進入作品後再看。</p><button class="primary-btn project-new-route-btn" type="button" '+(A.liveStatus==='live'?'data-new-project-route':'data-auth')+'>'+(A.liveStatus==='live'?'＋ 新作品路徑':'登入後新增路徑')+'</button></div></header>';
 
     if(A.liveStatus!=='live'){
       pane.innerHTML=hero+
-        '<div class="project-gallery"><article class="project-gateway-card is-locked">'+
-          '<span class="project-cover"><img class="project-cover-image" src="assets/ui/home-project-cover.webp" alt=""><span class="project-cover-badge">尚未同步</span></span>'+
-          '<span class="project-gateway-copy"><span class="project-family-row"><b class="project-name">登入後讀取你的作品</b></span><b class="project-version-title">作品版本</b><span class="project-status">等待正式資料</span><span class="project-progress">完成進度會顯示在這裡</span><span class="project-progress-track"><i style="width:0%"></i></span></span>'+
-          '<button class="primary-btn" data-auth>登入同步作品</button>'+
-        '</article></div>';
+        '<section class="project-route-rail is-locked">'+
+          '<article class="project-route-node selected"><span class="route-dot"></span><small>目前路徑</small><h3>登入後讀取</h3><p>不使用示範作品冒充你的資料。</p></article>'+
+          '<article class="project-route-node current"><span class="route-dot"></span><small>目前作品</small><h3>等待正式資料</h3><p>完成進度與下一步會顯示在這裡。</p><button class="primary-btn" data-auth>登入同步作品</button></article>'+
+        '</section>';
     }else{
       try{
         const [outcome,artifacts]=await Promise.all([A.getPersonalOutcome(),A.getPersonalArtifacts({force:true})]);
         const selected=outcome?.selected_route||null;
         const candidateRoute=outcome?.candidate_route||null;
         const current=artifacts?.current||null;
-        const cards=[];
+        const candidateArtifact=artifacts?.candidate||null;
         const routeForm='<section class="project-new-route-panel" data-new-route-panel hidden>'+
-          '<div class="row-between"><div><span class="kicker">建立候選路徑</span><h3>新增一條作品路徑</h3><p>先說想做什麼；這只建立候選路徑，不會切換目前主線。一次保留一條候選，若已有候選會更新它。</p></div><button class="ghost-btn small" type="button" data-cancel-new-route>關閉</button></div>'+
+          '<div class="row-between"><div><span class="kicker">建立候選路徑</span><h3>新增一條作品路徑</h3><p>先說想做什麼。這只建立候選路徑，不會切換目前主線；若已有候選，會更新那一條。</p></div><button class="ghost-btn small" type="button" data-cancel-new-route>關閉</button></div>'+
           '<form id="newProjectRouteForm" class="project-form">'+
             '<label><b>路徑名稱／想完成什麼</b><textarea id="newProjectRouteTitle" placeholder="例如：建立一條 AI 短影音變現路徑"></textarea></label>'+
             '<label><b>怎樣算往前一步（可留空）</b><textarea id="newProjectRouteEvidence" placeholder="例如：先完成 3 支內容並取得真實流量；不知道可留空"></textarea></label>'+
@@ -1282,42 +1281,40 @@ async function renderProjectsIA(active='gateway',notice=''){
             '<div class="row-between"><div id="newProjectRouteMsg" class="muted">保存後會交給 GPT 拆候選作品；不會自動取代目前主線。</div><button class="primary-btn" type="submit">建立候選路徑</button></div>'+
           '</form>'+
         '</section>';
+
+        const nodes=[];
+        if(selected){
+          nodes.push('<article class="project-route-node selected"><span class="route-dot"></span><small>目前路徑</small><h3>'+esc(selected.title||'已選定作品路徑')+'</h3><p>'+esc(selected.success_evidence||selected.why_now||'沿著這條路徑累積可驗證作品。')+'</p></article>');
+        }
         if(current){
           const p=current.progress_summary||{};
           const items=Array.isArray(current.evidence_progress)?current.evidence_progress:[];
           const total=p.total??items.length;
           const confirmed=p.confirmed??items.filter(x=>x.status==='confirmed').length;
-          const progressPct=total?Math.max(0,Math.min(100,Math.round(confirmed/total*100))):0;
-          const projectGoal=selected?.source_evidence?.prior_confirmed_project_context?.goal||'';
-          const goalFamilyMatch=String(projectGoal).match(/^建立\s*(.+?)(?:自動化|工作流|網站|導流|，|。)/);
-          const fallbackFamily=selected?.title?String(selected.title).replace(/(?:系統|路線|方案)$/,'').trim():'作品';
-          const family=(goalFamilyMatch?.[1]||fallbackFamily||'作品').trim();
-          const workName=family.endsWith('工作')?family:family+'工作';
-          const version=current.sequence_no?('V'+current.sequence_no):'版本未提供';
-          const versionTitle=family+' '+version;
           const status=current.status==='current'?'進行中':statusText(current.status||'unknown');
-          cards.push('<button class="project-gateway-card is-current" type="button" data-open-project-detail data-artifact-id="'+esc(current.id)+'" aria-label="進入作品：'+esc(workName)+'">'+
-            '<span class="project-cover"><img class="project-cover-image" src="assets/ui/home-project-cover.webp" alt="" aria-hidden="true"><span class="project-cover-badge">'+esc(status)+'</span></span>'+
-            '<span class="project-gateway-copy">'+
-              '<span class="project-family-row"><b class="project-name">'+esc(workName)+'</b></span>'+
-
-              '<b class="project-version-title">'+esc(versionTitle)+'</b>'+
-              '<span class="project-status">'+esc(status)+'</span>'+
-              '<span class="project-progress">'+esc(confirmed)+' / '+esc(total)+' 個目標完成</span>'+
-              '<span class="project-progress-track"><i style="width:'+esc(progressPct)+'%"></i></span>'+
-
-            '</span>'+
-            '<span class="project-enter">進入作品 →</span></button>');
+          nodes.push('<button class="project-route-node current" type="button" data-open-project-detail data-artifact-id="'+esc(current.id)+'">'+
+            '<span class="route-dot"></span><small>現在 · '+esc(status)+'</small><h3>'+esc(current.title||'目前作品')+'</h3>'+
+            '<p>'+esc(confirmed)+' / '+esc(total)+' 個完成條件已有證據</p>'+
+            '<span class="project-route-progress"><i style="width:'+(total?Math.round(confirmed/total*100):0)+'%"></i></span>'+
+            '<b class="route-action">進入作品 →</b></button>');
         }else if(selected){
-          cards.push('<button class="project-gateway-card" type="button" data-open-project-detail>'+
-            '<span class="project-cover"><img class="project-cover-image" src="assets/ui/home-project-cover.webp" alt="" aria-hidden="true"><span class="project-cover-badge muted">等待開始</span></span>'+
-            '<span class="project-gateway-copy"><span class="project-family-row"><b class="project-name">'+esc(selected.title||'已選定作品路徑')+'</b></span><b class="project-version-title">第一件作品尚未建立</b><span class="project-status">等待開始</span><span class="project-progress">主線已選定，尚未進入作品執行</span><span class="project-progress-track"><i style="width:0%"></i></span></span>'+
-            '<span class="project-enter">查看路徑 →</span></button>');
+          nodes.push('<button class="project-route-node current" type="button" data-open-project-detail><span class="route-dot"></span><small>下一步</small><h3>建立第一件作品</h3><p>路徑已選定，等待進入作品執行。</p><b class="route-action">查看路徑 →</b></button>');
         }
+        if(candidateArtifact){
+          nodes.push('<article class="project-route-node candidate"><span class="route-dot"></span><small>候選作品</small><h3>'+esc(candidateArtifact.title||'下一件候選作品')+'</h3><p>還不是目前作品，確認後才會進入執行。</p></article>');
+        }else if(candidateRoute){
+          nodes.push('<article class="project-route-node candidate"><span class="route-dot"></span><small>候選路徑</small><h3>'+esc(candidateRoute.title||'下一條候選路徑')+'</h3><p>'+esc(candidateRoute.success_evidence||'尚未成為目前主線。')+'</p></article>');
+        }
+        if(!nodes.length){
+          nodes.push('<article class="project-route-node empty"><span class="route-dot"></span><small>尚未開始</small><h3>建立第一條作品路徑</h3><p>用上方「＋ 新作品路徑」直接輸入你想做的方向。</p></article>');
+        }
+
         pane.innerHTML=hero+
           (notice?'<div class="project-route-notice">'+esc(notice)+'</div>':'')+
           routeForm+
-          '<div class="project-gallery">'+(cards.length?cards.join(''):'<div class="project-empty-gallery"><span>◇</span><b>目前還沒有已選定的作品</b><p>你可以直接用上方「＋ 新作品路徑」建立候選，不需要先去別頁找入口。</p></div>')+'</div>';
+          '<section class="project-route-rail">'+nodes.join('<span class="project-route-connector" aria-hidden="true">→</span>')+'</section>'+
+          '<p class="project-route-note">實心／高亮節點是現在；候選節點不代表一定會發生。點「目前作品」才展開完整步驟與證據。</p>';
+
         $('[data-open-project-detail]',pane)?.addEventListener('click',()=>renderProjectsIA('current'));
         const routePanel=$('[data-new-route-panel]',pane);
         $('[data-new-project-route]',pane)?.addEventListener('click',()=>{
@@ -1348,7 +1345,7 @@ async function renderProjectsIA(active='gateway',notice=''){
           }
         });
       }catch(e){
-        pane.innerHTML=hero+'<div class="empty">作品入口載入失敗：'+esc(e.message||e)+'</div>';
+        pane.innerHTML=hero+'<div class="empty">作品路徑載入失敗：'+esc(e.message||e)+'</div>';
       }
     }
   }else{
