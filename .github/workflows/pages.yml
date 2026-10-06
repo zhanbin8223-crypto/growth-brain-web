@@ -43,6 +43,7 @@ jobs:
           node --test validation/today-visual.test.mjs
           node --test validation/history-archive.test.mjs
           node --test validation/team-studio.test.mjs
+          node --test validation/ux-repair-20261007.test.mjs
           for file in worker/*.mjs; do
             node --check "$file"
           done
