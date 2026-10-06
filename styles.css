@@ -520,15 +520,18 @@ button.relation-chip{cursor:pointer}
 .project-gateway-card:focus-visible{outline:3px solid var(--accent);outline-offset:4px}
 .project-cover{width:100%;aspect-ratio:16/9;flex:none;display:grid;place-items:center;border-radius:10px;background:#eee7d9;overflow:hidden;color:#8a7657}
 .project-cover svg{width:64px;height:48px;fill:none;stroke:currentColor;stroke-width:2;stroke-linecap:round;stroke-linejoin:round}
-.project-gateway-copy{display:grid;gap:8px;min-width:0;width:100%}
-.project-name{font-size:22px;line-height:1.4;min-height:2.8em;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;overflow-wrap:anywhere}
-.project-version{font-size:14px;font-weight:600;line-height:1.5;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;overflow-wrap:anywhere}
-.project-status{font-size:13px;font-weight:600;color:#5a6646}
-.project-progress{font-size:13px;color:#655e52;font-variant-numeric:tabular-nums;margin-top:4px}
-.project-enter{font-size:14px;font-weight:600;color:#715b36;margin-top:auto;padding-top:4px}
+.project-gateway-copy{display:grid;gap:6px;min-width:0;width:100%}
+.project-family-row{display:flex;align-items:baseline;justify-content:space-between;gap:12px;min-width:0}
+.project-name{font-size:18px;line-height:1.35;min-width:0;overflow-wrap:anywhere}
+.project-goal-link{flex:none;font-size:11px;color:#7b6540;text-decoration:underline;text-underline-offset:3px}
+.project-version-kicker{margin-top:10px;font-size:10px;color:#8a7b64;font-weight:700;letter-spacing:.04em}
+.project-version-title{font-size:22px;line-height:1.25;color:#28231d}
+.project-status{font-size:12px;font-weight:700;color:#5a6646;margin-top:1px}
+.project-progress{font-size:13px;color:#655e52;font-variant-numeric:tabular-nums;margin-top:9px}
+.project-enter{font-size:14px;font-weight:600;color:#715b36;margin-top:auto;padding-top:8px}
 #view-projects .hero-card h2{font-size:clamp(24px,3vw,30px);max-width:32ch}
 @media(max-width:920px){.project-gateway-grid{grid-template-columns:repeat(2,minmax(0,1fr))}}
-@media(max-width:640px){.project-gateway-grid{grid-template-columns:1fr}.project-gateway-card{padding:16px;gap:16px}.project-name{font-size:21px}}
+@media(max-width:640px){.project-gateway-grid{grid-template-columns:1fr}.project-gateway-card{padding:16px;gap:16px}.project-family-row{align-items:flex-start}.project-name{font-size:18px}.project-version-title{font-size:20px}}
 
 .capability-layout{display:grid;grid-template-columns:minmax(0,1.6fr) minmax(270px,.8fr);gap:28px;align-items:start;max-width:1100px}
 .capability-map{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:16px}
