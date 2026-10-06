@@ -27,3 +27,8 @@ test('全站不再顯示第二層 global page title bar',()=>{
   assert.match(css,/\.topbar\{[^}]*display:none/s);
   assert.ok(index.includes('class="nav-tools"'));
 });
+
+test('導覽工具列承接登入狀態，不再依賴已隱藏 topbar',()=>{
+  assert.doesNotMatch(app,/\$\('\.top-actions'\)\.prepend\(box\)/);
+  assert.ok(app.includes("$('.nav-tools')||$('.top-actions')"));
+});
