@@ -50,6 +50,7 @@
     personalSynapse:null,
     systemCockpit:null,
     history:null,
+    capabilityLibrary:null,
     lastLiveError:null,
     lastSynapseError:null,
     async initialize(){
@@ -305,6 +306,13 @@
       this.history=extractSurface(result);
       return clone(this.history);
     },
+    async getCapabilities({force=false}={}){
+      if(!force && this.capabilityLibrary) return clone(this.capabilityLibrary);
+      if(this.mode!=='live') return {cells:[],playbooks:[],personal_skills:[],personal_mastery:[],policy:{}};
+      const result=await liveRequest('GET',undefined,'capabilities');
+      this.capabilityLibrary=extractSurface(result);
+      return clone(this.capabilityLibrary);
+    },
     async getEventLab(){
       if(this.mode!=='live') throw new Error('請先登入，才能讀取研究沙盒。');
       const result=await liveRequest('GET',undefined,'event_lab');
@@ -333,7 +341,7 @@
     async consumeMagicLinkUrl(link){return Auth.consumeMagicLinkUrl(link);},
     async signOut(){
       Auth.signOut();
-      this.mode='cached-private';this.liveStatus='signed_out';this.liveUser=null;this.personalHome=null;this.personalOutcome=null;this.personalArtifacts=null;this.inbox=null;this.learning=null;this.personalSynapse=null;this.systemCockpit=null;this.history=null;this.lastLiveError=null;this.lastSynapseError=null;
+      this.mode='cached-private';this.liveStatus='signed_out';this.liveUser=null;this.personalHome=null;this.personalOutcome=null;this.personalArtifacts=null;this.inbox=null;this.learning=null;this.personalSynapse=null;this.systemCockpit=null;this.history=null;this.capabilityLibrary=null;this.lastLiveError=null;this.lastSynapseError=null;
     },
     async resetLocalEvidence(){writeStore({attempts:[]});},
     latestAttempt,candidateEvidenceCount
