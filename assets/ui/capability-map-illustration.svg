@@ -1,0 +1,60 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 560 600" role="img" aria-labelledby="title desc">
+  <title id="title">Growth Brain 能力地圖</title>
+  <desc id="desc">暖色系山路、河流、樹木與探索者構成的能力成長地圖背景。</desc>
+  <defs>
+    <linearGradient id="sky" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#f8f1df"/>
+      <stop offset="100%" stop-color="#f2e6cf"/>
+    </linearGradient>
+    <linearGradient id="hill1" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0%" stop-color="#cfd9ba"/>
+      <stop offset="100%" stop-color="#aebc95"/>
+    </linearGradient>
+    <linearGradient id="hill2" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0%" stop-color="#e0d5a9"/>
+      <stop offset="100%" stop-color="#c7bd8e"/>
+    </linearGradient>
+    <linearGradient id="river" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#b9d3d0"/>
+      <stop offset="100%" stop-color="#8fb6b8"/>
+    </linearGradient>
+    <filter id="shadow" x="-20%" y="-20%" width="140%" height="140%">
+      <feDropShadow dx="0" dy="5" stdDeviation="8" flood-color="#6c5a42" flood-opacity=".12"/>
+    </filter>
+  </defs>
+  <rect width="560" height="600" rx="28" fill="url(#sky)"/>
+  <circle cx="474" cy="84" r="38" fill="#f2d38d" opacity=".95"/>
+  <circle cx="474" cy="84" r="58" fill="#f6dfac" opacity=".25"/>
+  <path d="M0 292 C94 220 157 236 240 278 C318 317 373 274 456 230 C503 205 532 205 560 212 L560 600 L0 600 Z" fill="url(#hill1)"/>
+  <path d="M0 385 C90 326 163 334 249 371 C334 407 408 393 560 324 L560 600 L0 600 Z" fill="#b9c7a3" opacity=".92"/>
+  <path d="M100 600 C132 518 164 469 219 425 C271 383 314 351 336 305 C355 264 345 213 315 178" fill="none" stroke="#ead0a4" stroke-width="58" stroke-linecap="round"/>
+  <path d="M101 600 C135 516 165 473 221 428 C275 384 316 351 337 304 C354 265 347 214 317 177" fill="none" stroke="#fff7e7" stroke-width="16" stroke-linecap="round" opacity=".92"/>
+  <path d="M438 600 C423 531 432 460 453 397 C474 334 479 271 454 225" fill="none" stroke="url(#river)" stroke-width="72" stroke-linecap="round" opacity=".9"/>
+  <path d="M52 320 C99 283 144 284 184 308 C137 326 92 339 52 320Z" fill="url(#hill2)" opacity=".9"/>
+  <g fill="#66765e" opacity=".95">
+    <circle cx="86" cy="292" r="10"/><rect x="83" y="300" width="6" height="18" rx="2"/>
+    <circle cx="132" cy="336" r="9"/><rect x="129" y="344" width="6" height="16" rx="2"/>
+    <circle cx="402" cy="260" r="11"/><rect x="399" y="269" width="6" height="18" rx="2"/>
+    <circle cx="500" cy="348" r="9"/><rect x="497" y="356" width="6" height="16" rx="2"/>
+    <circle cx="353" cy="438" r="10"/><rect x="350" y="447" width="6" height="18" rx="2"/>
+    <circle cx="154" cy="493" r="8"/><rect x="151" y="500" width="6" height="15" rx="2"/>
+  </g>
+  <g filter="url(#shadow)">
+    <circle cx="100" cy="522" r="18" fill="#d8a97d"/>
+    <rect x="84" y="540" width="32" height="52" rx="13" fill="#50493f"/>
+    <path d="M78 585 C88 567 111 567 122 585" fill="none" stroke="#3c3832" stroke-width="8" stroke-linecap="round"/>
+  </g>
+  <g opacity=".75" fill="#fffaf1">
+    <rect x="34" y="60" width="152" height="58" rx="18"/>
+    <rect x="336" y="120" width="174" height="62" rx="18"/>
+    <rect x="50" y="408" width="158" height="62" rx="18"/>
+  </g>
+  <g fill="#7e6b51" font-family="system-ui,-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif">
+    <text x="56" y="86" font-size="15" font-weight="700">探索能力</text>
+    <text x="56" y="105" font-size="10">作品證據 → 方法 → 熟練度</text>
+    <text x="360" y="147" font-size="14" font-weight="700">每個節點都可點擊</text>
+    <text x="360" y="166" font-size="10">只用正式資料，不補假能力</text>
+    <text x="74" y="436" font-size="14" font-weight="700">沿著真實作品前進</text>
+    <text x="74" y="455" font-size="10">能力存在 ≠ 已掌握</text>
+  </g>
+</svg>
