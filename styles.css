@@ -1533,3 +1533,18 @@ button.today-skill-mini{cursor:pointer}
   .project-route-candidate{grid-template-columns:1fr}.project-route-candidate .project-actions{width:100%}
   .project-route-candidate .project-actions>*{flex:1}
 }
+/* Capability map visibility fix - 2026-10-07 */
+.capability-landscape{
+  background-color:#f6efe3;
+  background-image:linear-gradient(rgba(255,252,244,.10),rgba(255,252,244,.16)),url('assets/ui/capability-map-illustration.svg');
+  background-repeat:no-repeat;
+  background-position:center;
+  background-size:cover;
+}
+.capability-map-stage{position:absolute;inset:0;width:100%;height:100%;margin:0}
+.capability-map-art{display:none!important}
+.capability-landscape.is-locked .capability-locked-copy{
+  position:relative;z-index:6;
+  background:rgba(255,253,248,.88);
+  backdrop-filter:blur(5px)
+}
