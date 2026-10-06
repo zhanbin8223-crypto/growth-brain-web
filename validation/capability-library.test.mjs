@@ -12,28 +12,28 @@ test('能力庫從正式 capabilities surface 讀取',()=>{
   assert.match(app,/await A\.getCapabilities\(\{force:true\}\)/);
 });
 
-test('能力細胞與作戰手冊不再使用固定 placeholder 清單',()=>{
+test('能力方法與作戰手冊不使用固定 placeholder 清單',()=>{
   assert.doesNotMatch(app,/\['任務定義','Context 脈絡','搜尋與證據'/);
-  assert.doesNotMatch(app,/\['研究一個陌生主題','建立可運行網站'/);
   assert.match(app,/library\?\.cells/);
   assert.match(app,/library\?\.playbooks/);
   assert.match(app,/library\?\.personal_skills/);
 });
 
-test('能力細胞可展開正式使用步驟與證據要求',()=>{
+test('能力方法仍可展開正式使用步驟與證據要求',()=>{
   assert.match(app,/data-capability-key/);
   assert.match(app,/quick_use/);
   assert.match(app,/required_evidence/);
   assert.match(app,/failure_points/);
-  assert.match(css,/\.capability-visual-layout/);
-  assert.match(css,/\.capability-map-node/);
+  assert.match(css,/\.capability-orbit/);
+  assert.match(css,/\.capability-method-node/);
 });
 
-test('能力首頁改成地圖與證據總覽，不把參考方法當個人掌握',()=>{
-  assert.ok(app.includes("['cells','能力地圖']"));
-  assert.match(app,/capability-landscape/);
-  assert.match(app,/capability-overview/);
-  assert.match(app,/capability-ring/);
-  assert.match(app,/已有證據/);
+test('能力首頁按真實 evidence 分層，不把方法當個人掌握',()=>{
+  assert.ok(app.includes("['cells','能力圖譜']"));
+  assert.match(app,/capability-zone/);
+  assert.match(app,/capability-skill-node/);
+  assert.match(app,/作品驗證/);
   assert.match(app,/方法存在不等於掌握/);
+  const block=app.slice(app.indexOf("async function renderCapabilities"),app.indexOf("async function renderResearch"));
+  assert.doesNotMatch(block,/capability-map-illustration|capability-landscape|cap-hill|cap-road/);
 });
