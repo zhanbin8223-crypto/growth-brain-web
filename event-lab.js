@@ -120,33 +120,38 @@
     const resources=arr(x.resource_refs);
     const memoryRefs=arr(x.memory_refs);
     const executionState=x.plan_provenance?.execution_status==='not_executed'?'尚未執行':'已有執行紀錄';
-    const visualKind=x.category==='ai'?'ai':x.category==='distribution'?'distribution':x.category==='opportunity'?'opportunity':'other';
-    return '<article class="research-card exploration-card" data-exploration-id="'+esc(x.id)+'">'+
-      '<div class="research-card-visual '+esc(visualKind)+'" aria-hidden="true"><span></span><i></i><b>'+esc(tabs.find(t=>t[0]===x.category)?.[1]||'探索')+'</b></div>'+
-      '<div class="research-card-body">'+
-        '<div class="row-between"><span class="kicker">'+esc(tabs.find(t=>t[0]===x.category)?.[1]||'跨領域探索')+'</span>'+pill(stateLabel)+'</div>'+
+    return '<article class="research-stream-item" data-exploration-id="'+esc(x.id)+'">'+
+      '<aside class="research-stream-meta">'+
+        '<span class="research-category">'+esc(tabs.find(t=>t[0]===x.category)?.[1]||'跨領域')+'</span>'+
+        '<b>'+esc(stateLabel)+'</b>'+
+        '<small>'+esc(sourceState)+'</small>'+
+      '</aside>'+
+      '<div class="research-stream-main">'+
         '<h3>'+esc(x.title)+'</h3>'+
-        '<p class="research-card-finding">'+esc(x.finding||x.why_now||'目前只有待驗證的問題。')+'</p>'+
-        '<div class="research-card-tags">'+pill('AI 猜想・未驗證','warn')+pill(sourceState,verifiedCount?'success':'warn')+'</div>'+
-        '<div class="evidence-box research-next-step"><b>唯一下一步</b><span>'+esc(x.next_step)+'</span></div>'+
-        '<details><summary>查看完整做法</summary>'+
-          '<b>為什麼研究</b><p>'+esc(x.why_now)+'</p>'+
-          '<b>可驗證問題</b><p>'+esc(x.question)+'</p>'+
-          '<b>最小可見成果</b><p>'+esc(x.minimum_artifact||'尚未定義最小成果。')+'</p>'+
-          (x.estimated_effort?'<b>估計投入</b><p>'+esc(x.estimated_effort)+'</p>':'')+
+        '<p class="research-stream-finding">'+esc(x.finding||x.why_now||'目前只有待驗證的問題。')+'</p>'+
+        '<div class="research-stream-next"><span>唯一下一步</span><b>'+esc(x.next_step||'先補足可驗證問題')+'</b></div>'+
+        '<details><summary>查看完整做法與證據</summary>'+
+          '<div class="research-detail-grid">'+
+            '<div><b>為什麼研究</b><p>'+esc(x.why_now||'')+'</p></div>'+
+            '<div><b>可驗證問題</b><p>'+esc(x.question||'')+'</p></div>'+
+            '<div><b>最小可見成果</b><p>'+esc(x.minimum_artifact||'尚未定義最小成果。')+'</p></div>'+
+            (x.estimated_effort?'<div><b>估計投入</b><p>'+esc(x.estimated_effort)+'</p></div>':'')+
+          '</div>'+
           '<b>詳細步驟</b>'+stepHtml+
-          '<b>前置條件</b>'+list(x.prerequisites)+
-          '<b>所需工具／資源</b>'+(resources.length?list(resources):'<p class="muted">未綁定特定工具。</p>')+
-          '<b>使用的資料庫記憶</b>'+(memoryRefs.length?list(memoryRefs):'<p class="muted">這筆候選未直接綁定特定記憶來源。</p>')+
-          '<b>來源</b>'+(sources?'<ul class="lab-sources">'+sources+'</ul>':'<p>尚無本輪可查核來源。</p>')+
+          '<div class="research-detail-grid">'+
+            '<div><b>前置條件</b>'+list(x.prerequisites)+'</div>'+
+            '<div><b>所需工具／資源</b>'+(resources.length?list(resources):'<p class="muted">未綁定特定工具。</p>')+'</div>'+
+            '<div><b>使用的資料庫記憶</b>'+(memoryRefs.length?list(memoryRefs):'<p class="muted">未直接綁定特定記憶來源。</p>')+'</div>'+
+            '<div><b>來源</b>'+(sources?'<ul class="lab-sources">'+sources+'</ul>':'<p>尚無本輪可查核來源。</p>')+'</div>'+
+          '</div>'+
           '<b>還缺什麼</b>'+list(x.unknowns)+
           '<b>成功證據</b>'+list(x.required_evidence)+
-          '<b>停止條件</b><p>'+esc(x.stop_condition)+'</p>'+
+          '<b>停止條件</b><p>'+esc(x.stop_condition||'')+'</p>'+
           '<div class="research-provenance"><b>規劃狀態</b><span>'+esc(executionState)+' · '+esc(rechecked?'本輪重新查證來源':'沿用既有已查證來源，本輪未重新查證')+'</span></div>'+
           (trial?'<small>試驗紀錄已保存；目前'+esc(stateLabel)+'，尚未正式採用。</small>':'')+
         '</details>'+
-        '<div class="project-actions research-card-actions">'+candidateActions(x)+'</div>'+
-        '<small class="muted">候選研究；不代表你的作品、技能或市場結果。</small>'+
+        '<div class="project-actions research-stream-actions">'+candidateActions(x)+'</div>'+
+        '<small class="research-truth-note">候選研究；不代表你的作品、技能或市場結果。</small>'+
       '</div>'+
     '</article>';
   }
@@ -171,20 +176,20 @@
         '<div class="research-context-stat"><strong>'+researchMemory.length+'</strong><span>既有研究</span></div>'+
       '</div>'+
       (sourcePreview?'<ul>'+sourcePreview+'</ul>':'<p class="muted">目前沒有已保存來源。</p>')+
-      '<p class="muted">模型一般知識只用來提出假設；最新資訊要有本輪或既有可追溯查證。研究候選不會直接改作品、能力或正式真相。</p>'+
+      '<p class="muted">模型一般知識只用來提出假設；研究候選不會直接改作品、能力或正式真相。</p>'+
     '</details>';
 
-    pane.innerHTML='<section class="research-page-hero"><div><span class="today-overline">LAB · 研究室</span><h2>研究室</h2><p>從資料庫記憶與現有資源自由探索，把新想法整理成可驗證候選；先研究、再試驗，不直接改主線。</p></div><div class="research-hero-orb" aria-hidden="true"><span>✦</span><i></i><b>EXPLORE</b></div></section>'+
+    pane.innerHTML='<header class="v4-page-head research-v4-head"><span class="v4-eyebrow">LAB · 研究室</span><div><h2>今天值得研究什麼</h2><p>只保留能形成下一步的候選；不是文章牆，也不把猜想當成果。</p></div><button class="primary-btn" id="labExplore">＋ 新的探索</button></header>'+
       '<div class="research-state-tabs" aria-label="研究狀態">'+stateTabs.map(([k,l])=>'<button class="'+(filter===k?'active':'')+'" data-lab-filter="'+k+'" aria-pressed="'+(filter===k)+'"><b>'+l+'</b><span>'+all.filter(x=>x.state===k&&(activeTab==='today'||x.category===activeTab)).length+'</span></button>').join('')+'</div>'+
-      '<div class="research-toolbar"><div><span class="kicker">'+esc(title)+'</span><h3>'+esc(filter==='active'?'今天值得看的探索':'研究候選')+'</h3></div><div class="project-actions"><button class="primary-btn" id="labExplore">＋ 新的探索</button><button class="ghost-btn" id="labRefresh">更新狀態</button></div></div>'+
+      '<div class="research-stream-head"><div><span class="kicker">'+esc(title)+'</span><h3>'+esc(filter==='active'?'先看最值得驗證的候選':'研究候選')+'</h3></div><button class="ghost-btn small" id="labRefresh">更新狀態</button></div>'+
       '<div class="lab-message" role="status"></div>'+
-      (latest&&['pending','claimed','processing','failed'].includes(latest.status)?jobBanner(latest):latest?.status==='completed'&&!Array.isArray(latest.output?.candidates)?'<div class="empty" role="alert">本輪 AI 回覆格式不完整，沒有匯入任何候選。請保留任務紀錄供系統檢查。</div>':'')+
-      '<div class="research-card-grid">'+(filtered.length?filtered.slice(0,3).map(candidateCard).join(''):'<div class="research-empty-state"><span>✦</span><b>'+(filter==='active'?'今天沒有值得打擾你的新發現。':'這個分類目前沒有紀錄。')+'</b><p>沒有新價值就保持空白，不用為了填滿研究室而製造候選。</p></div>')+'</div>'+
+      (latest&&['pending','claimed','processing','failed'].includes(latest.status)?jobBanner(latest):latest?.status==='completed'&&!Array.isArray(latest.output?.candidates)?'<div class="empty" role="alert">本輪 AI 回覆格式不完整，沒有匯入任何候選。</div>':'')+
+      '<div class="research-stream">'+(filtered.length?filtered.slice(0,3).map(candidateCard).join(''):'<div class="research-empty-state"><span>✦</span><b>'+(filter==='active'?'今天沒有值得打擾你的新發現。':'這個分類目前沒有紀錄。')+'</b><p>沒有新價值就保持空白，不為了填滿研究室製造候選。</p></div>')+'</div>'+
       (filtered.length>3?'<button class="ghost-btn" id="labShowMore">查看其餘 '+(filtered.length-3)+' 筆</button>':'')+
       contextHtml+
-      '<details class="lab-policy surface"><summary>探索怎麼運作</summary><p>按「新的探索」會交給現有 AI 執行器。台灣時間每天最多一輪，先查重，待看候選最多 3 個；沒有新價值可以沒有結果。相同主題合併，保留與忽略決定會持續保存。</p><p>研究兩輪沒有新資訊就停止；試驗由既有審查流程判斷。送進試驗只建立待執行紀錄，付款、發布、改主線與技能升級仍需確認。</p><p>目前觸發方式：手動探索；尚未啟用每日排程。</p></details>';
+      '<details class="lab-policy v4-list-row"><summary>探索怎麼運作</summary><p>「新的探索」會建立研究任務；候選、試驗、採用與忽略各自有狀態。付款、發布、改主線與技能升級仍需確認。</p></details>';
     pane.querySelectorAll('[data-lab-filter]').forEach(b=>b.onclick=()=>{filter=b.dataset.labFilter;paintResearch();});
-    pane.querySelector('#labShowMore')?.addEventListener('click',()=>{pane.querySelector('.research-card-grid').innerHTML=filtered.map(candidateCard).join('');pane.querySelector('#labShowMore').remove();bindActions(pane);});
+    pane.querySelector('#labShowMore')?.addEventListener('click',()=>{pane.querySelector('.research-stream').innerHTML=filtered.map(candidateCard).join('');pane.querySelector('#labShowMore').remove();bindActions(pane);});
     pane.querySelector('#labExplore').onclick=async e=>{e.target.disabled=true;const msg=pane.querySelector('.lab-message');msg.textContent='正在建立研究任務…';try{const r=await act('explore');paintResearch();root.querySelector('.lab-message').textContent=r.created===false?'今天這輪已建立，已顯示原任務。':'探索任務已保存。'+workerNote();}catch(err){msg.textContent=errorText(err);}finally{e.target.disabled=false;}};
     pane.querySelector('#labRefresh').onclick=async()=>{try{snapshot=await A.getEventLab();paintResearch();startPolling();}catch(e){pane.querySelector('.lab-message').textContent=errorText(e);}};
     bindActions(pane);
@@ -194,7 +199,7 @@
     root.innerHTML='<div class="subtabs" role="tablist">'+tabs.map(([k,l])=>'<button class="subtab '+(k===tab?'active':'')+'" data-lab-tab="'+k+'" role="tab" aria-selected="'+(k===tab)+'">'+l+'</button>').join('')+'</div><div id="labResearchPane" class="tab-pane"><div class="empty">正在讀取研究沙盒…</div></div>';
     root.querySelectorAll('[data-lab-tab]').forEach(b=>b.onclick=()=>{if(b.dataset.labTab==='growthbrain')document.dispatchEvent(new CustomEvent('growth-lab:system-research'));else renderResearch(root,b.dataset.labTab);});
     if(A.liveStatus!=='live'){
-      root.querySelector('#labResearchPane').innerHTML='<section class="research-page-hero"><div><span class="today-overline">LAB · 研究室</span><h2>研究室</h2><p>登入後才會讀取你的資料庫記憶、研究候選與試驗紀錄。</p></div><div class="research-hero-orb" aria-hidden="true"><span>✦</span><i></i><b>EXPLORE</b></div></section><div class="research-card-grid locked"><div class="research-empty-state"><span>✦</span><b>登入後載入今日探索</b><p>不使用示範研究冒充你的私人候選。</p><button class="primary-btn" data-auth>登入查看研究室</button></div></div>';
+      root.querySelector('#labResearchPane').innerHTML='<header class="v4-page-head research-v4-head"><span class="v4-eyebrow">LAB · 研究室</span><div><h2>今天值得研究什麼</h2><p>登入後才讀取你的研究候選與試驗紀錄。</p></div></header><div class="research-stream locked"><div class="research-empty-state"><span>✦</span><b>登入後載入今日探索</b><p>不使用示範研究冒充你的私人候選。</p><button class="primary-btn" data-auth>登入查看研究室</button></div></div>';
       return;
     }
     try{snapshot=await A.getEventLab();if(activeTab!==tab)return;paintResearch();startPolling();}catch(e){root.querySelector('#labResearchPane').innerHTML='<div class="empty" role="alert">'+esc(errorText(e))+'</div><button class="ghost-btn" id="labLoadRetry">重新讀取</button>';root.querySelector('#labLoadRetry').onclick=()=>renderResearch(root,tab);}
