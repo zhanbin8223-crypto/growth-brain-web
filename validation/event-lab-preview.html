@@ -1,5 +1,5 @@
 <!doctype html>
-<html lang="zh-Hant"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>事件漏斗合成驗收</title><link rel="stylesheet" href="../styles.css"><style>
+<html lang="zh-Hant"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>事件漏斗合成驗收</title><link rel="stylesheet" href="../styles.css?v=event-lab-v1-20261006"><style>
 body{padding:16px}.preview-note{padding:12px;background:#fff6e8;border:1px solid #efd7ae;border-radius:10px;margin-bottom:12px}.preview-actions{display:flex;gap:8px;flex-wrap:wrap;margin:12px 0}.preview-frame{width:390px;height:860px;border:1px solid #d9e1e8;display:none;background:white;max-width:100%}.mobile-preview .preview-frame{display:block}.mobile-preview #previewMain{display:none}
 </style></head><body>
 <div class="preview-note"><b>合成驗收資料</b> · 此頁不連資料庫，所有操作只影響目前示範畫面；不代表使用者的作品、技能或市場結果。</div>
@@ -22,7 +22,7 @@ window.GROWTH_BRAIN_ADAPTER={liveStatus:'live',async getEventLab(){return copy(s
   if(action==='explore')return {created:false,snapshot:copy(state)};
   return {snapshot:copy(state)};
 }};
-</script><script src="../event-lab.js"></script><script>
+</script><script src="../event-lab.js?v=event-lab-v1-20261006"></script><script>
 const root=document.querySelector('#previewResearch');
 GROWTH_BRAIN_LAB.renderResearch(root);
 document.querySelector('#previewFunnel').onclick=()=>GROWTH_BRAIN_LAB.openFunnel({kind:'user_event',goal:'驗收一個新的研究方法'});

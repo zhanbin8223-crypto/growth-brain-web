@@ -25,5 +25,5 @@ test('參考來源只允許 http 與 https，不執行 javascript/data/file',()=
 test('維持六區與全域收集入口',()=>{
   const html=readFileSync(new URL('../index.html',import.meta.url),'utf8');
   assert.equal((html.match(/class="nav-item/g)||[]).length,6);
-  assert.match(html,/id="captureBtn"/);assert.match(html,/src="event-lab.js"/);
+  assert.match(html,/id="captureBtn"/);assert.match(html,/src="event-lab\.js(?:\?[^\"]*)?"/);
 });
