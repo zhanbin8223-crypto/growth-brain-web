@@ -1,5 +1,5 @@
 {
-  "sv": "ai-worker-runtime-contract-v3",
+  "sv": "ai-worker-runtime-contract-v4",
   "project": "growth-brain",
   "scope": "system",
   "purpose": "Define queue safety before provider activation without claiming real AI completion.",
@@ -13,7 +13,9 @@
     "recovery_history_required": true,
     "max_attempts_default": 3,
     "completed_requires_result_and_evidence": true,
-    "health_check_is_not_user_learning_evidence": true
+    "health_check_is_not_user_learning_evidence": true,
+    "no_blind_resubmit_after_uncertain_submit": true,
+    "opencli_failure_classification_required": true
   },
   "expected_flow": [
     "provider preflight",
@@ -27,18 +29,21 @@
     "claim_rpc": "growth_control.ai_job_claim_next_v1",
     "transition_rpc": "growth_control.ai_job_transition_v1",
     "specialized_enqueue_rpc": "growth_control.ai_job_enqueue_learning_explanation_v1",
-    "stale_recovery_rpc": "pending_runtime_migration",
+    "stale_recovery_rpc": "absent_in_live_db_as_of_2026-10-06",
     "provider_activation": "pending_local_runtime",
     "queue_status": "pending",
     "queue_index_observed_predicate": "status='queued'",
     "queue_index_expected_predicate": "status='pending'",
-    "queue_index_alignment": "mismatch_requires_runtime_migration"
+    "queue_index_alignment": "mismatch_requires_runtime_migration",
+    "canonical_browser_worker_automatic_retry": false
   },
   "acceptance": [
     "Provider outage does not consume a pending job.",
     "A stale worker cannot leave a job permanently claimed or processing.",
     "Retry exhaustion ends in failed with explicit evidence.",
-    "Validation does not create personal progress."
+    "Validation does not create personal progress.",
+    "A timeout after possible browser submit performs response readback before any retry.",
+    "The same job never creates duplicate formal completion or duplicate personal mutation."
   ],
   "provider_preflight_contract": {
     "required_before_claim": true,
@@ -87,5 +92,22 @@
     "allow processing -> pending only for bounded stale recovery",
     "deploy growth_control.ai_job_recover_stale_v1 as service_role-only",
     "add provider preflight before ai_job_claim_next_v1 in worker runtime"
-  ]
+  ],
+  "verified_at": "2026-10-06",
+  "recovery_classification": {
+    "opencli_exit_69_service_unavailable": "provider unavailable; do not consume a pending job",
+    "opencli_exit_75_temporary_failure": "timeout; if submit may have happened, first read back the existing marked response; do not blindly resubmit",
+    "opencli_exit_77_auth_required": "provider unavailable/auth required; do not claim new work",
+    "post_submit_uncertain": "never auto-resubmit until existing-response readback proves the first execution did not complete",
+    "pre_submit_failure": "safe to retry locally within the same attempt budget"
+  },
+  "evidence": {
+    "opencli_exit_codes_source": "jackwener/OpenCLI docs/guide/exit-codes.md",
+    "opencli_timeout_code": 75,
+    "live_worker_online": true,
+    "website_logic_audit": "aligned",
+    "schema_mirror_live_growth_migrations": 70,
+    "schema_mirror_manifest_count": 66,
+    "schema_mirror_delta": 4
+  }
 }
