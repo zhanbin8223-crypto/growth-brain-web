@@ -141,6 +141,8 @@ async function renderProjects(notice=''){
   const planningRoute=candidate||selected||null;
   const planJob=artifacts?.next_plan_job||planningRoute?.path_plan||null;
   const currentArtifact=artifacts?.current||null;
+  const progressItems=Array.isArray(currentArtifact?.evidence_progress)?currentArtifact.evidence_progress:[];
+  const nextEvidence=currentArtifact?.next_evidence_item||progressItems.find(x=>x.status!=='confirmed')||null;
   const candidateArtifact=artifacts?.candidate||null;
   const history=Array.isArray(artifacts?.history)?artifacts.history:[];
 
@@ -211,9 +213,7 @@ async function renderProjects(notice=''){
   const currentPanel=currentArtifact?(()=>{
     const counts=linkCounts(currentArtifact);
     const done=Array.isArray(currentArtifact.done_evidence)?currentArtifact.done_evidence:[];
-    const progressItems=Array.isArray(currentArtifact.evidence_progress)?currentArtifact.evidence_progress:[];
     const progress=currentArtifact.progress_summary||{total:progressItems.length,confirmed:progressItems.filter(x=>x.status==='confirmed').length,remaining:progressItems.filter(x=>x.status!=='confirmed').length};
-    const nextEvidence=currentArtifact.next_evidence_item||progressItems.find(x=>x.status!=='confirmed')||null;
     const latestUnblock=currentArtifact.latest_unblock||null;
     const activeUnblock=latestUnblock&&nextEvidence&&Number(latestUnblock.criterion_no)===Number(nextEvidence.criterion_no)?latestUnblock:null;
     const allEvidenceConfirmed=Number(progress.total||0)>0&&Number(progress.remaining||0)===0;
@@ -1222,20 +1222,29 @@ async function renderProjectsIA(active='gateway',notice=''){
         const cards=[];
         if(current){
           const p=current.progress_summary||{};
-          const total=Number(p.total||current.evidence_progress?.length||0);
-          const confirmed=Number(p.confirmed||0);
-          cards.push('<button class="project-gateway-card is-current" type="button" data-open-project-detail>'+
-            '<span class="project-cover"><span>'+esc((current.title||'作品').slice(0,2))+'</span></span>'+
-            '<span class="project-gateway-copy"><small>進行中的作品</small><b>'+esc(current.title||'目前作品')+'</b><p>'+esc(current.objective||current.deliverable||'')+'</p>'+
-            '<span class="project-progress">'+esc(confirmed)+' / '+esc(total||'?')+' 個完成證據</span></span>'+
+          const items=Array.isArray(current.evidence_progress)?current.evidence_progress:[];
+          const total=p.total??items.length;
+          const confirmed=p.confirmed??items.filter(x=>x.status==='confirmed').length;
+          // The live contract has a title and sequence, but no separate display name,
+          // artifact version or thumbnail. Vn denotes that existing sequence only;
+          // selected_route.version is a route revision and must not be substituted.
+          const series=selected?.id===current.route_id?selected.title:null;
+          const version=current.sequence_no?('V'+current.sequence_no):'版本未提供';
+          const status=current.status==='current'?'進行中':statusText(current.status||'unknown');
+          cards.push('<button class="project-gateway-card is-current" type="button" data-open-project-detail data-artifact-id="'+esc(current.id)+'" aria-label="進入作品：'+esc(current.title||'未命名作品')+'">'+
+            '<span class="project-cover" role="img" aria-label="作品縮圖尚未提供"><svg viewBox="0 0 64 48" aria-hidden="true" focusable="false"><rect x="5" y="5" width="54" height="38" rx="4"/><circle cx="22" cy="18" r="4"/><path d="m8 38 16-13 11 9 9-7 12 11"/></svg></span>'+
+            '<span class="project-gateway-copy"><b class="project-name">'+esc(current.title||'未命名作品')+'</b>'+
+            '<span class="project-version">'+esc(series?series+' · '+version:version)+'</span>'+
+            '<span class="project-status">'+esc(status)+'</span>'+
+            '<span class="project-progress">'+esc(confirmed)+' / '+esc(total)+' 個目標完成</span></span>'+
             '<span class="project-enter">進入作品 →</span></button>');
         }else if(selected){
           cards.push('<button class="project-gateway-card" type="button" data-open-project-detail>'+
-            '<span class="project-cover"><span>'+esc((selected.title||'路徑').slice(0,2))+'</span></span>'+
-            '<span class="project-gateway-copy"><small>已選定路徑</small><b>'+esc(selected.title||'已選定作品路徑')+'</b><p>'+esc(selected.why_now||selected.success_evidence||'等待建立第一件正式作品。')+'</p></span>'+
+            '<span class="project-cover" role="img" aria-label="作品縮圖尚未提供"><svg viewBox="0 0 64 48" aria-hidden="true" focusable="false"><rect x="5" y="5" width="54" height="38" rx="4"/><circle cx="22" cy="18" r="4"/><path d="m8 38 16-13 11 9 9-7 12 11"/></svg></span>'+
+            '<span class="project-gateway-copy"><b class="project-name">'+esc(selected.title||'已選定作品路徑')+'</b><span class="project-status">等待第一件作品</span></span>'+
             '<span class="project-enter">查看路徑 →</span></button>');
         }
-        pane.innerHTML='<div class="page-intro"><span class="kicker">我的作品牆</span><h2>只放我真的選定要走的作品</h2><p>第一層只用來選作品；點進去後，原本的目標、步驟、證據、能力與卡點功能全部保留。</p></div>'+
+        pane.innerHTML='<div class="page-intro"><h2>選一件作品，繼續前進</h2><p>進入作品查看目標、步驟與證據。</p></div>'+
           '<div class="project-gateway-grid">'+(cards.length?cards.join(''):'<div class="empty">目前還沒有已選定的作品路徑。</div>')+'</div>';
         $('[data-open-project-detail]',pane)?.addEventListener('click',()=>renderProjectsIA('current'));
       }catch(e){
