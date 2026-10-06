@@ -38,7 +38,7 @@ jobs:
           node --test validation/project-ia.test.mjs
           node --test validation/capability-library.test.mjs
           node --test validation/research-context.test.mjs
-          node --test validation/today-focus.test.mjs
+          node --test validation/today-focus.test.mjs\n          node --test validation/history-archive.test.mjs
           for file in worker/*.mjs; do
             node --check "$file"
           done
