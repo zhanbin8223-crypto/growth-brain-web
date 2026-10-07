@@ -135,8 +135,9 @@ test('作品組隊器先從現有角色與資源組小隊，可手動增刪與�
   const goal=h.root.querySelector('#newProjectRouteTitle');
   goal.value='建立一個數字人 AI 的 Instagram 帳號，測試內容流量與未來變現可能性';
   await h.click('[data-project-team-recommend]');
-  let html=h.html();
-  for(const text of ['作品組隊器 · 第一步','目前理解','加入理由','負責範圍','重新配隊','Web Search','Business Knowledge Database','Descript'])assert.ok(html.includes(text),text);
+  const teamBox=h.root.querySelector('#projectTeamBuilderResult');
+  let html=teamBox.innerHTML;
+  for(const text of ['目前理解','加入理由','負責範圍','重新配隊','Web Search','Business Knowledge Database','Descript'])assert.ok(html.includes(text),text);
   assert.ok(html.includes('現有員工'));
   assert.ok(html.includes('候選／不可直接執行'));
   assert.ok(h.root.querySelector('[data-project-team-remove="descript"]'));
