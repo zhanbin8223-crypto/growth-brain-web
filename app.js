@@ -3,6 +3,7 @@ const $$=(s,r=document)=>[...r.querySelectorAll(s)];
 const A=window.GROWTH_BRAIN_ADAPTER;
 let D=null;
 let SYSTEM=null;
+let PROJECT_TEAM_DRAFT={goal:'',selectedKeys:[],generated:false};
 
 const esc=s=>String(s??'').replace(/[&<>'"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;',"'":'&#39;','"':'&quot;'}[c]));
 const pct=v=>`${Math.round((Number(v)||0)*100)}%`;
@@ -1246,6 +1247,173 @@ function teamRoleName(r){
   return TEAM_ROLE_LABELS[key]||r?.role_name||human(key||'AI 角色');
 }
 
+const PROJECT_TEAM_META={
+  'goal-closure-operator':{tags:['goal','execution','validation'],reason:'把目標收斂成可驗收成果，避免團隊各自開支線。',scope:'守住作品主線、驗收條件與唯一下一步。'},
+  'logic-reality-analyst':{tags:['validation','research','traffic','business'],reason:'把流量、變現與內容成效拆成可驗證假設，不把推論當成果。',scope:'假設、證據、風險與停止條件。'},
+  'ceo-orchestrator':{tags:['goal','coordination'],reason:'在多角色參與時維持單一決策主線。',scope:'角色分工、衝突收斂與整合。'},
+  'supabase-engineer':{tags:['database','data'],reason:'只有作品需要正式保存或資料流程時才加入。',scope:'資料庫、資料狀態與後端存取。'},
+  'github-operator':{tags:['repository','deploy','web'],reason:'只有作品需要程式庫或部署時才加入。',scope:'版本控制、程式庫讀寫與部署來源。'},
+  'work-web-operator':{tags:['web','frontend','implementation'],reason:'只有作品本身需要網站實作時才加入。',scope:'前端實作與頁面修改。'},
+  'work-browser-qa':{tags:['web','validation','qa'],reason:'只有需要真實網站互動驗收時才加入。',scope:'瀏覽器流程與響應式驗收。'},
+  'product-flow-architect':{tags:['product','workflow','ux'],reason:'可協助整理產品流程，但目前仍是候選角色。',scope:'資訊架構與產品流程。'},
+  'impeccable':{tags:['ux','review','web'],reason:'可協助介面審查，但目前仍是候選角色。',scope:'視覺層級、中文可理解性與介面審查。'},
+  'frontend-design-lead':{tags:['frontend','design','web'],reason:'可協助視覺設計，但目前仍是候選角色。',scope:'前端視覺方向與設計一致性。'},
+  'descript':{tags:['content','video','social','media'],reason:'現有影音工具可處理影片匯入、字幕、轉錄與剪輯。',scope:'影音製作流程、字幕與基本後製。'},
+  'web-search':{tags:['research','social','traffic','business','platform'],reason:'需要查平台規則、受眾、流量或市場資訊時使用最新網路資料。',scope:'外部研究、平台規則與可追溯來源。'},
+  'business-knowledge-database':{tags:['business','market','revenue','research'],reason:'現有商業資料來源可提供案例、機會、失敗模式與市場訊號。',scope:'變現假設、商業案例與市場訊號。'},
+  'opencli-chatgpt-web-adapter':{tags:['ai','reasoning'],reason:'可沿用既有 ChatGPT Web 推理工作層，不新增付費 API。',scope:'需要 AI 推理的文字分析與任務交付。'},
+  'github-growth-brain-web':{tags:['repository','deploy','web'],reason:'Growth Brain 既有正式前端程式庫。',scope:'網站原始碼、版本控制與部署來源。'},
+  'method:path-artifact-trial':{tags:['validation','experiment'],reason:'沿用既有作品／路徑試跑規則，先用小作品與真實結果決定是否繼續。',scope:'階段驗證、繼續／轉向／停止判斷。'}
+};
+
+function projectGoalTags(goal){
+  const s=String(goal||'').toLowerCase(),tags=new Set(['goal']);
+  const rules=[
+    [/數字人|digital\s*(human|avatar)|avatar|虛擬人物|ai\s*人物|人工智慧/,['ai','content','video']],
+    [/instagram|ig\b|reels?|threads|tiktok|短影音|社群/,['social','platform','content']],
+    [/影片|影音|video|剪輯|字幕|腳本|內容/,['content','video']],
+    [/流量|觀看|觸及|互動|粉絲|engagement|traffic|views?/,['traffic','validation']],
+    [/變現|收入|營收|商業|賺錢|moneti[sz]|revenue|affiliate|聯盟/,['business','revenue','market']],
+    [/測試|驗證|experiment|test|mvp|假設/,['validation','experiment']],
+    [/研究|比較|規則|政策|市場|受眾|research|market/,['research','market']],
+    [/網站|網頁|前端|web|landing|頁面/,['web','frontend']],
+    [/資料庫|supabase|postgres|資料表/,['database','data']],
+    [/github|部署|deploy|repository|repo/,['repository','deploy']],
+    [/ai|gpt|模型|推理/,['ai','reasoning']]
+  ];
+  rules.forEach(([re,add])=>{if(re.test(s))add.forEach(x=>tags.add(x));});
+  return tags;
+}
+
+function projectTeamCatalog(system){
+  const out=[],seen=new Set(),team=system?.skill_team||{};
+  const add=item=>{if(!item?.key||seen.has(item.key))return;seen.add(item.key);out.push(item);};
+  (team.executable_roles||[]).forEach(r=>add({
+    key:r.skill_key,name:teamRoleName(r),kind:'employee',availability:r.availability||'available',
+    status:r.status||'active',priority:Number(r.priority||50),autoEligible:true,raw:r
+  }));
+  (team.planned_roles||[]).forEach(r=>add({
+    key:r.skill_key,name:teamRoleName(r),kind:'candidate',availability:r.availability||'planned',
+    status:r.status||'candidate',priority:Number(r.priority||40),autoEligible:false,raw:r
+  }));
+  (system?.resource_catalog||[]).forEach(r=>add({
+    key:r.resource_key,name:r.name||human(r.resource_key),kind:r.resource_type||'tool',
+    availability:r.availability||'unknown',status:r.status||'unknown',priority:Number(r.priority||40),
+    autoEligible:r.availability==='available'&&['active','conditional'].includes(String(r.status||'')),raw:r
+  }));
+  if(system?.path_trial_contract)add({
+    key:'method:path-artifact-trial',name:'作品／路徑試跑法',kind:'method',
+    availability:'available',status:'active',priority:88,autoEligible:true,raw:system.path_trial_contract
+  });
+  return out;
+}
+
+function projectTeamTags(item){
+  const meta=PROJECT_TEAM_META[item.key],tags=new Set(meta?.tags||[]);
+  const rawCaps=Array.isArray(item?.raw?.capabilities)?item.raw.capabilities:[];
+  rawCaps.forEach(c=>String(c).toLowerCase().split(/[_\s/-]+/).filter(Boolean).forEach(x=>tags.add(x)));
+  return tags;
+}
+
+function projectTeamScore(item,goalTags){
+  if(!item.autoEligible)return -1;
+  const tags=projectTeamTags(item);
+  let matched=0;
+  goalTags.forEach(t=>{if(tags.has(t))matched+=1;});
+  let score=matched*10+(Number(item.priority||0)/100);
+  if(item.key==='goal-closure-operator')score+=15;
+  if(item.kind==='employee'&&matched>0)score+=1;
+  return score;
+}
+
+function recommendProjectTeam(goal,system){
+  const tags=projectGoalTags(goal);
+  const ranked=projectTeamCatalog(system)
+    .map(item=>({item,score:projectTeamScore(item,tags)}))
+    .filter(x=>x.score>0)
+    .sort((a,b)=>b.score-a.score||b.item.priority-a.item.priority);
+  const chosen=ranked.slice(0,5).map(x=>x.item.key);
+  if(!chosen.includes('goal-closure-operator')&&ranked.some(x=>x.item.key==='goal-closure-operator')){
+    if(chosen.length>=5)chosen.pop();
+    chosen.unshift('goal-closure-operator');
+  }
+  return chosen;
+}
+
+function projectTeamKindLabel(item){
+  return {employee:'現有員工',candidate:'候選員工',tool:'工具',source:'資料來源',library:'方法／工具庫',role:'角色資源',reviewer:'審查資源',method:'方法'}[item?.kind]||'現有資源';
+}
+
+function projectTeamReason(item){
+  const meta=PROJECT_TEAM_META[item.key];
+  if(meta?.reason)return meta.reason;
+  const caps=Array.isArray(item?.raw?.capabilities)?item.raw.capabilities.slice(0,3).map(human):[];
+  return caps.length?'因為它具備：'+caps.join('、')+'。':'因為它與這次作品的需求有直接能力交集。';
+}
+
+function projectTeamScope(item){
+  const meta=PROJECT_TEAM_META[item.key];
+  if(meta?.scope)return meta.scope;
+  const caps=Array.isArray(item?.raw?.capabilities)?item.raw.capabilities.slice(0,3).map(human):[];
+  return caps.length?caps.join('、'):'只負責與本作品直接相關的專業範圍。';
+}
+
+function projectTeamGoalSummary(goal){
+  const tags=projectGoalTags(goal),labels={
+    ai:'AI／數字人',content:'內容',video:'影音',social:'社群平台',platform:'平台',
+    traffic:'流量驗證',validation:'驗證',experiment:'試驗',business:'變現',revenue:'收入',
+    market:'市場',research:'研究',web:'網站',frontend:'前端',database:'資料庫',
+    repository:'程式庫',deploy:'部署',reasoning:'AI 推理'
+  };
+  const picked=[...tags].filter(t=>labels[t]).map(t=>labels[t]).slice(0,6);
+  return picked.length?picked.join(' · '):'一般作品目標';
+}
+
+function renderProjectTeamDraft(container,system){
+  if(!container)return;
+  if(!PROJECT_TEAM_DRAFT.generated){
+    container.innerHTML='<div class="project-team-empty">先輸入作品目標，再按「幫我組隊」。這一步不會建立新員工，也不會改目前主線。</div>';
+    return;
+  }
+  const catalog=projectTeamCatalog(system),byKey=new Map(catalog.map(x=>[x.key,x]));
+  const selected=PROJECT_TEAM_DRAFT.selectedKeys.map(k=>byKey.get(k)).filter(Boolean);
+  const unselected=catalog.filter(x=>!PROJECT_TEAM_DRAFT.selectedKeys.includes(x.key));
+  const card=item=>{
+    const candidate=!item.autoEligible;
+    return '<article class="project-team-member'+(candidate?' is-candidate':'')+'">'+
+      '<div class="project-team-member-head"><span class="project-team-kind">'+esc(projectTeamKindLabel(item))+'</span>'+
+      '<b>'+esc(item.name)+'</b><button class="ghost-btn small" type="button" data-project-team-remove="'+esc(item.key)+'">移除</button></div>'+
+      '<p><strong>加入理由</strong>'+esc(projectTeamReason(item))+'</p>'+
+      '<p><strong>負責範圍</strong>'+esc(projectTeamScope(item))+'</p>'+
+      (candidate?'<small>候選狀態：可手動放進草稿討論，但目前不能冒充可直接執行員工。</small>':'')+
+    '</article>';
+  };
+  const library=unselected.map(item=>
+    '<button class="project-team-library-item" type="button" data-project-team-add="'+esc(item.key)+'" '+(PROJECT_TEAM_DRAFT.selectedKeys.length>=8?'disabled':'')+'>'+
+      '<span><b>'+esc(item.name)+'</b><small>'+esc(projectTeamKindLabel(item))+(item.autoEligible?'':' · 候選／不可直接執行')+'</small></span><i>加入</i>'+
+    '</button>'
+  ).join('');
+  container.innerHTML=
+    '<div class="project-team-summary"><div><span class="kicker">目前理解</span><b>'+esc(projectTeamGoalSummary(PROJECT_TEAM_DRAFT.goal))+'</b><small>'+esc(PROJECT_TEAM_DRAFT.goal)+'</small></div>'+
+    '<button class="ghost-btn small" type="button" data-project-team-reteam>重新配隊</button></div>'+
+    '<div class="project-team-grid">'+(selected.length?selected.map(card).join(''):'<div class="project-team-empty">目前小隊是空的，可從下方手動加入。</div>')+'</div>'+
+    '<details class="project-team-library"><summary>手動增刪現有員工／技能／工具／方法</summary>'+
+      '<div class="project-team-library-list">'+(library||'<div class="project-team-empty">目前沒有其他可加入項目。</div>')+'</div></details>';
+  $('[data-project-team-remove]',container).forEach(btn=>btn.addEventListener('click',()=>{
+    PROJECT_TEAM_DRAFT.selectedKeys=PROJECT_TEAM_DRAFT.selectedKeys.filter(k=>k!==btn.dataset.projectTeamRemove);
+    renderProjectTeamDraft(container,system);
+  }));
+  $('[data-project-team-add]',container).forEach(btn=>btn.addEventListener('click',()=>{
+    if(PROJECT_TEAM_DRAFT.selectedKeys.length>=8)return;
+    if(!PROJECT_TEAM_DRAFT.selectedKeys.includes(btn.dataset.projectTeamAdd))PROJECT_TEAM_DRAFT.selectedKeys.push(btn.dataset.projectTeamAdd);
+    renderProjectTeamDraft(container,system);
+  }));
+  $('[data-project-team-reteam]',container)?.addEventListener('click',()=>{
+    PROJECT_TEAM_DRAFT.selectedKeys=recommendProjectTeam(PROJECT_TEAM_DRAFT.goal,system);
+    renderProjectTeamDraft(container,system);
+  });
+}
+
 async function renderProjectsIA(active='gateway',notice=''){
   const root=$('#view-projects');
   if(!root)return;
@@ -1277,7 +1445,11 @@ async function renderProjectsIA(active='gateway',notice=''){
         const routeForm='<section class="project-new-route-panel" data-new-route-panel>'+
           '<div><span class="kicker">建立候選路徑</span><h3>直接輸入你想做的新作品路徑</h3><p>這只建立候選路徑，不會切換目前主線；若已有候選，會更新那一條。</p></div>'+
           '<form id="newProjectRouteForm" class="project-form project-route-form-inline">'+
-            '<label><b>路徑名稱／想完成什麼</b><input id="newProjectRouteTitle" type="text" placeholder="例如：建立一條 AI 短影音變現路徑"></label>'+
+            '<label><b>作品目標／想完成什麼</b><input id="newProjectRouteTitle" type="text" placeholder="例如：建立一條 AI 短影音變現路徑"></label>'+
+            '<section class="project-team-builder">'+
+              '<div class="project-team-builder-head"><div><span class="kicker">作品組隊器 · 第一步</span><h4>先理解目標，再挑一小隊</h4><p>只從現有員工、技能、工具、資料來源與方法中挑選；候選角色不會自動冒充可執行員工。</p></div><button class="primary-btn" type="button" data-project-team-recommend>幫我組隊</button></div>'+
+              '<div id="projectTeamBuilderResult"><div class="project-team-empty">先輸入作品目標，再按「幫我組隊」。這一步不會建立新員工，也不會改目前主線。</div></div>'+
+            '</section>'+
             '<label><b>怎樣算往前一步（可留空）</b><textarea id="newProjectRouteEvidence" placeholder="例如：先完成 3 支內容並取得真實流量；不知道可留空"></textarea></label>'+
             '<details><summary>補充：為什麼現在想做</summary><textarea id="newProjectRouteWhy" placeholder="可選填"></textarea></details>'+
             '<div class="row-between"><div id="newProjectRouteMsg" class="muted">保存後會交給 GPT 拆候選作品；不會自動取代目前主線。</div><button class="primary-btn" type="submit">建立候選路徑</button></div>'+
@@ -1325,6 +1497,42 @@ async function renderProjectsIA(active='gateway',notice=''){
           routePanel.scrollIntoView({behavior:'smooth',block:'nearest'});
         });
         $('[data-cancel-new-route]',pane)?.addEventListener('click',()=>{routePanel.hidden=true;});
+        const teamGoalInput=$('#newProjectRouteTitle',pane);
+        const teamBox=$('#projectTeamBuilderResult',pane);
+        const teamRecommend=$('[data-project-team-recommend]',pane);
+        if(PROJECT_TEAM_DRAFT.goal&&!teamGoalInput.value)teamGoalInput.value=PROJECT_TEAM_DRAFT.goal;
+        if(PROJECT_TEAM_DRAFT.generated){
+          try{
+            SYSTEM=SYSTEM||await A.getSystemCockpit();
+            renderProjectTeamDraft(teamBox,SYSTEM);
+          }catch(err){
+            teamBox.innerHTML='<div class="project-team-empty">目前無法讀取現有團隊資料：'+esc(err.message||err)+'</div>';
+          }
+        }
+        teamGoalInput?.addEventListener('input',()=>{
+          const next=teamGoalInput.value.trim();
+          if(PROJECT_TEAM_DRAFT.generated&&next!==PROJECT_TEAM_DRAFT.goal){
+            PROJECT_TEAM_DRAFT={goal:next,selectedKeys:[],generated:false};
+            renderProjectTeamDraft(teamBox,SYSTEM);
+          }else PROJECT_TEAM_DRAFT.goal=next;
+        });
+        teamRecommend?.addEventListener('click',async()=>{
+          const goal=teamGoalInput?.value?.trim()||'';
+          if(goal.length<3){
+            teamBox.innerHTML='<div class="project-team-empty">請先寫至少 3 個字的作品目標，我才能判斷要找誰。</div>';
+            return;
+          }
+          teamRecommend.disabled=true;
+          try{
+            SYSTEM=SYSTEM||await A.getSystemCockpit();
+            PROJECT_TEAM_DRAFT={goal,selectedKeys:recommendProjectTeam(goal,SYSTEM),generated:true};
+            renderProjectTeamDraft(teamBox,SYSTEM);
+          }catch(err){
+            teamBox.innerHTML='<div class="project-team-empty">組隊資料載入失敗：'+esc(err.message||err)+'</div>';
+          }finally{
+            teamRecommend.disabled=false;
+          }
+        });
         $('#newProjectRouteForm',pane)?.addEventListener('submit',async e=>{
           e.preventDefault();
           const title=$('#newProjectRouteTitle',pane)?.value?.trim()||'';

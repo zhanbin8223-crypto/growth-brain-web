@@ -50,6 +50,25 @@ function harness(fixture=projectFixture()){
     liveStatus:'live',
     getPersonalOutcome:async()=>structuredClone(fixture.outcome),
     getPersonalArtifacts:async()=>structuredClone(fixture.artifacts),
+    getSystemCockpit:async()=>({
+      skill_team:{
+        executable_roles:[
+          {skill_key:'goal-closure-operator',role_name:'達案執行官',availability:'builtin',status:'active',priority:100},
+          {skill_key:'logic-reality-analyst',role_name:'邏輯／真實性分析員',availability:'builtin',status:'active',priority:100},
+          {skill_key:'ceo-orchestrator',role_name:'Growth Brain CEO',availability:'builtin',status:'active',priority:100}
+        ],
+        planned_roles:[
+          {skill_key:'product-flow-architect',role_name:'產品流程架構師',availability:'planned',status:'candidate',priority:99}
+        ]
+      },
+      resource_catalog:[
+        {resource_key:'descript',resource_type:'tool',name:'Descript',capabilities:['video_editing','captions'],availability:'available',status:'active',priority:96},
+        {resource_key:'web-search',resource_type:'tool',name:'Web Search',capabilities:['web_research','current_docs'],availability:'available',status:'active',priority:95},
+        {resource_key:'business-knowledge-database',resource_type:'source',name:'Business Knowledge Database',capabilities:['business_cases','market_signals'],availability:'available',status:'conditional',priority:85},
+        {resource_key:'opencli-chatgpt-web-adapter',resource_type:'tool',name:'OpenCLI ChatGPT Web Adapter',capabilities:['chatgpt_web_ask'],availability:'available',status:'active',priority:99}
+      ],
+      path_trial_contract:{enabled:true}
+    }),
     getSnapshot:async()=>({}),
     savePersonalOutcomeCandidate:async input=>{routes.push(input);fixture.outcome.candidate_route={id:'candidate-route',...input};},
     decidePersonalOutcomeCandidate:async()=>({}),
@@ -108,4 +127,35 @@ test('正式 artifact title、status 與 id 會反映在目前作品節點',asyn
   const f=projectFixture();Object.assign(f.artifacts.current,{id:'another-artifact',title:'另一件很長的作品目標標題',sequence_no:7,status:'paused'});
   const h=harness(f);await h.render();
   for(const text of ['另一件很長的作品目標標題','暫停','another-artifact'])assert.ok(h.html().includes(text),text);
+});
+
+
+test('作品組隊器先從現有角色與資源組小隊，可手動增刪與重新配隊',async()=>{
+  const h=harness();await h.render();
+  const goal=h.root.querySelector('#newProjectRouteTitle');
+  goal.value='建立一個數字人 AI 的 Instagram 帳號，測試內容流量與未來變現可能性';
+  await h.click('[data-project-team-recommend]');
+  let html=h.html();
+  for(const text of ['作品組隊器 · 第一步','目前理解','加入理由','負責範圍','重新配隊','Web Search','Business Knowledge Database','Descript'])assert.ok(html.includes(text),text);
+  assert.ok(html.includes('現有員工'));
+  assert.ok(html.includes('候選／不可直接執行'));
+  assert.ok(h.root.querySelector('[data-project-team-remove="descript"]'));
+  await h.click('[data-project-team-remove="descript"]');
+  assert.ok(h.root.querySelector('[data-project-team-add="descript"]'));
+  await h.click('[data-project-team-add="descript"]');
+  assert.ok(h.root.querySelector('[data-project-team-remove="descript"]'));
+  await h.click('[data-project-team-reteam]');
+  assert.ok(h.root.querySelector('[data-project-team-remove="goal-closure-operator"]'));
+  assert.match(app,/system\?\.resource_catalog/);
+  assert.match(app,/autoEligible:false/);
+});
+
+test('第一切片不會自動保存組隊草稿或建立新員工',async()=>{
+  const h=harness();await h.render();
+  h.root.querySelector('#newProjectRouteTitle').value='建立一個數字人 AI 的 Instagram 帳號，測試內容流量與未來變現可能性';
+  await h.click('[data-project-team-recommend]');
+  assert.equal(h.routes.length,0);
+  assert.match(h.html(),/不會建立新員工/);
+  assert.match(app,/A\.savePersonalOutcomeCandidate/);
+  assert.doesNotMatch(app,/createProjectTeamEmployee|insertProjectTeamEmployee/);
 });

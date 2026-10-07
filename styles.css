@@ -1838,3 +1838,48 @@ button.project-route-node{cursor:pointer}
 .image-flow-panel details{padding:14px 0;border-top:1px solid var(--line)}
 .image-flow-panel summary{cursor:pointer;font-weight:600}
 .image-flow-panel textarea{width:100%;min-height:180px;color:var(--ink);background:var(--paper);resize:vertical}
+
+
+/* Artifact team builder - slice 1 */
+.project-team-builder{
+  margin:16px 0;padding:16px 0;border-top:1px solid #e3d6c4;border-bottom:1px solid #e3d6c4
+}
+.project-team-builder-head{
+  display:grid;grid-template-columns:minmax(0,1fr) auto;gap:18px;align-items:center;margin-bottom:12px
+}
+.project-team-builder-head h4{margin:4px 0 5px;font-size:17px}
+.project-team-builder-head p{max-width:720px}
+.project-team-empty{padding:12px 0;color:var(--v4-muted);font-size:12px;line-height:1.6}
+.project-team-summary{
+  display:flex;justify-content:space-between;gap:16px;align-items:flex-start;padding:12px 0
+}
+.project-team-summary>div{display:grid;gap:4px}
+.project-team-summary b{font-size:14px}
+.project-team-summary small{max-width:720px;color:var(--v4-muted);font-size:11px;line-height:1.5}
+.project-team-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:9px;margin:5px 0 12px}
+.project-team-member{
+  padding:13px 14px;border:1px solid #dfd3c2;border-radius:13px;background:#fffdf8
+}
+.project-team-member.is-candidate{border-style:dashed;background:#fbf8f1}
+.project-team-member-head{display:grid;grid-template-columns:auto minmax(0,1fr) auto;gap:8px;align-items:center}
+.project-team-kind{font-size:9px;font-weight:900;color:#8e6c47;white-space:nowrap}
+.project-team-member-head b{font-size:13px}
+.project-team-member p{display:grid;grid-template-columns:62px 1fr;gap:7px;margin:9px 0 0;color:var(--v4-muted);font-size:11px;line-height:1.55}
+.project-team-member p strong{color:#6d5b45;font-size:10px}
+.project-team-member>small{display:block;margin-top:9px;color:#9a7758;font-size:10px;line-height:1.45}
+.project-team-library{margin-top:8px;padding-top:8px;border-top:1px solid #eee4d7}
+.project-team-library summary{cursor:pointer;color:#765c3f;font-size:11px;font-weight:800}
+.project-team-library-list{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:6px;margin-top:10px}
+.project-team-library-item{
+  display:flex;justify-content:space-between;gap:10px;align-items:center;padding:9px 10px;
+  border:1px solid #e3d9cb;border-radius:10px;background:#fffdf8;color:var(--v4-ink);text-align:left;cursor:pointer
+}
+.project-team-library-item span{display:grid;gap:2px}
+.project-team-library-item b{font-size:11px}.project-team-library-item small{font-size:9px;color:var(--v4-muted)}
+.project-team-library-item i{font-style:normal;font-size:10px;color:#8d5b2b}
+.project-team-library-item:disabled{opacity:.45;cursor:not-allowed}
+@media(max-width:680px){
+  .project-team-builder-head{grid-template-columns:1fr}.project-team-builder-head .primary-btn{width:100%}
+  .project-team-grid,.project-team-library-list{grid-template-columns:1fr}
+  .project-team-summary{display:grid}
+}
