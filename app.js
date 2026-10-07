@@ -1399,11 +1399,11 @@ function renderProjectTeamDraft(container,system){
     '<div class="project-team-grid">'+(selected.length?selected.map(card).join(''):'<div class="project-team-empty">目前小隊是空的，可從下方手動加入。</div>')+'</div>'+
     '<details class="project-team-library"><summary>手動增刪現有員工／技能／工具／方法</summary>'+
       '<div class="project-team-library-list">'+(library||'<div class="project-team-empty">目前沒有其他可加入項目。</div>')+'</div></details>';
-  $('[data-project-team-remove]',container).forEach(btn=>btn.addEventListener('click',()=>{
+  $$('[data-project-team-remove]',container).forEach(btn=>btn.addEventListener('click',()=>{
     PROJECT_TEAM_DRAFT.selectedKeys=PROJECT_TEAM_DRAFT.selectedKeys.filter(k=>k!==btn.dataset.projectTeamRemove);
     renderProjectTeamDraft(container,system);
   }));
-  $('[data-project-team-add]',container).forEach(btn=>btn.addEventListener('click',()=>{
+  $$('[data-project-team-add]',container).forEach(btn=>btn.addEventListener('click',()=>{
     if(PROJECT_TEAM_DRAFT.selectedKeys.length>=8)return;
     if(!PROJECT_TEAM_DRAFT.selectedKeys.includes(btn.dataset.projectTeamAdd))PROJECT_TEAM_DRAFT.selectedKeys.push(btn.dataset.projectTeamAdd);
     renderProjectTeamDraft(container,system);
