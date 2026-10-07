@@ -1,0 +1,22 @@
+/* Artifact team builder - slice 2: kickoff meeting */
+.project-kickoff{margin-top:14px;padding-top:14px;border-top:1px solid #e3d6c4}
+.project-kickoff-head{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:16px;align-items:center}
+.project-kickoff-head h4{margin:4px 0 5px;font-size:17px}
+.project-kickoff-head p{max-width:760px}
+.project-kickoff-speakers{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:9px;margin:12px 0}
+.project-kickoff-speaker{padding:13px 14px;border:1px solid #dfd3c2;border-radius:13px;background:#fffdf8}
+.project-kickoff-speaker>div{display:flex;gap:8px;align-items:center;margin-bottom:8px}
+.project-kickoff-speaker>div span{font-size:9px;font-weight:900;color:#8e6c47}
+.project-kickoff-speaker>div b{font-size:13px}
+.project-kickoff-speaker p{display:grid;grid-template-columns:62px 1fr;gap:7px;margin:7px 0;color:var(--v4-muted);font-size:11px;line-height:1.55}
+.project-kickoff-speaker p strong{color:#6d5b45;font-size:10px}
+.project-kickoff-support{display:grid;grid-template-columns:auto 1fr;gap:4px 10px;padding:10px 12px;border-radius:11px;background:#f6f0e5;font-size:11px}
+.project-kickoff-support small{grid-column:2;color:var(--v4-muted)}
+.project-kickoff-summary{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:9px;margin-top:10px}
+.project-kickoff-summary-block{padding:11px 12px;border:1px solid #e7dccd;border-radius:11px;background:#fbf8f1}
+.project-kickoff-summary-block>b{font-size:11px;color:#6d5b45}
+.project-kickoff-summary-block ul{margin:7px 0 0;padding-left:17px;color:var(--v4-muted);font-size:11px;line-height:1.55}
+@media(max-width:680px){
+  .project-kickoff-head,.project-kickoff-speakers,.project-kickoff-summary{grid-template-columns:1fr}
+  .project-kickoff-head .primary-btn{width:100%}
+}
