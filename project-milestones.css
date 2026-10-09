@@ -1,0 +1,22 @@
+/* 作品組隊器：正式里程碑；沿用既有顏色與元件 */
+.project-milestones{margin-top:14px;padding-top:14px;border-top:1px solid #e3d6c4}
+.project-milestones.is-locked{opacity:.68}
+.project-milestones-head{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:16px;align-items:center}
+.project-milestones-head h4{font-size:17px;margin:4px 0 5px}
+.project-milestones-head p{max-width:760px}
+.project-milestones-list{display:grid;gap:10px;margin-top:13px}
+.project-milestone-card{display:grid;gap:6px;padding:14px;border:1px solid #e7dccd;border-radius:13px;background:#fffdf8}
+.project-milestone-card.is-current{border-color:#c9a87f;background:#fbf8f1}
+.project-milestone-card>span{font-size:11px;color:#8e6c47;font-weight:800}
+.project-milestone-card>b{font-size:14px}
+.project-milestone-card>p,.project-milestone-card>small{margin:0;font-size:12px;color:#6d5b45;line-height:1.55}
+.project-milestone-steps{margin-top:10px;border-top:1px solid #e7dccd;padding-top:12px}
+.project-milestone-steps>strong{font-size:13px}
+.project-milestone-steps ol{padding-left:22px;display:grid;gap:8px;font-size:12px;line-height:1.6}
+.project-milestone-steps li.is-current-step{font-weight:800;color:#5f4932}
+.project-milestone-next{padding:12px;border-radius:12px;background:#f6f0e5;display:grid;gap:9px}
+.project-milestone-next>b{font-size:12px}.project-milestone-next>p{margin:0;font-size:12px}
+.project-milestone-next label{display:grid;gap:5px;font-size:12px}
+.project-milestone-next input{min-width:0;width:100%;box-sizing:border-box}
+.project-milestone-note{font-size:11px;color:#6d5b45}
+@media(max-width:680px){.project-milestones-head{grid-template-columns:1fr}.project-milestones-head .primary-btn{width:100%}}
