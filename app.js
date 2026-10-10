@@ -61,18 +61,28 @@ function todayCandidates(){
 }
 function todayCriteria(w){return Array.isArray(w?.done_evidence)?w.done_evidence:[]}
 function todayLoggedOutHtml(){
-  return `<div class="td"><section class="td-hero"><div><span class="td-chip td-chip-brand">你的個人成長系統</span>
-    <h1>每天只做<em>一件事</em>，<br>做完就看得見成長</h1>
-    <p>第二大腦幫你選定一件作品、拆成小步驟，做完留下證據，能力會跟著真實紀錄長大。</p>
-    <div class="td-actions"><button class="td-btn td-btn-primary" data-auth>用信箱登入 →</button><a class="td-btn td-btn-ghost" href="#td-loop">看它怎麼運作</a></div></div>
-    <div class="td-art"><img src="assets/ui/home-hero-workspace.webp" alt="" aria-hidden="true">
-      <div class="td-card td-float td-f1"><span class="td-dot td-ok"></span>今天的一步完成了</div>
-      <div class="td-card td-float td-f2"><span class="td-dot td-violet"></span>能力 +1：選品判斷</div></div></section>
-    <section class="td-loop" id="td-loop">
-      <div class="td-card td-step"><i class="td-soft-brand">①</i><div><h3>選一件作品</h3><p>真實要完成的事，不是待辦清單</p></div></div>
-      <div class="td-card td-step"><i class="td-soft-teal">②</i><div><h3>一次一小步</h3><p>系統只給你唯一下一步</p></div></div>
-      <div class="td-card td-step"><i class="td-soft-violet">③</i><div><h3>證據變能力</h3><p>只有真實證據會改變你的能力</p></div></div>
-    </section></div>`;
+  return `<div class="w1p w1p-out"><div class="welcome">
+    <section class="card tile w-hero"><span class="eyebrow">給想把事情做完的人</span>
+      <h1>把想做的事，<br>做成看得見的作品</h1>
+      <p class="lead">每天只做一件事：一次只給你一個下一步。做完留下證據，卡住時才學。</p>
+      <div class="actions"><button class="btn btn-primary" type="button" data-auth>用信箱登入</button><a class="btn btn-ghost" href="#td-loop">看它怎麼運作</a></div>
+      <small class="muted">不用密碼，我們寄登入連結到你的信箱。目前是個人私人模式，請用已開通的信箱。</small></section>
+    <div class="card tile w-art"><img src="assets/w1b/logout-hero-800.webp" alt="作品、證據、能力的三步迴圈插圖" width="800" height="600"></div>
+    <div class="loop" id="td-loop">
+      <article class="card tile td-step"><h3><span class="icirc or"><svg class="i" aria-hidden="true"><use href="assets/w1b/icons.svg#flag"/></svg></span>作品</h3><p class="muted">選一件想做出來的東西，拆成幾個「做完就算」的條件。</p></article>
+      <article class="card tile td-step"><h3><span class="icirc te"><svg class="i" aria-hidden="true"><use href="assets/w1b/icons.svg#paperclip"/></svg></span>證據</h3><p class="muted">每完成一個條件，留下連結或截圖。</p></article>
+      <article class="card tile td-step"><h3><span class="icirc vi"><svg class="i" aria-hidden="true"><use href="assets/w1b/icons.svg#sprout"/></svg></span>能力</h3><p class="muted">證據會累積成能力；卡住時只補現在需要的那一塊。</p></article>
+    </div></div></div>`;
+}
+function todayEmptyHtml(){
+  return `<div class="w1p w1p-today-empty"><section class="head"><span class="eyebrow">${esc(todayDateLabel())}</span><h1>從第一件作品開始</h1><p>第二大腦只做一件事：陪你把一件作品做完，並留下證據。</p></section>
+    <div class="pg-bento empty-bento"><article class="card tile empty wash"><img src="assets/w1b/brand-illustration-600.webp" alt="" width="600" height="400"><h2>還沒有作品</h2>
+      <p>先寫下一件你想做出來的東西，例如「讓一個商品賣出第一筆」。之後會拆成完成條件，今天只給你第一步。</p>
+      <div class="actions" style="justify-content:center"><a class="btn btn-primary" href="#/works/active" data-new-work>建立第一件作品</a></div>
+      <small class="muted">在「作品」頁輸入你想做的作品路徑。</small></article>
+    <div class="ways"><article class="card tile way"><span class="icirc or"><svg class="i" aria-hidden="true"><use href="assets/w1b/icons.svg#flag"/></svg></span><h3>1．作品</h3><p class="muted">一件看得見的成果，有明確的「做完」。</p></article>
+      <article class="card tile way"><span class="icirc te"><svg class="i" aria-hidden="true"><use href="assets/w1b/icons.svg#paperclip"/></svg></span><h3>2．證據</h3><p class="muted">每完成一個條件，留下一個連結或截圖。</p></article>
+      <article class="card tile way"><span class="icirc vi"><svg class="i" aria-hidden="true"><use href="assets/w1b/icons.svg#sprout"/></svg></span><h3>3．能力</h3><p class="muted">卡住時才學，學完直接回到作品。</p></article></div></div></div>`;
 }
 function todayChooseHtml(cands,msg=''){
   const cards=cands.map((w,i)=>{
@@ -121,6 +131,7 @@ function renderHome(notice=''){
     }
     const cands=todayCandidates();
     if(cands.length){$('#view-home').innerHTML=todayChooseHtml(cands,notice);bindTodayPick();return;}
+    if(!home().artifact_summary?.current){$('#view-home').innerHTML=todayEmptyHtml();return;}
   }
   renderTodayFocus();
 }
@@ -164,6 +175,9 @@ function renderTodayFocus(){
       :'<div class="learn-row"><span class="ibox te">'+W.icon('lightbulb','i')+'</span><div><h3>目前不用先學</h3><p class="muted small">'+esc(learn.primary_card?.next_action||'沒有缺口就繼續做作品，不先學一堆。')+'</p></div></div>';
     const extra='<details class="card tile w1p-extra"><summary><b>最近進展</b><span class="muted small">只看真實紀錄</span></summary><div class="focus-progress-list-v4">'+(progress.length?progress.map(p=>'<div><span>'+esc(p.occurred_at?new Date(p.occurred_at).toLocaleDateString('zh-TW'):'')+'</span><b>'+esc(p.title||'真實進展')+'</b></div>').join(''):'<p class="muted small">還沒有真實進展紀錄。</p>')+'</div></details>';
     $('#view-home').innerHTML=W.todayHtml({current:currentArtifact,waiting,stepTitle,stepWhy,stepEvidence,ctaHtml:ctaW,funnelHtml:funnelW,learnHtml,extraHtml:extra});
+    A.getInbox?.().then(ib=>{const items=(ib?.items||[]).filter(x=>x&&!['classified','routed','archived'].includes(x.status));if(!items.length)return;
+      const first=items.map(x=>new Date(x.created_at)).filter(d=>!isNaN(d)).sort((a,b)=>a-b)[0];
+      const box=$('#view-home .w1p-decide');if(box)box.innerHTML=W.decideHtml(W.decideItems({waiting,unsorted:items.length,unsortedSince:first?(first.getMonth()+1)+'/'+first.getDate():''}));}).catch(()=>{});
     return;
   }
   $('#view-home').innerHTML=`<div class="td td-focus">
@@ -695,51 +709,52 @@ async function renderLearn(notice=''){
   const unblockLearning=latestUnblock?.status==='ready'?latestUnblock?.final_guidance?.learning_needed:null;
   const stageLearningNeeded=Boolean(unblockLearning?.needed);
 
-  root.innerHTML=`
-    <div class="section-head">
-      <div><h2>學習陪伴</h2><p>貼入真實內容後，系統會保留原文，再讓你用自己的話回答。需要 AI 幫忙時會交給 GPT；還沒完成就會明確顯示等待，不會假裝已產生結果。</p></div>
-      <span class="pill success">正式資料</span>
-    </div>
-
-    ${currentArtifact?`
-    <article class="surface">
-      <span class="kicker">目前作品的這一步</span>
-      <h3>${esc(currentStep?.criterion_text||currentArtifact.title)}</h3>
-      <p>${stageLearningNeeded?'這一步已確認有知識缺口，只補最低必要內容。':'目前沒有證據顯示你必須先學；可以直接繼續做這一步。'}</p>
-      ${stageLearningNeeded?`<div class="evidence-box"><b>這次最低只要學到</b><span>${esc(unblockLearning.minimum||unblockLearning.target||'能支援目前這一步')}</span></div>`:''}
-    </article>`:`
-    <div class="empty">目前沒有進行中的作品。學習可以保存，但不會自動變成你的主線。</div>`}
-
-    <details class="surface" style="margin-top:18px" ${stageLearningNeeded?'open':''}>
-      <summary><b>${stageLearningNeeded?'開始補目前這一步需要的內容':'我想主動學一段內容'}</b></summary>
-      <p class="muted">${stageLearningNeeded?'只處理目前卡住的最低必要範圍。':'這是你主動選擇的學習，不代表系統認為你現在必須學。'}</p>
-      <form class="project-form" id="learningInputForm">
-        <label><b>學習內容</b><textarea id="learningText" placeholder="貼入你真的想理解的一段文字"></textarea></label>
-        <div class="hero-grid">
-          <label><b>標題（可選）</b><input id="learningTitle" placeholder="例如：目前這一步需要理解的概念"></label>
-          <label><b>最低要學到什麼（可選）</b><input id="learningGoal" value="${esc(stageLearningNeeded?(unblockLearning.minimum||unblockLearning.target||''):'')}" placeholder="例如：能解釋並實際用一次"></label>
-        </div>
-        <div class="row-between">
-          <div id="learningInputMsg" class="muted">${esc(notice||'AI 解釋不算你的能力；只有回答、操作或作品結果才會形成證據。')}</div>
-          <button class="primary-btn" type="submit">建立學習單元</button>
-        </div>
-      </form>
-    </details>
-
-    <div class="section-head">
-      <div><h2>我的正式學習</h2><p>只顯示你真的輸入、回答或完成的學習紀錄；測試資料與系統建置資料不會混進來。</p></div>
-      <span>${sessions.length} 個來源 · ${units.length} 個單元</span>
-    </div>
-
-    <div class="lesson-layout">
-      <div class="lesson-list" id="liveLessonList">
-        ${units.length?units.map((u,i)=>{
-          const supportsCurrent=linkedSessionIds.has(String(u.session?.id||''));
-          return `<button class="lesson-item ${i===0?'active':''}" data-live-unit="${esc(u.id)}"><span>${esc(u.session?.title||'學習來源')}</span><b>${esc(u.presentation?.title||u.session?.title||'學習單元')}</b><small>${supportsCurrent?`支援作品：${esc(currentArtifact?.title||'目前作品')} · `:''}${esc(u.latest_submission?.status?statusText(u.latest_submission.status):'未作答')}</small></button>`;
-        }).join(''):'<div class="empty">目前還沒有正式學習單元。把一段真實文字貼進上方即可開始。</div>'}
-      </div>
-      <article class="lesson-detail" id="liveLessonDetail"></article>
-    </div>`;
+  const W=window.GROWTH_BRAIN_W1P,ic=(n,c)=>W?W.icon(n,c):'';
+  const skills=Array.isArray(currentArtifact?.skills)?currentArtifact.skills:[];
+  const skName=s=>s?.name_zh||s?.name||human(s?.skill_key||'能力');
+  const known=s=>{const v=String(s?.evidence_state||'unknown').toLowerCase();return v!=='unknown'&&v!=='';};
+  const nextSkill=skills.find(s=>!known(s))||null;
+  const laterSkills=skills.filter(s=>!known(s)&&s!==nextSkill).slice(0,2);
+  const knownN=skills.filter(known).length;
+  const stuck=stageLearningNeeded;
+  const pracTitle=stuck?(unblockLearning.target||unblockLearning.minimum||'補上這一步需要的能力'):(nextSkill?skName(nextSkill):'目前不用先學');
+  const pracLead=stuck?'只學現在用得到的；練完就回到作品。':(nextSkill?(nextSkill.minimum_needed_now||'下一步會用到；先練好，做的時候不會卡。'):'沒有缺口就繼續做作品；想主動學也可以貼一段內容。');
+  const form=`<form class="project-form le-form" id="learningInputForm">
+        <div class="field"><label for="learningText">${stuck?'這一步要練的內容':'想學的內容（可選）'}</label><textarea class="textarea" id="learningText" placeholder="貼入你真的想理解的一段文字"></textarea></div>
+        <div class="le-form-row"><div class="field"><label for="learningTitle">標題（可選）</label><input class="input" id="learningTitle" placeholder="例如：目前這一步需要理解的概念"></div>
+        <div class="field"><label for="learningGoal">最低要學到什麼（可選）</label><input class="input" id="learningGoal" value="${esc(stuck?(unblockLearning.minimum||unblockLearning.target||''):'')}" placeholder="例如：能解釋並實際用一次"></div></div>
+        <div id="learningInputMsg" class="muted small">${esc(notice||'AI 解釋不算你的能力；只有回答、操作或作品結果才會形成證據。')}</div>
+        <div class="actions"><button class="btn btn-primary primary-btn" type="submit">${stuck?'送出練習':'開始練習'}</button>${stuck?'':'<a class="btn btn-ghost" href="#/learn/abilities/map">換一個建議</a>'}</div>
+      </form>`;
+  root.innerHTML=`<div class="w1p w1p-learn">
+    <section class="head"><span class="eyebrow">${stuck?'卡住了・為這一步準備':'沒有卡住・照自己的步調'}</span><h1>${stuck?'補上這一步需要的能力':'學習'}</h1><p>${stuck?'只學現在用得到的；練完就回到作品。':'不急著學；這裡放下一個建議練習，和你的能力走到哪裡。'}</p></section>
+    <div class="pg-bento le-bento ${stuck?'':'ln-bento'}">
+      <article class="card-current tile le-prac">
+        <div class="tile-head"><span class="chip or"><span class="dot"></span>${stuck?'現在的練習':'下一個建議練習'}</span><span class="muted small">${esc(currentArtifact?.title||'還沒有目前作品')}</span></div>
+        <h2>${esc(pracTitle)}</h2><p class="lead">${esc(pracLead)}</p>
+        ${stuck?form:`<details class="le-start"><summary class="btn btn-primary">開始練習</summary>${form}</details>`}
+      </article>
+      <article class="card tile le-why"><div class="tile-head"><span class="label">${stuck?'為什麼是現在':'為什麼建議這個'}</span></div>
+        <div class="learn-row"><span class="icirc or">${ic('target','i')}</span><div><h3>${esc(currentStep?(`第 ${currentStep.criterion_no||''} 步：`+currentStep.criterion_text):(currentArtifact?'目前作品的下一步':'還沒有目前作品'))}</h3><p class="muted small">${esc(stuck?'這一步已確認有知識缺口，只補最低必要內容。':(nextSkill?'下一步需要「'+skName(nextSkill)+'」，你目前還沒有證據。':'目前沒有證據顯示你必須先學。'))}</p></div></div>
+        <a class="link" href="#/today/step">回到今天的一步${ic('chevron-right')}</a></article>
+      <article class="card tile le-queue"><div class="tile-head"><span class="label">之後可能用到</span>${stuck?'<span class="muted small">卡住時才出現</span>':''}</div>
+        <div class="rows">${laterSkills.length?laterSkills.map(s=>'<div class="rowi"><span class="icirc">'+ic('book-open','i i-sm')+'</span><div class="grow"><b>'+esc(skName(s))+'</b><small>'+esc(s.minimum_needed_now||'還沒有證據')+'</small></div></div>').join(''):'<p class="muted small">目前沒有其他待補的能力。</p>'}</div>
+        ${stuck?'':'<a class="link" href="#/learn/abilities/map">看全部能力'+ic('chevron-right')+'</a>'}</article>
+      <article class="card tile le-skills"><div class="tile-head"><h3 class="tile-title">能力進度</h3><span class="legend"><span><i style="background:var(--te)"></i>已具備</span><span><i style="background:var(--s3)"></i>還沒有</span></span></div>
+        <div class="sk-sum"><div><b class="num">${knownN}<small>／${skills.length} 項</small></b><span class="muted small">這件作品要的能力（只算有證據的）</span></div></div>
+        <ul class="sk-list">${skills.slice(0,6).map(s=>'<li><span>'+esc(skName(s))+'</span><span class="ttag '+(known(s)?'te':'')+'">'+(known(s)?'已具備':'還沒有')+'</span></li>').join('')}</ul>
+        <a class="link" href="#/learn/abilities/map">打開能力圖譜${ic('chevron-right')}</a></article>
+      <article class="card tile le-mine"><div class="tile-head"><h3 class="tile-title">我的正式學習</h3><span class="muted small">${sessions.length} 個來源・${units.length} 個單元</span></div>
+        <div class="lesson-layout">
+          <div class="lesson-list" id="liveLessonList">
+            ${units.length?units.map((u,i)=>{
+              const supportsCurrent=linkedSessionIds.has(String(u.session?.id||''));
+              return `<button class="lesson-item ${i===0?'active':''}" data-live-unit="${esc(u.id)}"><span>${esc(u.session?.title||'學習來源')}</span><b>${esc(u.presentation?.title||u.session?.title||'學習單元')}</b><small>${supportsCurrent?`支援作品：${esc(currentArtifact?.title||'目前作品')} · `:''}${esc(u.latest_submission?.status?statusText(u.latest_submission.status):'未作答')}</small></button>`;
+            }).join(''):'<div class="empty">目前還沒有正式學習單元。按上面的「開始練習」貼一段真實文字即可開始。</div>'}
+          </div>
+          <article class="lesson-detail" id="liveLessonDetail"></article>
+        </div></article>
+    </div></div>`;
 
   $('#learningInputForm')?.addEventListener('submit',async e=>{
     e.preventDefault();
@@ -1098,6 +1113,19 @@ async function renderHistory(active='system'){
   if(!root)return;
   const tabs=[['system','版本歷程'],['personal','我的歷程'],['skills','能力變化'],['research','研究歷程']];
   root.innerHTML=iaTabs(tabs,active)+'<div id="historyPane" class="tab-pane"><div class="empty">正在讀取正式歷程…</div></div>';
+  if(active==='personal'&&A.liveStatus==='live'&&window.GROWTH_BRAIN_W1P){
+    root.innerHTML='<div id="historyPane"><div class="empty">正在讀取正式歷程…</div></div>';
+    try{
+      const H=await A.getHistory({force:true});
+      const g={personal:H?.personal||[],skills:H?.skills||[],research:H?.research||[]};
+      const st=renderHistory.rv||(renderHistory.rv={unit:'week',offset:0});
+      const paint=()=>{root.innerHTML='<div id="historyPane">'+window.GROWTH_BRAIN_W1P.reviewHtml(g,st.unit,st.offset)+'</div>';
+        $$('[data-rv-unit]',root).forEach(b=>b.onclick=()=>{st.unit=b.dataset.rvUnit;st.offset=0;paint();});
+        $$('[data-rv-step]',root).forEach(b=>b.onclick=()=>{st.offset=Math.min(0,st.offset+Number(b.dataset.rvStep));paint();});};
+      paint();
+    }catch(e){root.innerHTML='<div class="empty">歷程資料載入失敗：'+esc(e.message||e)+'</div>';}
+    return;
+  }
   const pane=$('#historyPane');
 
   if(A.liveStatus!=='live'){
@@ -1557,7 +1585,7 @@ async function renderProjectsIA(active='gateway',notice=''){
     return;
   }else if(active==='gateway'){
     root.innerHTML=iaTabs(tabs,active)+'<div id="projectIaPane" class="tab-pane"><div class="empty">正在整理作品路徑…</div></div>';
-    if(A.liveStatus==='live'&&window.GROWTH_BRAIN_W1P){A.getPersonalArtifacts().then(pa=>{const html=window.GROWTH_BRAIN_W1P.worksHtml(pa);const pane=$('#projectIaPane');if(html&&pane&&!root.querySelector('.w1p-works')){pane.insertAdjacentHTML('beforebegin',html+'<details class="w1p-more"><summary><b>作品路徑與新作品</b><span>建立新路徑、組隊、里程碑都在這裡</span></summary></details>');root.querySelector('.w1p-more').appendChild(pane);root.querySelector('[data-open-current]')?.addEventListener('click',()=>renderProjectsIA('current'));}}).catch(()=>{});}
+    if(A.liveStatus==='live'&&window.GROWTH_BRAIN_W1P){A.getPersonalArtifacts().then(pa=>{const html=window.GROWTH_BRAIN_W1P.worksHtml(pa);const pane=$('#projectIaPane');if(html&&pane&&!root.querySelector('.w1p-works')){pane.insertAdjacentHTML('beforebegin',html+'<details class="w1p-more"><summary><b>作品路徑與新作品</b><span>建立新路徑、組隊、里程碑都在這裡</span></summary></details>');root.querySelector('.w1p-more').appendChild(pane);if(window.__gbNewWork){window.__gbNewWork=false;const m=root.querySelector('.w1p-more');m.open=true;setTimeout(()=>m.scrollIntoView({behavior:'smooth',block:'start'}),50);}root.querySelector('[data-open-current]')?.addEventListener('click',()=>renderProjectsIA('current'));}}).catch(()=>{});}
     const pane=$('#projectIaPane');
     const hero='<header class="v4-page-head project-v4-head"><span class="v4-eyebrow">ARTIFACTS · 作品</span><div><h2>我的作品路徑</h2><p>先看現在在哪、下一個候選在哪。登入後可直接在下方輸入一條新作品路徑。</p><button class="primary-btn project-new-route-btn" type="button" '+(A.liveStatus==='live'?'data-new-project-route':'data-auth')+'>'+(A.liveStatus==='live'?'↓ 輸入新作品路徑':'登入後新增路徑')+'</button></div><img class="v4-page-art" data-image-placement="projects.hero" src="assets/ui/home-project-cover.webp" alt="" aria-hidden="true"></header>';
 
@@ -1787,6 +1815,16 @@ async function renderProjectsIA(active='gateway',notice=''){
 }
 
 async function renderTeamIA(active='working'){
+  await renderTeamIA0(active);
+  const W=window.GROWTH_BRAIN_W1P,root=$('#view-ceo');if(!W||!root||A.liveStatus!=='live')return;
+  let jobs=null;try{jobs=await A.getMyJobs();}catch{}
+  const isStatus=active==='system';
+  const head=isStatus?W.sysHead('status','系統狀態','工作包、處理程式與版本歷程。一般使用時不需要看這裡。',jobs?W.sysStatusHead&&(jobs.jobs||[]).filter(j=>j.status==='failed').length:0)+W.sysStatusHead(jobs)
+    :W.sysHead('team','AI 團隊','誰在幫你做事、做到哪裡。',(jobs?.jobs||[]).filter(j=>j.status==='failed').length)+'<div class="pg-bento st-top"><article class="card tile wash st-trial"><div class="row"><span class="icirc lg">'+W.icon('sparkles','i')+'</span><div class="grow"><span class="label">AI 團隊</span><h2>角色一起試用中</h2><p class="muted small">每個角色做了什麼都留在下面；試用期限與方案還沒定案，定好後會顯示在這裡。</p></div></div></article></div>';
+  root.insertAdjacentHTML('afterbegin','<div class="w1p w1p-sys">'+head+'</div>');
+  root.classList.add('w1p-sys-host');
+}
+async function renderTeamIA0(active='working'){
   const root=$('#view-ceo');
   if(!root)return;
   const tabs=[['working','正在工作'],['teachers','我的老師'],['researchers','研究員'],['system','系統維護']];
@@ -2064,8 +2102,9 @@ async function renderSystemPending(){
   try{
     SYSTEM=await A.getSystemCockpit();
     const items=pendingItemsFromPackages(SYSTEM?.work_queue?.packages||[]);
-    updateGearBadge(items.length);
-    root.innerHTML=pendingBlockHtml(items);
+    let jobs=null;try{jobs=await A.getMyJobs();updateGearBadge(failedRetryCount(jobs));}catch{}
+    const W=window.GROWTH_BRAIN_W1P;
+    root.innerHTML=W?W.sysPendingHtml(jobs,items.map(x=>({...x,needsLabel:PENDING_NEEDS[x.needs]||''})))+'<details class="w1p-more"><summary><b>系統待辦明細</b><span>工作包卡住的原因與參考</span></summary>'+pendingBlockHtml(items)+'</details>':pendingBlockHtml(items);
   }catch(e){root.innerHTML='<div class="empty">待處理事項讀取失敗：'+esc(e.message||e)+'</div>';}
 }
 let GEAR_COUNT=0;
@@ -2176,6 +2215,7 @@ function loginModal(){
 }
 
 async function init(){
+  document.addEventListener('click',e=>{const a=e.target.closest('[data-new-work]');if(!a)return;window.__gbNewWork=true;const m=document.querySelector('#view-projects .w1p-more');if(m&&location.hash.startsWith('#/works/active')){e.preventDefault();window.__gbNewWork=false;m.open=true;m.scrollIntoView({behavior:'smooth',block:'start'});}});
   const paintSideWorks=()=>{const el=$('#sideWorks');if(!el||A.liveStatus!=='live'||!window.GROWTH_BRAIN_W1P)return;A.getPersonalArtifacts().then(pa=>{el.innerHTML=window.GROWTH_BRAIN_W1P.sideWorksHtml(pa);}).catch(()=>{});};setTimeout(paintSideWorks,2000);window.addEventListener('hashchange',()=>setTimeout(paintSideWorks,800));
   setInterval(()=>window.GROWTH_BRAIN_MYJOBS?.refreshBadge(A),60000);setTimeout(()=>window.GROWTH_BRAIN_MYJOBS?.refreshBadge(A),2500);
   window.addEventListener('growth:work-skills-saved',()=>{const v=document.querySelector('#view-projects');if(v&&v.offsetParent)renderProjectsIA(v.querySelector('#projectIaPane')?'planned':'current');});

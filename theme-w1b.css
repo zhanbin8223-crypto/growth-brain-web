@@ -249,3 +249,36 @@ body:has(.view.active .w1p) .nav5-desc{display:none}
 }
 .login-sent-art{display:block;width:160px;height:auto;margin:8px auto}
 @media (min-width:761px){.sidebar{position:sticky!important;top:0;height:100vh!important;min-height:100vh;align-self:start;display:flex;flex-direction:column}.sidebar .nav-tools{margin-top:auto}}
+
+/* ===== 第 2 批：學習／收集／回顧／系統／登出／今天空狀態 ===== */
+.w1p .head-act .subnav{display:none}
+.w1p-sys-host>.w1p-more,#view-ceo .w1p-more{margin-top:20px}
+.w1p .w1p-decide:empty{display:none}
+.w1p .decide{margin-bottom:24px}
+.w1p .le-form{display:flex;flex-direction:column;gap:12px;margin-top:8px}
+.w1p .le-form-row{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+.w1p .le-start>summary{list-style:none;display:inline-flex;cursor:pointer}
+.w1p .le-start>summary::-webkit-details-marker{display:none}
+.w1p .le-start[open]>summary{display:none}
+.w1p .sk-list{display:flex;flex-direction:column;gap:6px;margin:8px 0}
+.w1p .sk-list li{display:flex;justify-content:space-between;align-items:center;gap:8px;font-size:14px}
+.w1p .ttag.te{background:var(--w-te-soft);color:var(--w-te-text)}
+.w1p .le-mine{grid-column:1/-1}
+.w1p .co-cap form{display:flex;flex-direction:column;gap:8px}
+.w1p .co-cap textarea.input{resize:vertical;min-height:48px}
+.w1p .co-url summary{cursor:pointer}
+.w1p .item .co-more>summary{cursor:pointer;color:var(--w-or-text);font-weight:700;font-size:14px}
+.w1p .tagbar .tag{font:inherit;cursor:pointer}
+.w1p-out{max-width:1280px}
+.w1p .w-hero .actions{display:flex;gap:12px;flex-wrap:wrap}
+@media (max-width:760px){.w1p .le-form-row{grid-template-columns:1fr}}
+.w1p .le-bento{grid-template-areas:"prac why" "prac queue" "skills skills" "book book"}
+.w1p .le-mine{grid-area:book}
+@media (max-width:760px){.w1p .le-bento{grid-template-areas:none}}
+@media (max-width:760px){
+  .w1p .tagbar{flex-wrap:wrap;overflow:visible}
+  .w1p .lesson-layout{grid-template-columns:minmax(0,1fr)}
+  .w1p .lesson-list,.w1p .lesson-item{min-width:0;max-width:100%;box-sizing:border-box}
+  .w1p .le-mine{min-width:0;overflow:hidden}
+}
+@media (max-width:760px){.w1p .tagbar{margin-left:0!important;margin-right:0!important;padding-left:0!important;padding-right:0!important}}
