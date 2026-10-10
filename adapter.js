@@ -101,25 +101,30 @@
       this.personalHome=extractSurface(result);
       return clone(this.personalHome);
     },
-    async getPersonalOutcome(){
-      if(this.personalOutcome) return clone(this.personalOutcome);
+    async getPersonalOutcome({force=false}={}){
+      if(!force&&this.personalOutcome) return clone(this.personalOutcome);
       if(this.mode!=='live') return {selected_route:null,candidate_route:null,policy:{candidate_is_commitment:false}};
       const result=await liveRequest('GET',undefined,'personal_outcome');
       this.personalOutcome=extractSurface(result);
       return clone(this.personalOutcome);
     },
-    async savePersonalOutcomeCandidate({title,successEvidence,whyNow,directionKey}){
+    async savePersonalOutcomeCandidate({title,successEvidence,whyNow,directionKey,builderState,routeId,expectedVersion}){
       if(this.mode!=='live') throw Object.assign(new Error('請先登入，候選主線才會正式保存。'),{code:'not_signed_in'});
       await liveRequest('POST',{
         action:'save_personal_outcome_candidate',
         title,
         success_evidence:successEvidence,
         why_now:whyNow||null,
-        direction_key:directionKey||null
+        direction_key:directionKey||null,
+        ...(builderState!==undefined?{builder_state:builderState,route_id:routeId||null,expected_version:expectedVersion??null}:{})
       });
       this.personalOutcome=null;
-      const latest=await this.getPersonalOutcome();
-      await this.refreshPersonalHome();
+      const latest=await this.getPersonalOutcome({force:true});
+      if(builderState!==undefined){
+        const stable=value=>Array.isArray(value)?value.map(stable):value&&typeof value==='object'?Object.fromEntries(Object.keys(value).sort().map(k=>[k,stable(value[k])])):value;
+        if(!latest?.candidate_route||JSON.stringify(stable(latest.candidate_route.source_evidence?.artifact_team_builder))!==JSON.stringify(stable(builderState)))
+          throw new Error('保存後重新讀取的規劃不一致，請重新開啟作品確認，勿重複覆寫。');
+      }else await this.refreshPersonalHome();
       return clone(latest);
     },
     async decidePersonalOutcomeCandidate({routeId,decision}){

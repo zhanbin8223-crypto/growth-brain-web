@@ -4,6 +4,7 @@ const A=window.GROWTH_BRAIN_ADAPTER;
 let D=null;
 let SYSTEM=null;
 let PROJECT_TEAM_DRAFT={goal:'',selectedKeys:[],generated:false};
+let PROJECT_TEAM_ROUTE=null;
 
 const esc=s=>String(s??'').replace(/[&<>'"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;',"'":'&#39;','"':'&quot;'}[c]));
 const pct=v=>`${Math.round((Number(v)||0)*100)}%`;
@@ -1414,6 +1415,38 @@ function renderProjectTeamDraft(container,system){
   });
 }
 
+function projectTeamPlanSnapshot(){
+  return {
+    version:'artifact-team-builder-v1',goal:PROJECT_TEAM_DRAFT.goal,
+    team:{selectedKeys:[...PROJECT_TEAM_DRAFT.selectedKeys],generated:PROJECT_TEAM_DRAFT.generated},
+    kickoff:window.GROWTH_BRAIN_PROJECT_KICKOFF?.current?.()||null,
+    brief:window.GROWTH_BRAIN_PROJECT_BRIEF?.current?.()||null,
+    milestones:window.GROWTH_BRAIN_PROJECT_MILESTONES?.current?.()||null
+  };
+}
+
+function restoreProjectTeamRoute(route){
+  const value=route?.source_evidence?.artifact_team_builder;
+  if(!value||value.version!=='artifact-team-builder-v1'||value.goal!==route.title||
+    !Array.isArray(value.team?.selectedKeys)||!value.team.selectedKeys.every(k=>typeof k==='string'))return false;
+  window.GROWTH_BRAIN_PROJECT_KICKOFF?.reset?.();
+  window.GROWTH_BRAIN_PROJECT_BRIEF?.reset?.();
+  window.GROWTH_BRAIN_PROJECT_MILESTONES?.reset?.();
+  PROJECT_TEAM_DRAFT={goal:value.goal,selectedKeys:[...value.team.selectedKeys],generated:value.team.generated===true};
+  PROJECT_TEAM_ROUTE={id:route.id,version:route.version};
+  const failed=()=>{
+    PROJECT_TEAM_DRAFT={goal:'',selectedKeys:[],generated:false};PROJECT_TEAM_ROUTE=null;
+    window.GROWTH_BRAIN_PROJECT_KICKOFF?.reset?.();
+    window.GROWTH_BRAIN_PROJECT_BRIEF?.reset?.();
+    window.GROWTH_BRAIN_PROJECT_MILESTONES?.reset?.();
+    return false;
+  };
+  if(value.kickoff&&!window.GROWTH_BRAIN_PROJECT_KICKOFF?.restore?.(value.kickoff))return failed();
+  if(value.brief&&!window.GROWTH_BRAIN_PROJECT_BRIEF?.restore?.(value.brief))return failed();
+  if(value.milestones&&!window.GROWTH_BRAIN_PROJECT_MILESTONES?.restore?.(value.milestones))return failed();
+  return true;
+}
+
 async function renderProjectsIA(active='gateway',notice=''){
   const root=$('#view-projects');
   if(!root)return;
@@ -1437,11 +1470,18 @@ async function renderProjectsIA(active='gateway',notice=''){
         '</section>';
     }else{
       try{
-        const [outcome,artifacts]=await Promise.all([A.getPersonalOutcome(),A.getPersonalArtifacts({force:true})]);
+        const [outcome,artifacts]=await Promise.all([A.getPersonalOutcome({force:true}),A.getPersonalArtifacts({force:true})]);
         const selected=outcome?.selected_route||null;
         const candidateRoute=outcome?.candidate_route||null;
         const current=artifacts?.current||null;
         const candidateArtifact=artifacts?.candidate||null;
+        if(!PROJECT_TEAM_DRAFT.goal&&candidateRoute){
+          if(candidateRoute.source_evidence?.artifact_team_builder){
+            if(!restoreProjectTeamRoute(candidateRoute))throw new Error('已保存規劃的內容不一致，請保留資料並檢查後再繼續。');
+          }else{
+            PROJECT_TEAM_ROUTE={id:candidateRoute.id,version:candidateRoute.version};
+          }
+        }
         const routeForm='<section class="project-new-route-panel" data-new-route-panel>'+
           '<div><span class="kicker">建立候選路徑</span><h3>直接輸入你想做的新作品路徑</h3><p>這只建立候選路徑，不會切換目前主線；若已有候選，會更新那一條。</p></div>'+
           '<form id="newProjectRouteForm" class="project-form project-route-form-inline">'+
@@ -1452,7 +1492,7 @@ async function renderProjectsIA(active='gateway',notice=''){
             '</section>'+
             '<label><b>怎樣算往前一步（可留空）</b><textarea id="newProjectRouteEvidence" placeholder="例如：先完成 3 支內容並取得真實流量；不知道可留空"></textarea></label>'+
             '<details><summary>補充：為什麼現在想做</summary><textarea id="newProjectRouteWhy" placeholder="可選填"></textarea></details>'+
-            '<div class="row-between"><div id="newProjectRouteMsg" class="muted">保存後會交給 GPT 拆候選作品；不會自動取代目前主線。</div><button class="primary-btn" type="submit">建立候選路徑</button></div>'+
+            '<div class="row-between"><div id="newProjectRouteMsg" class="muted">保存團隊、會議、基礎提示詞與目前步驟，下次可繼續；不會自動取代目前主線。</div><button class="primary-btn" type="submit">建立候選路徑</button></div>'+
           '</form>'+
         '</section>';
 
@@ -1501,6 +1541,11 @@ async function renderProjectsIA(active='gateway',notice=''){
         const teamBox=$('#projectTeamBuilderResult',pane);
         const teamRecommend=$('[data-project-team-recommend]',pane);
         if(PROJECT_TEAM_DRAFT.goal&&!teamGoalInput.value)teamGoalInput.value=PROJECT_TEAM_DRAFT.goal;
+        if(candidateRoute&&PROJECT_TEAM_ROUTE?.id===candidateRoute.id){
+          $('#newProjectRouteEvidence',pane).value=candidateRoute.success_evidence||'';
+          $('#newProjectRouteWhy',pane).value=candidateRoute.why_now||'';
+          $('#newProjectRouteForm button[type="submit"]',pane).textContent='保存規劃與進度';
+        }
         if(PROJECT_TEAM_DRAFT.generated){
           try{
             SYSTEM=SYSTEM||await A.getSystemCockpit();
@@ -1542,16 +1587,23 @@ async function renderProjectsIA(active='gateway',notice=''){
           const msg=$('#newProjectRouteMsg',pane);
           const submit=e.currentTarget.querySelector('button[type="submit"]');
           if(title.length<3){msg.textContent='請至少寫 3 個字，告訴我這條路徑想完成什麼。';return;}
-          submit.disabled=true;
+          renderProjectTeamDraft(teamBox,SYSTEM);
+          const controls=[...e.currentTarget.querySelectorAll('input,textarea,button')].map(el=>[el,el.disabled]);
+          controls.forEach(([el])=>{el.disabled=true;});
           try{
             msg.textContent='正在保存候選路徑…';
-            await A.savePersonalOutcomeCandidate({title,successEvidence,whyNow,directionKey:null});
-            D=await A.getSnapshot();
-            renderHome();
-            await renderProjectsIA('planned','新作品路徑已保存為候選；尚未取代目前主線。');
+            const saved=await A.savePersonalOutcomeCandidate({title,successEvidence,whyNow,directionKey:null,
+              builderState:projectTeamPlanSnapshot(),routeId:PROJECT_TEAM_ROUTE?.id||null,
+              expectedVersion:PROJECT_TEAM_ROUTE?.version??null});
+            PROJECT_TEAM_ROUTE={id:saved.candidate_route.id,version:saved.candidate_route.version};
+            submit.disabled=false;
+            submit.textContent='保存規劃與進度';
+            msg.textContent='團隊與規劃已永久保存，並已重新讀取核對；下次開啟作品即可繼續。';
           }catch(err){
             submit.disabled=false;
-            msg.textContent=err.message||'候選路徑保存失敗';
+            msg.textContent=err.code==='candidate_version_conflict'?'這條路徑已有較新的修改。請重新開啟作品讀取最新內容後再保存。':err.message||'候選路徑保存失敗';
+          }finally{
+            controls.forEach(([el,disabled])=>{el.disabled=disabled;});
           }
         });
       }catch(e){
@@ -1566,7 +1618,7 @@ async function renderProjectsIA(active='gateway',notice=''){
       pane.innerHTML='<div class="empty">登入後才會顯示正式作品資料。</div>';
     }else{
       try{
-        const [outcome,artifacts]=await Promise.all([A.getPersonalOutcome(),A.getPersonalArtifacts({force:true})]);
+        const [outcome,artifacts]=await Promise.all([A.getPersonalOutcome({force:true}),A.getPersonalArtifacts({force:true})]);
         const current=artifacts?.current||null;
         const candidate=artifacts?.candidate||null;
         const candidateRoute=outcome?.candidate_route||null;
@@ -1580,7 +1632,7 @@ async function renderProjectsIA(active='gateway',notice=''){
               '<div><span class="kicker">候選作品路徑</span><h3>'+esc(candidateRoute.title||'未命名候選路徑')+'</h3><p>'+esc(candidateRoute.success_evidence||'等待補上完成方向')+'</p>'+
                 (candidateRoute.why_now?'<small>'+esc(candidateRoute.why_now)+'</small>':'')+
               '</div>'+
-              '<div class="project-actions"><button class="primary-btn" type="button" data-select-route-id="'+esc(candidateRoute.id)+'">設為目前主線</button><button class="ghost-btn" type="button" data-reject-route-id="'+esc(candidateRoute.id)+'">刪除候選</button></div>'+
+              '<div class="project-actions">'+(candidateRoute.source_evidence?.artifact_team_builder?'<button class="ghost-btn" type="button" data-resume-project-team>繼續團隊規劃</button>':'')+'<button class="primary-btn" type="button" data-select-route-id="'+esc(candidateRoute.id)+'">設為目前主線</button><button class="ghost-btn" type="button" data-reject-route-id="'+esc(candidateRoute.id)+'">刪除候選</button></div>'+
             '</article>');
           }
           if(candidate){
@@ -1598,6 +1650,11 @@ async function renderProjectsIA(active='gateway',notice=''){
           pane.innerHTML='<div class="page-intro"><span class="kicker">接下來</span><h2>預計作品</h2><p>候選作品路徑、候選作品與規劃中的下一件作品都放在這裡；候選不等於目前主線。</p></div>'+
             (notice?'<div class="project-route-notice">'+esc(notice)+'</div>':'')+
             (plannedCards.length?'<div class="project-planned-stack">'+plannedCards.join('')+'</div>':'<div class="empty">目前沒有預計作品。回到「進行中」可用「＋ 新作品路徑」建立候選。</div>');
+          $('[data-resume-project-team]',pane)?.addEventListener('click',async()=>{
+            const latest=await A.getPersonalOutcome({force:true});
+            if(!restoreProjectTeamRoute(latest.candidate_route)){alert('目前無法完整恢復規劃，請保留資料並檢查。');return;}
+            await renderProjectsIA('gateway','已讀取保存的團隊與規劃。');
+          });
           $('[data-select-route-id]',pane)?.addEventListener('click',async e=>{
             const btn=e.currentTarget;btn.disabled=true;
             try{

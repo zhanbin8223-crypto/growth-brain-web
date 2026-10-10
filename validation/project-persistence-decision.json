@@ -1,0 +1,10 @@
+{
+  "primary_problem": "Candidate save omits team, kickoff, brief and milestone state; next milestone discards prior step evidence.",
+  "primary_change": "Persist a versioned artifact_team_builder envelope in existing candidate source_evidence; restore without regeneration and retain milestone evidence.",
+  "allowed_scope": ["app.js", "adapter.js", "project-kickoff.js", "project-milestones.js", "supabase candidate persistence service", "validation/", "index.html asset versions only"],
+  "forbidden_scope": ["UI redesign", "unrelated refactoring", "capability/research/history changes", "employee creation", "selected route and formal artifact progress/evidence", "worker changes", "paid APIs"],
+  "contract_impact": "Add a service-only candidate builder save RPC with verified owner, candidate-only route ID and optimistic version checks. Reuse source_evidence; no new tables. Builder saves do not enqueue regeneration of existing plans.",
+  "acceptance_evidence": ["fixed-goal real browser workflow", "Supabase write then independent read-back", "reload and new-tab restore", "team/goal invalidation", "cross-milestone evidence retained", "protected-data fingerprints unchanged", "existing regression tests", "Pages deployment success"],
+  "specialist_review": "Available Supabase skill and one independent read-only persistence review agent; no claim of invoking unavailable registered employees.",
+  "deferred_findings": ["Repository growth-home differs from live v16 in existing history/capabilities routes. Preserve live baseline when deploying; do not implement unrelated changes."]
+}

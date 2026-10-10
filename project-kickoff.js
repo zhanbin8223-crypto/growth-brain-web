@@ -4,6 +4,8 @@
   const baseRenderProjectTeamDraft=renderProjectTeamDraft;
   let currentMeeting=null;
   let currentSignature='';
+  const draftSignature=()=>JSON.stringify([PROJECT_TEAM_DRAFT?.goal||'',PROJECT_TEAM_DRAFT?.selectedKeys||[]]);
+  const strings=value=>Array.isArray(value)&&value.every(x=>typeof x==='string');
 
   const KICKOFF_META={
     'goal-closure-operator':{
@@ -149,7 +151,7 @@
       return;
     }
 
-    const signature=(PROJECT_TEAM_DRAFT.goal||'')+'|'+(PROJECT_TEAM_DRAFT.selectedKeys||[]).join('|');
+    const signature=draftSignature();
     if(signature!==currentSignature){
       currentMeeting=null;
       currentSignature=signature;
@@ -170,6 +172,17 @@
 
   window.GROWTH_BRAIN_PROJECT_KICKOFF={
     current:()=>clone(currentMeeting),
+    restore:value=>{
+      currentMeeting=null;currentSignature='';
+      if(!PROJECT_TEAM_DRAFT?.generated||!value||value.version!=='project-kickoff-v1'||value.goal!==PROJECT_TEAM_DRAFT.goal)return false;
+      if(!strings(value.team_keys)||JSON.stringify(value.team_keys)!==JSON.stringify(PROJECT_TEAM_DRAFT.selectedKeys)||new Set(value.team_keys).size!==value.team_keys.length)return false;
+      if(!strings(value.participant_keys)||!value.participant_keys.length||new Set(value.participant_keys).size!==value.participant_keys.length||value.participant_keys.some(k=>!value.team_keys.includes(k)))return false;
+      if(!Array.isArray(value.contributions)||value.contributions.length!==value.participant_keys.length||value.contributions.some((x,i)=>!x||x.key!==value.participant_keys[i]||['name','scope','question','risk','dependency','milestone'].some(k=>typeof x[k]!=='string')))return false;
+      const supportKeys=value.team_keys.filter(k=>!value.participant_keys.includes(k));
+      if(!Array.isArray(value.support_resources)||value.support_resources.length!==supportKeys.length||value.support_resources.some((x,i)=>!x||x.key!==supportKeys[i]||typeof x.name!=='string'||typeof x.kind!=='string'))return false;
+      if(!value.summary||['consensus','risks','pending','milestone_suggestions'].some(k=>!strings(value.summary[k])))return false;
+      currentMeeting=clone(value);currentSignature=draftSignature();return true;
+    },
     reset:()=>{currentMeeting=null;currentSignature='';}
   };
 
@@ -192,7 +205,8 @@ const integrators=[
  ['goal-closure-operator','Goal Closure Operator（達案執行官）'],
  ['logic-reality-analyst','Logic & Reality Analyst（邏輯／真實性分析員）']
 ];
-function signature(m){return m?JSON.stringify([m.version,m.goal,m.team_keys,m.participant_keys,m.summary]):''}
+const stable=value=>Array.isArray(value)?value.map(stable):value&&typeof value==='object'?Object.fromEntries(Object.keys(value).sort().map(k=>[k,stable(value[k])])):value;
+function signature(m){return m?JSON.stringify(stable([m.version,m.goal,m.team_keys,m.participant_keys,m.summary])):''}
 function integrator(m){
  const set=new Set(m?.participant_keys||[]);
  for(const [key,name] of integrators)if(set.has(key))return {key,name};
@@ -215,7 +229,7 @@ function prompt(b){
 function build(m){
  const s=m.summary||{},i=integrator(m),c=Array.isArray(m.contributions)?m.contributions:[],cons=uniq(s.consensus||[]);
  const b={
-  version:'project-brief-v1',source_meeting_version:m.version||'',goal:m.goal||'',objective:m.goal||'',
+  version:'project-brief-v1',source_meeting_version:m.version||'',source_meeting_signature:signature(m),goal:m.goal||'',objective:m.goal||'',
   integrator_key:i.key,integrator_name:i.name,team_keys:[...(m.team_keys||[])],participant_keys:[...(m.participant_keys||[])],
   success_focus:cons[1]||cons[0]||'先完成最小可驗證成果，取得真實證據後再決定是否擴大。',
   boundaries:[
@@ -260,6 +274,19 @@ renderProjectTeamDraft=function(container,system){
   sig=signature(latest);brief=build(latest);renderProjectTeamDraft(container,system);
  });
 };
-window.GROWTH_BRAIN_PROJECT_BRIEF={current:()=>clone(brief),reset:()=>{brief=null;sig='';}};
+window.GROWTH_BRAIN_PROJECT_BRIEF={
+ current:()=>clone(brief),
+ restore:value=>{
+  brief=null;sig='';
+  const m=window.GROWTH_BRAIN_PROJECT_KICKOFF?.current?.();
+  if(!m||!value||value.version!=='project-brief-v1'||value.source_meeting_version!==m.version||value.source_meeting_signature!==signature(m)||value.goal!==m.goal||value.objective!==m.goal)return false;
+  if(JSON.stringify(value.team_keys)!==JSON.stringify(m.team_keys)||JSON.stringify(value.participant_keys)!==JSON.stringify(m.participant_keys))return false;
+  if(['integrator_key','integrator_name','success_focus','evidence_rule','base_prompt'].some(k=>typeof value[k]!=='string')||!value.base_prompt)return false;
+  if(['boundaries','key_risks','open_questions','milestone_seed'].some(k=>!Array.isArray(value[k])||value[k].some(x=>typeof x!=='string')))return false;
+  if(!Array.isArray(value.team_responsibilities)||value.team_responsibilities.length!==m.participant_keys.length||value.team_responsibilities.some((x,i)=>!x||x.key!==m.participant_keys[i]||typeof x.name!=='string'||typeof x.scope!=='string'))return false;
+  brief=clone(value);sig=signature(m);return true;
+ },
+ reset:()=>{brief=null;sig='';}
+};
 queueMicrotask(()=>{const box=document.querySelector('#projectTeamBuilderResult');if(box&&PROJECT_TEAM_DRAFT?.generated)renderProjectTeamDraft(box,SYSTEM);});
 })();

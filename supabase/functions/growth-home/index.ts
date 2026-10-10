@@ -109,11 +109,19 @@ Deno.serve(async (req: Request) => {
     if (req.method === "GET") {
       const url = new URL(req.url);
       const surface = url.searchParams.get("surface") || "personal_home";
-      if (!["personal_home", "personal_outcome", "personal_artifacts", "system_cockpit", "inbox", "learning", "personal_synapse", "event_lab"].includes(surface)) {
+      if (!["personal_home", "personal_outcome", "personal_artifacts", "system_cockpit", "inbox", "learning", "personal_synapse", "event_lab", "history", "capabilities"].includes(surface)) {
         return json({ ok: false, reason: "unsupported_surface" }, 400);
       }
 
-      const result = surface === "event_lab"
+      const result = surface === "history"
+        ? await adminRpc("growth_history_snapshot_service_v1", {
+            p_auth_user_id: verified.user.id,
+          })
+        : surface === "capabilities"
+        ? await adminRpc("growth_capability_library_service_v1", {
+            p_auth_user_id: verified.user.id,
+          })
+        : surface === "event_lab"
         ? await adminRpc("growth_event_lab_service_v1", {
             p_auth_user_id: verified.user.id,
             p_action: "snapshot",
@@ -273,6 +281,24 @@ Deno.serve(async (req: Request) => {
             { ok: false, reason: "title_and_success_evidence_required" },
             400,
           );
+        }
+
+        if (Object.prototype.hasOwnProperty.call(body, "builder_state")) {
+          const result = await adminRpc("growth_artifact_team_builder_save_service_v1", {
+            p_auth_user_id: verified.user.id,
+            p_title: body.title,
+            p_success_evidence: body.success_evidence,
+            p_why_now: typeof body.why_now === "string" ? body.why_now : null,
+            p_direction_key: typeof body.direction_key === "string" ? body.direction_key : null,
+            p_builder_state: body.builder_state,
+            p_route_id: body.route_id || null,
+            p_expected_version: Number.isInteger(body.expected_version) ? body.expected_version : null,
+          });
+          if (result?.accepted === false) {
+            const reason = result.reason || "builder_save_rejected";
+            return json({ ok: false, reason }, reason.includes("verified") ? 403 : reason.includes("conflict") ? 409 : 400);
+          }
+          return json({ ok: true, data: result }, 200);
         }
 
         const result = await adminRpc(

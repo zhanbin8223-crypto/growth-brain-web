@@ -3,6 +3,7 @@
   const original=renderProjectTeamDraft;
   const clone=v=>v==null?null:JSON.parse(JSON.stringify(v));
   const esc=v=>String(v??'').replace(/[&<>'"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;',"'":'&#39;','"':'&quot;'}[c]));
+  const stable=value=>Array.isArray(value)?value.map(stable):value&&typeof value==='object'?Object.fromEntries(Object.keys(value).sort().map(k=>[k,stable(value[k])])):value;
   const signature=b=>b?JSON.stringify([b.version,b.objective,b.team_keys,b.base_prompt]):'';
   let plan=null, briefSignature='';
 
@@ -43,10 +44,12 @@
     const milestone=p.milestones[p.current_milestone];
     if(!milestone)return;
     if(!Array.isArray(p.current_steps)||p.expanded_milestone!==p.current_milestone){
-      p.current_steps=(milestone.step_seed||[]).map((text,i)=>({key:'m'+(p.current_milestone+1)+'-s'+(i+1),text,evidence_note:null}));
+      milestone.steps=milestone.steps||(milestone.step_seed||[]).map((text,i)=>({key:'m'+(p.current_milestone+1)+'-s'+(i+1),text,evidence_note:null}));
+      p.current_steps=milestone.steps;
       p.current_step=0;
       p.expanded_milestone=p.current_milestone;
     }
+    milestone.steps=p.current_steps;
   }
 
   function build(b){
@@ -131,9 +134,19 @@
   window.GROWTH_BRAIN_PROJECT_MILESTONES={
     current:()=>clone(plan),
     restore:value=>{
+      plan=null;briefSignature='';
       const b=window.GROWTH_BRAIN_PROJECT_BRIEF?.current?.();
-      if(!b||!value||value.version!=='project-milestones-v1'||value.source_brief_signature!==signature(b))return false;
-      if(!Array.isArray(value.milestones)||value.milestones.length<1||!Number.isInteger(value.current_milestone)||value.current_milestone<0||value.current_milestone>=value.milestones.length)return false;
+      if(!b||!value||value.version!=='project-milestones-v1'||value.source_brief_signature!==signature(b)||value.source_brief_version!==b.version||value.goal!==b.objective||value.verified_personal_progress!==false)return false;
+      if(!Array.isArray(value.milestones)||value.milestones.length<1||value.milestones.length>64||!Number.isInteger(value.current_milestone)||value.current_milestone<0||value.current_milestone>=value.milestones.length||value.expanded_milestone!==value.current_milestone)return false;
+      const validSteps=(steps,m,i)=>Array.isArray(steps)&&steps.length===m.step_seed.length&&steps.every((s,n)=>s&&s.key==='m'+(i+1)+'-s'+(n+1)&&s.text===m.step_seed[n]&&(s.evidence_note===null||(typeof s.evidence_note==='string'&&s.evidence_note.trim().length>=3&&s.evidence_note.length<=500)));
+      for(let i=0;i<value.milestones.length;i++){
+        const m=value.milestones[i];
+        if(!m||m.key!=='m'+(i+1)||['title','objective','acceptance'].some(k=>typeof m[k]!=='string'||!m[k])||!Array.isArray(m.step_seed)||!m.step_seed.length||m.step_seed.some(x=>typeof x!=='string'||!x))return false;
+        if(i<value.current_milestone&&(!validSteps(m.steps,m,i)||m.steps.some(s=>s.evidence_note===null)))return false;
+        if(i>value.current_milestone&&m.steps!=null)return false;
+        if(i===value.current_milestone&&(!validSteps(value.current_steps,m,i)||(m.steps!=null&&JSON.stringify(stable(m.steps))!==JSON.stringify(stable(value.current_steps)))))return false;
+      }
+      if(!Number.isInteger(value.current_step)||value.current_step<0||value.current_step>value.current_steps.length||value.current_steps.some((s,i)=>(i<value.current_step)!==(s.evidence_note!==null)))return false;
       plan=clone(value);briefSignature=signature(b);expandCurrent(plan);
       return true;
     },
