@@ -5,7 +5,7 @@
   <meta name="viewport" content="width=device-width,initial-scale=1" />
   <meta name="theme-color" content="#f6f0e5" />
   <title>第二大腦</title>
-  <link rel="stylesheet" href="styles.css?v=artifact-team-builder-s1-20261007" />
+  <link rel="stylesheet" href="styles.css?v=nav5-20261010" />
   <link rel="stylesheet" href="project-kickoff.css?v=artifact-team-kickoff-v1-20261007" />
   <link rel="stylesheet" href="project-milestones.css?v=20261010" />
 </head>
@@ -20,18 +20,18 @@
         </div>
       </div>
 
-      <nav class="nav" id="nav">
-        <button class="nav-item active" data-view="home"><span>⌂</span><b>今天</b></button>
-        <button class="nav-item" data-view="projects"><span>◎</span><b>作品</b></button>
-        <button class="nav-item" data-view="capabilities"><span>◫</span><b>能力庫</b></button>
-        <button class="nav-item" data-view="research"><span>◇</span><b>研究室</b></button>
-        <button class="nav-item" data-view="ceo"><span>◉</span><b>團隊</b></button>
-        <button class="nav-item" data-view="history"><span>↺</span><b>歷程</b></button>
+      <nav class="nav" id="nav" aria-label="主導覽">
+        <button class="nav-item active" data-page="today"><span>☀</span><b>今天</b></button>
+        <button class="nav-item" data-page="works"><span>◎</span><b>作品</b></button>
+        <button class="nav-item" data-page="learn"><span>✎</span><b>學習</b></button>
+        <button class="nav-item" data-page="lab"><span>✦</span><b>研究室</b></button>
+        <button class="nav-item" data-page="collect"><span>＋</span><b>收集</b></button>
       </nav>
 
       <div class="nav-tools" aria-label="快速工具">
         <button class="nav-tool nav-capture" id="captureBtn" aria-label="丟進第二大腦">＋</button>
         <button class="nav-tool" id="refreshBtn" aria-label="重新整理">↻</button>
+        <div class="gear-wrap"><button class="nav-tool gear-btn" id="gearBtn" aria-label="系統" aria-haspopup="menu" aria-expanded="false">⚙<span class="gear-badge" id="gearBadge" hidden></span></button><div class="gear-menu" id="gearMenu" role="menu" hidden></div></div>
         <div class="avatar">劉</div>
       </div>
     </aside>
@@ -41,6 +41,7 @@
         <h1 id="pageTitle">今天</h1>
       </header>
 
+      <div class="nav5-shell" id="pageShell"></div>
       <section class="view active" id="view-home"></section>
       <section class="view" id="view-projects"></section>
       <section class="view" id="view-capabilities"></section>
@@ -59,11 +60,11 @@
   <script src="config.js"></script>
   <script src="auth.js?v=login-link-help-20261006"></script>
   <script src="adapter.js?v=project-persistence-20261010"></script>
-  <script src="event-lab.js?v=employee-v4-20261007"></script>
+  <script src="event-lab.js?v=nav5-20261010"></script>
   <script src="image-assets.js?v=image-flow-v1"></script>
-  <script src="app.js?v=project-persistence-20261010"></script>
+  <script src="app.js?v=nav5-20261010"></script>
   <script src="project-kickoff.js?v=project-persistence-20261010"></script>
   <script src="project-milestones.js?v=project-persistence-20261010"></script>
-  <script src="inbox.js"></script>
+  <script src="inbox.js?v=nav5-20261010"></script>
 </body>
 </html>

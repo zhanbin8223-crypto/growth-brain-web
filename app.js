@@ -1924,28 +1924,170 @@ async function renderTeamIA(active='working'){
   $$('[data-ia-tab]',root).forEach(b=>b.onclick=()=>renderTeamIA(b.dataset.iaTab));
 }
 
+/* ===== 5-page navigation (openspec/changes/navigation-5-pages) =====
+   Each tab reuses the existing renderer and data call; only placement changes. */
+const lab=()=>window.GROWTH_BRAIN_LAB;
+const NAV_PAGES=[
+  {key:'today',label:'今天',icon:'☀',tabs:[
+    {key:'step',label:'今天這一步',view:'home',desc:'推進目前作品的唯一下一步。',run:()=>renderHome()},
+    {key:'waiting',label:'等待中的作品',view:'home',desc:'還沒開始的作品，安全地放在這裡等你。',run:()=>renderTodayWaiting()},
+    {key:'progress',label:'最近進展',view:'home',desc:'只列真的發生過、有紀錄的進展。',run:()=>renderTodayProgress()}]},
+  {key:'works',label:'作品',icon:'◎',tabs:[
+    {key:'active',label:'進行中',view:'projects',desc:'目前作品的路徑、完成條件與證據。',run:sub=>renderProjectsIA(sub==='current'?'current':'gateway')},
+    {key:'waiting',label:'等待中',view:'projects',desc:'預計要做、還沒開始的作品。',run:()=>renderProjectsIA('planned')},
+    {key:'done',label:'已完成',view:'projects',desc:'已經完成並留下證據的作品。',run:()=>renderProjectsIA('done')},
+    {key:'review',label:'回顧',view:'history',desc:'回頭看你真的做過什麼（依時間排列）。',run:()=>renderHistory('personal')}]},
+  {key:'learn',label:'學習',icon:'✎',tabs:[
+    {key:'practice',label:'下一個練習',view:'learn',desc:'只補目前作品真的用得到的能力。',run:()=>renderLearn()},
+    {key:'abilities',label:'我的能力',view:'capabilities',desc:'能力狀態只看真實證據，不看 AI 猜測。',segs:[
+      {key:'map',label:'能力圖譜',view:'capabilities',run:()=>renderCapabilities('cells')},
+      {key:'evidence',label:'有證據的能力',view:'capabilities',run:()=>renderCapabilities('skills')},
+      {key:'changes',label:'能力變化',view:'history',run:()=>renderHistory('skills')}]},
+    {key:'playbooks',label:'作戰手冊',view:'capabilities',desc:'作戰手冊＝做過的事整理成的步驟筆記，需要時照著做。',run:()=>renderCapabilities('playbooks')},
+    {key:'relations',label:'知識關係',view:'synapse',desc:'看你存的知識之間怎麼連起來、能幫哪個作品。',run:()=>renderSynapse()}]},
+  {key:'lab',label:'研究室',icon:'✦',tabs:[
+    {key:'today',label:'今日探索',view:'research',desc:'AI 研究員自己上網找資料、反覆想，只推薦值得你看的一件事。',run:()=>lab().renderResearch($('#view-research'),'today',{filter:'active'})},
+    {key:'ai',label:'AI 技術',view:'research',desc:'AI 研究員找到的 AI 工具與技術。',run:()=>lab().renderResearch($('#view-research'),'ai',{filter:'active'})},
+    {key:'distribution',label:'流量分發',view:'research',desc:'讓內容被更多人看到的方法（流量分發＝內容怎麼被平台推給人）。',run:()=>lab().renderResearch($('#view-research'),'distribution',{filter:'active'})},
+    {key:'opportunity',label:'商業機會',view:'research',desc:'可能賺錢的方向，還沒驗證前都只是候選。',run:()=>lab().renderResearch($('#view-research'),'opportunity',{filter:'active'})},
+    {key:'notes',label:'研究筆記',view:'history',desc:'AI 研究員做過的研究，以及正在試做的事。',segs:[
+      {key:'history',label:'研究歷程',view:'history',run:()=>renderHistory('research')},
+      {key:'trying',label:'正在試做',view:'research',run:()=>lab().renderResearch($('#view-research'),'today',{filter:'trial'})}]}]},
+  {key:'collect',label:'收集',icon:'＋',tabs:[
+    {key:'inbox',label:'收件匣',view:'inbox',desc:'先把想法、連結丟進來，之後再分類。',run:()=>window.GROWTH_BRAIN_INBOX?.render()},
+    {key:'saved',label:'收藏',view:'research',desc:'研究室推薦中你先收起來的事。',run:()=>lab().renderResearch($('#view-research'),'today',{filter:'saved'})},
+    {key:'ignored',label:'已略過',view:'research',desc:'你略過的推薦；需要時可以再拿回來看。',run:()=>lab().renderResearch($('#view-research'),'today',{filter:'ignored'})}]},
+  {key:'system',label:'系統',icon:'⚙',gear:true,tabs:[
+    {key:'pending',label:'待處理',view:'ceo',desc:'還沒完成、等你處理的事。',run:()=>renderSystemPending()},
+    {key:'team',label:'AI 團隊',view:'ceo',desc:'幫你做事的 AI 角色與它們最近做了什麼。',segs:[
+      {key:'working',label:'正在工作',view:'ceo',run:()=>renderTeamIA('working')},
+      {key:'teachers',label:'我的老師',view:'ceo',run:()=>renderTeamIA('teachers')},
+      {key:'researchers',label:'研究員',view:'ceo',run:()=>renderTeamIA('researchers')}]},
+    {key:'status',label:'系統狀態',view:'ceo',desc:'工作包、Worker（你電腦上的 AI 執行程式）與版本紀錄。',segs:[
+      {key:'maint',label:'系統維護',view:'ceo',run:()=>renderTeamIA('system')},
+      {key:'versions',label:'版本歷程',view:'history',run:()=>renderHistory('system')},
+      {key:'research',label:'系統研究',view:'research',run:()=>renderResearch('growthbrain')}]}]}
+];
+/* old view key (+ old subtab) -> [page, tab, seg?, sub?] */
+const LEGACY_ROUTES={
+  home:{_:['today','step']},
+  projects:{_:['works','active'],gateway:['works','active'],current:['works','active',null,'current'],planned:['works','waiting'],done:['works','done']},
+  capabilities:{_:['learn','abilities','map'],cells:['learn','abilities','map'],skills:['learn','abilities','evidence'],playbooks:['learn','playbooks'],relations:['learn','relations']},
+  research:{_:['lab','today'],today:['lab','today'],ai:['lab','ai'],distribution:['lab','distribution'],opportunity:['lab','opportunity'],growthbrain:['system','status','research']},
+  ceo:{_:['system','team','working'],working:['system','team','working'],teachers:['system','team','teachers'],researchers:['system','team','researchers'],system:['system','status','maint']},
+  history:{_:['works','review'],system:['system','status','versions'],personal:['works','review'],skills:['learn','abilities','changes'],research:['lab','notes','history']},
+  inbox:{_:['collect','inbox']},
+  learn:{_:['learn','practice']},
+  synapse:{_:['learn','relations']}
+};
+function resolveLegacy(view,sub){
+  const m=LEGACY_ROUTES[view];
+  if(!m)return null;
+  return (sub&&m[sub])||m._;
+}
+function navFind(pageKey,tabKey,segKey){
+  const page=NAV_PAGES.find(p=>p.key===pageKey)||NAV_PAGES[0];
+  const tab=page.tabs.find(t=>t.key===tabKey)||page.tabs[0];
+  const seg=tab.segs?(tab.segs.find(s=>s.key===segKey)||tab.segs[0]):null;
+  return {page,tab,seg};
+}
+function navHash(p,t,s){return '#/'+p+'/'+t+(s?'/'+s:'')}
+function parseNavHash(hash){
+  const h=String(hash||'');
+  if(!h||h.includes('=')||h.includes('access_token'))return null;
+  const parts=h.replace(/^#\/?/,'').split('/').filter(Boolean).map(decodeURIComponent);
+  if(!parts.length)return null;
+  if(NAV_PAGES.some(p=>p.key===parts[0])){const r=navFind(parts[0],parts[1],parts[2]);return [r.page.key,r.tab.key,r.seg?.key||null];}
+  const legacy=resolveLegacy(parts[0],parts[1]);
+  return legacy?[legacy[0],legacy[1],legacy[2]||null,legacy[3]||null]:null;
+}
+let NAV_STATE={page:'today',tab:'step',seg:null};
+function renderNavShell(page,tab,seg){
+  const shell=$('#pageShell');if(!shell)return;
+  shell.innerHTML='<div class="nav5-where"><span>'+esc(page.label)+'</span><i aria-hidden="true">›</i><b>'+esc(tab.label)+'</b>'+(seg?'<i aria-hidden="true">›</i><b>'+esc(seg.label)+'</b>':'')+'</div>'+
+    '<p class="nav5-desc">'+esc(tab.desc||'')+'</p>'+
+    '<nav class="nav5-shortcuts" aria-label="'+esc(page.label)+'的功能">'+page.tabs.map(t=>'<a href="'+navHash(page.key,t.key)+'" class="'+(t.key===tab.key?'on':'')+'" data-nav-tab="'+esc(t.key)+'"'+(t.key===tab.key?' aria-current="page"':'')+'>'+esc(t.label)+'</a>').join('')+'</nav>'+
+    (tab.segs?'<div class="nav5-segs" role="group" aria-label="'+esc(tab.label)+'">'+tab.segs.map(s=>'<a href="'+navHash(page.key,tab.key,s.key)+'" class="'+(seg&&s.key===seg.key?'on':'')+'" data-nav-seg="'+esc(s.key)+'">'+esc(s.label)+'</a>').join('')+'</div>':'');
+}
+function navGo(pageKey,tabKey,segKey,opts={}){
+  const {page,tab,seg}=navFind(pageKey,tabKey,segKey);
+  NAV_STATE={page:page.key,tab:tab.key,seg:seg?.key||null};
+  const target=(seg||tab).view;
+  $$('.view').forEach(v=>v.classList.toggle('active',v.id==='view-'+target));
+  $$('.nav-item').forEach(n=>n.classList.toggle('active',n.dataset.page===page.key));
+  $('#gearBtn')?.classList.toggle('active',page.key==='system');
+  const t=$('#pageTitle');if(t)t.textContent=page.label+'：'+tab.label;
+  renderNavShell(page,tab,seg);
+  const hash=navHash(page.key,tab.key,seg?.key);
+  if(!opts.fromHash&&location.hash!==hash)history[opts.replace?'replaceState':'pushState'](null,'',hash);
+  try{(seg||tab).run(opts.sub);}catch(e){console.warn('render failed',e);}
+}
 function setView(name,subtab){
-  $$('.view').forEach(v=>v.classList.toggle('active',v.id===`view-${name}`));
-  $$('.nav-item').forEach(n=>n.classList.toggle('active',n.dataset.view===name));
-  const t={
-    home:'今天只做一件最值得做的事',
-    projects:'作品：現在走到哪一關',
-    capabilities:'能力庫：需要時直接拿來用',
-    research:'研究室：先探索，再決定要不要採用',
-    ceo:'團隊：現在誰在幫我',
-    history:'歷程：看見第二大腦怎麼長出來',
-    inbox:'快速丟進第二大腦',
-    learn:'只補目前真正需要的學習',
-    synapse:'知識關係'
-  };
-  $('#pageTitle').textContent=t[name]||t.home;
-  if(name==='projects')renderProjectsIA(subtab||'gateway');
-  if(name==='capabilities')renderCapabilities(subtab||'cells');
-  if(name==='research')renderResearch(subtab||'today');
-  if(name==='history')renderHistory();
-  if(name==='learn')renderLearn();
-  if(name==='synapse')renderSynapse();
-  if(name==='ceo')renderTeamIA(subtab||'working');
+  if(NAV_PAGES.some(p=>p.key===name))return navGo(name,subtab);
+  const r=resolveLegacy(name,subtab);
+  if(!r)return navGo('today','step');
+  navGo(r[0],r[1],r[2],{sub:r[3]});
+}
+function routeFromHash(replace=false){
+  const r=parseNavHash(location.hash);
+  if(!r){navGo('today','step',null,{fromHash:!location.hash||location.hash.includes('='),replace:true});return;}
+  navGo(r[0],r[1],r[2],{sub:r[3],replace:true});
+}
+function renderTodayWaiting(){
+  const root=$('#view-home');
+  if(A.liveStatus!=='live'){root.innerHTML='<div class="td"><div class="td-card nav5-empty"><b>登入後才看得到你的作品</b><button class="td-btn td-btn-primary" data-auth>用信箱登入</button></div></div>';return;}
+  if(!A.personalArtifacts){root.innerHTML='<div class="td"><p class="td-msg">正在讀取你的作品…</p></div>';A.getPersonalArtifacts().then(()=>{if(NAV_STATE.tab==='waiting'&&NAV_STATE.page==='today')renderTodayWaiting();});return;}
+  const cur=A.personalArtifacts.current;
+  const list=todayCandidates().filter(w=>!cur||w.id!==cur.id);
+  if(!cur&&list.length){root.innerHTML=todayChooseHtml(list);bindTodayPick();return;}
+  root.innerHTML='<div class="td"><div class="nav5-list">'+(list.length?list.map(w=>'<article class="td-card nav5-row"><div><b>'+esc(w.title)+'</b><p>'+esc(w.objective||'')+'</p><small>目前先不做，會安全地等你。要換成這件，請先完成或暫停目前作品。</small></div><button class="td-btn td-btn-ghost" data-jump="projects">到作品頁看</button></article>').join(''):'<div class="td-card nav5-empty"><b>目前沒有等待中的作品</b><p>新的候選作品出現時會放在這裡。</p></div>')+'</div></div>';
+}
+function renderTodayProgress(){
+  const root=$('#view-home');
+  const items=home().recent_real_progress?.items||[];
+  if(A.liveStatus!=='live'){root.innerHTML='<div class="td"><div class="td-card nav5-empty"><b>登入後才看得到你的進展</b><button class="td-btn td-btn-primary" data-auth>用信箱登入</button></div></div>';return;}
+  root.innerHTML='<div class="td"><div class="nav5-list">'+(items.length?items.map(p=>'<article class="td-card nav5-row"><div><small>'+esc(p.occurred_at?new Date(p.occurred_at).toLocaleDateString('zh-TW'):'')+'</small><b>'+esc(p.title||'真實進展')+'</b><p>'+esc(p.summary||'')+'</p></div></article>').join(''):'<div class="td-card nav5-empty"><b>目前還沒有可追溯的真實進展</b><p>交出第一個證據後，這裡就會出現紀錄。</p></div>')+'</div></div>';
+}
+async function renderSystemPending(){
+  const root=$('#view-ceo');
+  if(A.liveStatus!=='live'){root.innerHTML='<div class="surface"><b>登入後才看得到待處理事項</b><p>系統資料只給本人看。</p><button class="primary-btn" data-auth>登入</button></div>';return;}
+  root.innerHTML='<div class="empty">正在讀取待處理事項…</div>';
+  try{
+    SYSTEM=await A.getSystemCockpit();
+    const items=pendingItemsFromPackages(SYSTEM?.work_queue?.packages||[]);
+    updateGearBadge(items.length);
+    root.innerHTML=pendingBlockHtml(items);
+  }catch(e){root.innerHTML='<div class="empty">待處理事項讀取失敗：'+esc(e.message||e)+'</div>';}
+}
+function updateGearBadge(n){
+  const b=$('#gearBadge');if(!b)return;
+  b.hidden=!n;b.textContent=n>99?'99+':String(n||'');
+  $('#gearBtn')?.setAttribute('aria-label','系統'+(n?'（'+n+' 項待處理）':''));
+}
+async function loadGearBadge(){
+  if(A.liveStatus!=='live')return;
+  try{const s=await A.getSystemCockpit();updateGearBadge(pendingItemsFromPackages(s?.work_queue?.packages||[]).length);}catch{}
+}
+function bindGear(){
+  const btn=$('#gearBtn'),menu=$('#gearMenu');if(!btn||!menu)return;
+  const sys=NAV_PAGES.find(p=>p.key==='system');
+  menu.innerHTML=sys.tabs.map(t=>'<a role="menuitem" href="'+navHash('system',t.key)+'" data-gear-tab="'+t.key+'">'+esc(t.label)+'</a>').join('');
+  const close=()=>{menu.hidden=true;btn.setAttribute('aria-expanded','false');};
+  btn.onclick=e=>{e.stopPropagation();const open=menu.hidden;menu.hidden=!open;btn.setAttribute('aria-expanded',String(open));};
+  menu.onclick=e=>{const a=e.target.closest('[data-gear-tab]');if(!a)return;e.preventDefault();close();navGo('system',a.dataset.gearTab);};
+  document.addEventListener('click',e=>{if(!menu.hidden&&!e.target.closest('#gearMenu'))close();});
+  document.addEventListener('keydown',e=>{if(e.key==='Escape')close();});
+}
+function bindNav5(){
+  $$('.nav-item[data-page]').forEach(b=>b.onclick=()=>navGo(b.dataset.page));
+  $('#pageShell')?.addEventListener('click',e=>{
+    const t=e.target.closest('[data-nav-tab]'),s=e.target.closest('[data-nav-seg]');
+    if(t){e.preventDefault();navGo(NAV_STATE.page,t.dataset.navTab);}
+    else if(s){e.preventDefault();navGo(NAV_STATE.page,NAV_STATE.tab,s.dataset.navSeg);}
+  });
+  window.addEventListener('popstate',()=>routeFromHash());
+  window.addEventListener('hashchange',()=>routeFromHash());
+  bindGear();
 }
 
 function detectSessionLifecycleProbe(){
@@ -2013,7 +2155,9 @@ async function init(){
     renderHistory();
     authBar();
     await sendSessionLifecycleProbe();
-    $$('.nav-item').forEach(b=>b.onclick=()=>setView(b.dataset.view));
+    bindNav5();
+    routeFromHash(true);
+    loadGearBadge();
     document.addEventListener('click',e=>{
       const f=e.target.closest('[data-funnel-kind]');
       if(f)window.GROWTH_BRAIN_LAB.openFunnel({kind:f.dataset.funnelKind,id:f.dataset.funnelId||null,goal:f.dataset.funnelGoal||''});
@@ -2022,7 +2166,7 @@ async function init(){
       if(e.target.closest('[data-auth]'))loginModal();
     });
     document.addEventListener('growth-lab:navigate',e=>setView(e.detail.view,e.detail.subtab));
-    document.addEventListener('growth-lab:system-research',()=>renderResearch('growthbrain'));
+    document.addEventListener('growth-lab:system-research',()=>setView('research','growthbrain'));
     $('#captureBtn').onclick=()=>setView('inbox');
     $('#refreshBtn').onclick=()=>location.reload();
   }catch(e){$('.main').innerHTML=`<div class="empty">第二大腦 初始化失敗：${esc(e.message||e)}</div>`}
