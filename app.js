@@ -1973,11 +1973,13 @@ const NAV_PAGES=[
     {key:'status',label:'系統狀態',view:'ceo',desc:'工作包、Worker（你電腦上的 AI 執行程式）與版本紀錄。',segs:[
       {key:'maint',label:'系統維護',view:'ceo',run:()=>renderTeamIA('system')},
       {key:'versions',label:'版本歷程',view:'history',run:()=>renderHistory('system')},
-      {key:'research',label:'系統研究',view:'research',run:()=>renderResearch('growthbrain')}]}]}
+      {key:'research',label:'系統研究',view:'research',run:()=>renderResearch('growthbrain')}]},
+    {key:'account',label:'帳號與設定',view:'ceo',desc:'你的帳號、登入方式與登出。',run:()=>renderAccount()}]}
 ];
 /* old view key (+ old subtab) -> [page, tab, seg?, sub?] */
 const LEGACY_ROUTES={
   home:{_:['today','step']},
+
   projects:{_:['works','active'],gateway:['works','active'],current:['works','active',null,'current'],planned:['works','waiting'],done:['works','done']},
   capabilities:{_:['learn','abilities','map'],cells:['learn','abilities','map'],skills:['learn','abilities','evidence'],playbooks:['learn','playbooks'],relations:['learn','relations']},
   research:{_:['lab','today'],today:['lab','today'],ai:['lab','ai'],distribution:['lab','distribution'],opportunity:['lab','opportunity'],growthbrain:['system','status','research']},
@@ -2066,23 +2068,47 @@ async function renderSystemPending(){
     root.innerHTML=pendingBlockHtml(items);
   }catch(e){root.innerHTML='<div class="empty">待處理事項讀取失敗：'+esc(e.message||e)+'</div>';}
 }
+let GEAR_COUNT=0;
 function updateGearBadge(n){
-  const b=$('#gearBadge');if(!b)return;
-  b.hidden=!n;b.textContent=n>99?'99+':String(n||'');
-  $('#gearBtn')?.setAttribute('aria-label','系統'+(n?'（'+n+' 項待處理）':''));
+  GEAR_COUNT=n||0;
+  const b=$('#gearBadge'),v=$('#avBadge'),txt=n>99?'99+':String(n||'');
+  if(b){b.hidden=!n;b.textContent=txt;}
+  if(v){v.hidden=!n;v.textContent=txt;}
+  $('#gearBtn')?.setAttribute('aria-label','系統'+(n?'（'+n+' 項失敗待重試）':''));
+  const mc=$('#gearMenu [data-gear-tab="pending"] .mcount');if(mc){mc.hidden=!n;mc.textContent=txt;}
 }
+/* W1b 定案：系統數字只算「失敗待重試」的提問／工作 */
+function failedRetryCount(snap){return (Array.isArray(snap?.jobs)?snap.jobs:[]).filter(j=>j&&j.status==='failed').length;}
 async function loadGearBadge(){
   if(A.liveStatus!=='live')return;
-  try{const s=await A.getSystemCockpit();updateGearBadge(pendingItemsFromPackages(s?.work_queue?.packages||[]).length);}catch{}
+  try{const s=await A.getMyJobs();updateGearBadge(failedRetryCount(s));}catch{}
+}
+function accountEmail(){try{return localStorage.getItem('growth-brain-auth-email-v1')||''}catch{return ''}}
+function renderAccount(){
+  const root=$('#view-ceo');if(!root)return;
+  const live=A.liveStatus==='live',mail=accountEmail();
+  root.innerHTML='<div class="w1p w1p-account"><section class="head"><span class="eyebrow">帳號與設定</span><h1>帳號與設定</h1><p>你的帳號、登入方式與登出。</p></section><div class="bento acct-bento">'+
+   '<article class="card tile"><div class="tile-head"><h3 class="tile-title">帳號</h3></div><div class="menu-who"><span class="avatar" aria-hidden="true">劉</span><div><b>劉</b><small>'+esc(mail||(live?'已登入':'尚未登入'))+'</small></div></div>'+
+   '<dl class="facts"><div><dt>登入方式</dt><dd>信箱登入連結（不用密碼）</dd></div><div><dt>使用模式</dt><dd>個人私人模式</dd></div></dl></article>'+
+   '<article class="card tile"><div class="tile-head"><h3 class="tile-title">系統與 AI 團隊</h3></div><p class="muted small">失敗待重試、排隊中的工作，和幫你做事的 AI 角色。</p><div class="actions"><a class="btn btn-ghost btn-sm" href="#/system/pending">系統待處理</a><a class="btn btn-ghost btn-sm" href="#/system/team/working">AI 團隊</a></div></article>'+
+   '<article class="card tile"><div class="tile-head"><h3 class="tile-title">登出</h3></div><p class="muted small">登出後資料都會保留，下次用信箱登入連結回來。</p><div class="actions">'+(live?'<button class="btn btn-ghost" type="button" data-signout="local">登出這台裝置</button>':'<button class="btn btn-primary" type="button" data-auth>用信箱登入</button>')+'</div></article>'+
+   '</div></div>';
+  root.querySelector('[data-signout]')?.addEventListener('click',async()=>{await A.signOut();location.hash='#/today/step';location.reload();});
 }
 function bindGear(){
-  const btn=$('#gearBtn'),menu=$('#gearMenu');if(!btn||!menu)return;
+  const btn=$('#gearBtn'),menu=$('#gearMenu'),det=$('#meMenu');if(!menu)return;
   const sys=NAV_PAGES.find(p=>p.key==='system');
-  menu.innerHTML=sys.tabs.map(t=>'<a role="menuitem" href="'+navHash('system',t.key)+'" data-gear-tab="'+t.key+'">'+esc(t.label)+'</a>').join('');
-  const close=()=>{menu.hidden=true;btn.setAttribute('aria-expanded','false');};
-  btn.onclick=e=>{e.stopPropagation();const open=menu.hidden;menu.hidden=!open;btn.setAttribute('aria-expanded',String(open));};
-  menu.onclick=e=>{const a=e.target.closest('[data-gear-tab]');if(!a)return;e.preventDefault();close();navGo('system',a.dataset.gearTab);};
-  document.addEventListener('click',e=>{if(!menu.hidden&&!e.target.closest('#gearMenu'))close();});
+  const ic=n=>'<svg class="i i-sm" aria-hidden="true"><use href="assets/w1b/icons.svg#'+n+'"/></svg>';
+  const tabIcon={account:'user',pending:'settings',team:'sparkles',status:'layout-grid'};
+  const paint=()=>{menu.innerHTML='<div class="menu-who"><span class="avatar" aria-hidden="true">劉</span><div><b>劉</b><small>'+esc(accountEmail()||'個人帳號')+'</small></div></div>'+
+    sys.tabs.map(t=>'<a role="menuitem" href="'+navHash('system',t.key)+'" data-gear-tab="'+t.key+'">'+ic(tabIcon[t.key]||'settings')+(t.key==='pending'?'系統・待處理<span class="mcount" hidden></span>':esc(t.label))+'</a>').join('')+
+    '<hr><button type="button" role="menuitem" data-gear-signout>'+ic('log-out')+(A.liveStatus==='live'?'登出':'登入')+'</button>';updateGearBadge(GEAR_COUNT);};paint();det?.addEventListener('toggle',()=>{if(det.open)paint();});
+  const close=()=>{if(det)det.open=false;};
+  if(btn)btn.onclick=e=>{e.preventDefault();close();navGo('system','pending');};
+  menu.onclick=async e=>{
+    if(e.target.closest('[data-gear-signout]')){e.preventDefault();close();if(A.liveStatus==='live'){await A.signOut();location.reload();}else loginModal();return;}
+    const a=e.target.closest('[data-gear-tab]');if(!a)return;e.preventDefault();close();navGo('system',a.dataset.gearTab);};
+  document.addEventListener('click',e=>{if(det?.open&&!e.target.closest('#meMenu'))close();});
   document.addEventListener('keydown',e=>{if(e.key==='Escape')close();});
 }
 function bindNav5(){
@@ -2128,12 +2154,12 @@ function loginModal(){
     m=document.createElement('div');
     m.id='loginModal';
     m.className='modal-backdrop';
-    m.innerHTML='<div class="modal-card"><button class="modal-close" id="closeLogin">×</button><span class="kicker">私人單人模式</span><h2>登入 第二大腦</h2><p>請使用既有帳號。寄信後，直接點選最新登入信的登入按鈕；登入會保存在開啟它的瀏覽器。</p><input id="loginEmail" type="email" placeholder="your@email.com"><button class="primary-btn" id="sendLogin">寄登入連結</button><div id="loginMsg" class="muted"></div><div class="evidence-box"><b>需要在這個瀏覽器登入？</b><span>在最新、尚未點開的登入信，對登入按鈕長按或按右鍵，選「複製連結網址」，貼到下方。不要複製登入後的網址列；已點過的登入連結需重新寄送。</span></div><input id="loginLink" type="text" autocomplete="off" aria-label="登入連結" placeholder="登入信中按鈕的原始連結（尚未點開）"><button class="ghost-btn" id="verifyLoginLink">驗證原始登入連結</button><div id="verifyLoginMsg" class="muted"></div></div>';
+    m.innerHTML='<div class="modal-card"><button class="modal-close" id="closeLogin">×</button><span class="kicker">用信箱登入・不用密碼</span><h2>登入 第二大腦</h2><p>輸入信箱，我們寄一封登入信給你；點信裡的連結就登入了，不用記密碼。登入會保存在開啟它的瀏覽器。目前是個人私人模式，請用已開通的信箱。</p><input id="loginEmail" type="email" placeholder="your@email.com"><button class="primary-btn" id="sendLogin">寄登入連結</button><div id="loginMsg" class="muted"></div><div class="evidence-box"><b>需要在這個瀏覽器登入？</b><span>在最新、尚未點開的登入信，對登入按鈕長按或按右鍵，選「複製連結網址」，貼到下方。不要複製登入後的網址列；已點過的登入連結需重新寄送。</span></div><input id="loginLink" type="text" autocomplete="off" aria-label="登入連結" placeholder="登入信中按鈕的原始連結（尚未點開）"><button class="ghost-btn" id="verifyLoginLink">驗證原始登入連結</button><div id="verifyLoginMsg" class="muted"></div></div>';
     document.body.appendChild(m);
     $('#closeLogin').onclick=()=>m.classList.remove('show');
     $('#sendLogin').onclick=async()=>{
       const msg=$('#loginMsg');
-      try{msg.textContent='寄送中…';await A.requestMagicLink($('#loginEmail').value);msg.textContent='已送出。請直接點選最新登入信的登入按鈕。若要貼到此處驗證，請先複製信中按鈕的連結網址。';}
+      try{msg.textContent='寄送中…';await A.requestMagicLink($('#loginEmail').value);msg.innerHTML='<img class="login-sent-art" src="assets/w1b/mail-sent.webp" alt="" width="160" height="120">已寄出，去信箱點最新那封登入信的連結。若要貼到此處驗證，請先複製信中按鈕的連結網址。';}
       catch(e){msg.textContent=e.message||'失敗';}
     };
     $('#verifyLoginLink').onclick=async()=>{

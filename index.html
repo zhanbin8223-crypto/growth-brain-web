@@ -37,8 +37,9 @@
       <div class="nav-tools" aria-label="快速工具">
         <button class="nav-tool nav-capture" id="captureBtn" aria-label="丟進第二大腦"><svg class="i i-sm" aria-hidden="true"><use href="assets/w1b/icons.svg#plus"/></svg></button>
         <button class="nav-tool" id="refreshBtn" aria-label="重新整理"><svg class="i i-sm" aria-hidden="true"><use href="assets/w1b/icons.svg#repeat-2"/></svg></button>
-        <div class="gear-wrap"><button class="nav-tool gear-btn sys-row" id="gearBtn" aria-label="系統" aria-haspopup="menu" aria-expanded="false"><svg class="i i-sm" aria-hidden="true"><use href="assets/w1b/icons.svg#settings"/></svg><span class="sys-t">系統<span class="sys-t2">・待處理</span></span><span class="gear-badge" id="gearBadge" hidden></span></button><div class="gear-menu" id="gearMenu" role="menu" hidden></div></div>
-        <div class="me"><div class="avatar">劉</div><div class="me-t"><b>劉</b><small>個人帳號</small></div></div>
+        <button class="nav-tool gear-btn sys-row" id="gearBtn" aria-label="系統"><svg class="i i-sm" aria-hidden="true"><use href="assets/w1b/icons.svg#settings"/></svg><span class="sys-t">系統<span class="sys-t2">・待處理</span></span><span class="gear-badge" id="gearBadge" hidden></span></button>
+        <details class="me-menu" id="meMenu"><summary class="me" aria-label="帳號選單"><span class="avatar" aria-hidden="true">劉</span><span class="me-t"><b>劉</b><small>個人帳號</small></span><span class="av-badge" id="avBadge" hidden></span><svg class="i i-sm chev" aria-hidden="true"><use href="assets/w1b/icons.svg#chevron-up"/></svg></summary>
+          <div class="gear-menu menu" id="gearMenu" role="menu" aria-label="帳號選單"></div></details>
       </div>
     </aside>
 

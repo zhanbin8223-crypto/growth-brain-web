@@ -200,7 +200,7 @@ body:has(.view.active .w1p) .nav5-desc{display:none}
 .td-cover-b{background-image:url(assets/w1b/cover-digital-human-ig-600.webp)!important}
 @media (max-width:760px){
   .sidebar{width:auto}
-  .side-sec,.nav-tools .me,.nav-tools .auth-box,.nav-tools #captureBtn,.nav-tools #refreshBtn{display:none!important}
+  .side-sec,.nav-tools .auth-box,.nav-tools #captureBtn,.nav-tools #refreshBtn{display:none!important}
   .nav-tools{flex-direction:row}
   .gear-btn.sys-row{width:auto!important;height:36px!important}
   .gear-btn .sys-t2{display:none}
@@ -211,3 +211,41 @@ body:has(.view.active .w1p) .nav5-desc{display:none}
 .w1p-more>summary::after{content:"展開";margin-left:auto;font-size:14px;color:var(--w-or-text);font-weight:700}
 .w1p-more[open]>summary::after{content:"收起"}
 .w1p-more>#projectIaPane{padding:0 16px 16px}
+
+/* ===== W1b 全站定案（第二輪）：頭像下拉選單、系統數字只算失敗待重試 ===== */
+.nav-tools .me-menu{order:2;position:relative}
+.me-menu>summary{list-style:none;cursor:pointer}
+.me-menu>summary::-webkit-details-marker{display:none}
+.me-menu>summary.me{display:flex;align-items:center;gap:10px;border-radius:var(--w-r-pill);padding:6px 12px 6px 6px;position:relative}
+.me-menu>summary.me:hover,.me-menu[open]>summary.me{background:var(--w-card);box-shadow:var(--w-shadow)}
+.me-menu .chev{margin-left:auto;color:var(--w-ink-3)}
+.me-menu:not([open]) .chev{transform:rotate(180deg)}
+.me-menu .me-t b{display:block;font-size:14px}.me-menu .me-t small{display:block;font-size:12px;color:var(--w-ink-3)}
+.me-menu .gear-menu.menu{position:absolute!important;z-index:60;top:auto!important;bottom:calc(100% + 10px)!important;left:0!important;right:auto!important;width:260px;background:var(--w-card);border-radius:var(--w-r-lg);box-shadow:0 22px 48px -18px rgba(37,33,27,.4),0 1px 3px rgba(37,33,27,.08);padding:8px;display:flex!important;flex-direction:column;gap:2px;border:0}
+.me-menu .menu-who,.w1p-account .menu-who{display:flex;align-items:center;gap:12px;padding:10px 12px 14px;margin-bottom:4px;border-bottom:1px solid var(--w-line)}
+.menu-who b{display:block;font-size:16px}.menu-who small{display:block;font-size:12px;color:var(--w-ink-3)}
+.menu-who .avatar{width:36px;height:36px;border-radius:50%;display:grid;place-items:center;background:var(--w-or-soft);color:var(--w-or-text);font-weight:800}
+.me-menu .menu button{font:inherit;background:none;border:0;width:100%;text-align:left;cursor:pointer}
+.me-menu .menu a,.me-menu .menu button{display:flex;align-items:center;gap:12px;padding:10px 12px;border-radius:var(--w-r-sm);font-size:14px;font-weight:700;color:var(--w-ink-2);text-decoration:none}
+.me-menu .menu a:hover,.me-menu .menu button:hover{background:var(--w-card-2);color:var(--w-ink)}
+.me-menu .menu a .i{color:var(--w-ink-3)}
+.me-menu .mcount{margin-left:auto;min-width:24px;height:22px;padding:0 7px;border-radius:11px;background:var(--w-or-soft);color:var(--w-or-text);font-size:12px;line-height:22px;text-align:center}
+.me-menu .menu hr{height:1px;border:0;background:var(--w-line);margin:4px 8px}
+.av-badge{display:none}
+.mini.add{color:var(--w-ink-3);font-weight:700;align-items:center}
+.mini.add:hover{color:var(--w-ink)}
+.w1p-account .acct-bento{grid-template-columns:repeat(2,minmax(0,1fr))}
+.w1p-account .acct-bento>:first-child{grid-row:span 2}
+@media (max-width:760px){
+  #gearBtn{display:none!important}
+  .nav-tools .me-menu{display:block!important}
+  .me-menu>summary.me{padding:0;background:transparent!important;box-shadow:none!important}
+  .me-menu .me-t,.me-menu .chev{display:none}
+  .me-menu .avatar{width:36px;height:36px}
+  .me-menu[open] .avatar{box-shadow:0 0 0 2px var(--w-or)}
+  .av-badge:not([hidden]){display:block;position:absolute;top:-4px;right:-6px;min-width:20px;height:20px;padding:0 6px;border-radius:10px;background:var(--w-btn);color:var(--w-btn-ink);font-size:12px;font-weight:700;line-height:20px;text-align:center}
+  .me-menu .gear-menu.menu{top:calc(100% + 12px)!important;bottom:auto!important;right:0!important;left:auto!important;width:min(300px,calc(100vw - 32px))}
+  .w1p-account .acct-bento{grid-template-columns:1fr}
+}
+.login-sent-art{display:block;width:160px;height:auto;margin:8px auto}
+@media (min-width:761px){.sidebar{position:sticky!important;top:0;height:100vh!important;min-height:100vh;align-self:start;display:flex;flex-direction:column}.sidebar .nav-tools{margin-top:auto}}
