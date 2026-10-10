@@ -74,7 +74,7 @@
   function sideWorksHtml(pa){
     const cur=pa?.current||null;const cands=(Array.isArray(pa?.candidates)?pa.candidates:(pa?.candidate?[pa.candidate]:[])).filter(x=>x&&x.status==='candidate');
     const rows=[cur,...cands].filter(Boolean);if(!rows.length)return '';
-    return '<div class="label">我的作品</div>'+rows.map(w=>{const k=counts(criteria(w));return '<a class="mini '+(w===cur?'cur':'')+' tone-'+tone(w)+'" href="#/works/'+(w===cur?'active':'waiting')+'"><span class="dot"></span><span class="mini-t">'+esc(w.title)+'</span><span class="mini-n">'+(w===cur?k.done+'/'+k.total:'等待')+'</span></a>';}).join('');
+    return '<div class="label">我的作品</div>'+rows.map(w=>{const k=counts(criteria(w));return '<a class="mini '+(w===cur?'cur':'')+' tone-'+tone(w)+'" href="#/works/'+(w===cur?'active':'waiting')+'"><span class="dot"></span><span class="mini-t">'+esc(w.title)+'</span><span class="mini-n">'+(w===cur?k.done+'/'+k.total:'等待')+'</span></a>';}).join('')+'<a class="mini add" href="#/works/active" data-new-work>'+icon('plus')+'<span class="mini-t">新增作品</span></a>';
   }
   root.GROWTH_BRAIN_W1P={icon,tone,cover,criteria,counts,todayHtml,worksHtml,sideWorksHtml,dateLabel};
 })(typeof window!=='undefined'?window:globalThis);

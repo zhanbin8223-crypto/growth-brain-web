@@ -15,7 +15,7 @@ function load(){
     renderHome:rec('renderHome'),renderTodayWaiting:rec('renderTodayWaiting'),renderTodayProgress:rec('renderTodayProgress'),
     renderProjectsIA:rec('renderProjectsIA'),renderHistory:rec('renderHistory'),renderLearn:rec('renderLearn'),
     renderCapabilities:rec('renderCapabilities'),renderSynapse:rec('renderSynapse'),renderSystemPending:rec('renderSystemPending'),
-    renderTeamIA:rec('renderTeamIA'),renderResearch:rec('renderResearch'),
+    renderTeamIA:rec('renderTeamIA'),renderResearch:rec('renderResearch'),renderAccount:rec('renderAccount'),
     window:{GROWTH_BRAIN_LAB:{renderResearch:(el,tab,o)=>calls.push(['lab.renderResearch',tab,o.filter])},GROWTH_BRAIN_INBOX:{render:rec('renderInbox')},GROWTH_BRAIN_MYJOBS:{render:rec('myjobs.render')}},
     $:()=>null,$$:()=>[],esc:s=>String(s)};
   vm.createContext(c);
@@ -90,7 +90,7 @@ test('舊程式裡所有分頁都還找得到（沒有功能被刪除）',()=>{
 });
 
 test('每個分頁與子分頁都可執行，且只呼叫既有資料來源',()=>{
-  const allowed=new Set(['renderHome','renderTodayWaiting','renderTodayProgress','renderProjectsIA','renderHistory','renderLearn','renderCapabilities','renderSynapse','renderSystemPending','renderTeamIA','renderResearch','lab.renderResearch','renderInbox','myjobs.render']);
+  const allowed=new Set(['renderHome','renderTodayWaiting','renderTodayProgress','renderProjectsIA','renderHistory','renderLearn','renderCapabilities','renderSynapse','renderSystemPending','renderTeamIA','renderResearch','lab.renderResearch','renderInbox','myjobs.render','renderAccount']);
   const c=load();
   for(const p of c.api.NAV_PAGES)for(const t of p.tabs)for(const s of (t.segs||[null])){
     c.calls.length=0;c.api.navGo(p.key,t.key,s?.key);
@@ -107,7 +107,7 @@ test('主導覽恰好 5 頁且順序固定；系統在齒輪，待處理第一',
   assert.deepEqual(pages,['today','works','learn','lab','collect']);
   assert.deepEqual(pages.map(k=>api.NAV_PAGES.find(p=>p.key===k).label),['今天','作品','學習','研究室','收集']);
   const sys=api.NAV_PAGES.find(p=>p.key==='system');
-  assert.ok(sys.gear);assert.deepEqual([...sys.tabs.map(t=>t.label)],['待處理','AI 團隊','系統狀態']);
+  assert.ok(sys.gear);assert.deepEqual([...sys.tabs.map(t=>t.label)],['待處理','AI 團隊','系統狀態','帳號與設定']);
   assert.ok(api.NAV_PAGES.find(p=>p.key==='works').tabs.some(t=>t.label==='回顧'));
   assert.deepEqual([...api.NAV_PAGES.find(p=>p.key==='lab').tabs.map(t=>t.label)],['今日探索','AI 技術','流量分發','商業機會','研究筆記']);
   assert.match(index,/id="gearBadge"/);
