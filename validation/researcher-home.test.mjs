@@ -1,0 +1,11 @@
+import test from 'node:test';import assert from 'node:assert/strict';import fs from 'node:fs';
+const app=fs.readFileSync(new URL('../app.js',import.meta.url),'utf8');
+const src=app.slice(app.indexOf('function researcherHomeHtml'),app.indexOf('async function renderResearcherHome'));
+const esc=s=>String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+const f=new Function('esc','window',src+';return researcherHomeHtml;')(esc,{});
+const seed={state:{status_line:'研究系統今天剛設定好',today_plan:[{title:'接上網站'}],done_today:[{title:'設定完成'}],highlight:{title:'Mac Worker 不用再開了',why:'改由例行研究',link:'#/lab/researcher'},help_needed:[{kind:'decision',title:'選一件目前作品',link:'#/today/step'}],next_run_at:'2026-10-12T01:06:00Z',updated_at:'2026-10-10T18:09:05Z'},log:[{kind:'setup',title:'研究員首頁建立',occurred_at:'2026-10-10T18:09:05Z'}]};
+test('研究員首頁五個區塊都有內容',()=>{const h=f(seed);for(const k of ['研究系統今天剛設定好','今天打算做什麼','已經做完什麼','最值得你看的一件事','需要你幫忙','要你決定','最近的研究紀錄','研究員首頁建立','researcher.svg'])assert.ok(h.includes(k),k);});
+test('沒有資料時每塊都顯示平實空狀態',()=>{const h=f({state:null,log:[]});for(const k of ['還沒有今天的狀態','今天還沒有排研究','今天還沒有做完的研究','目前不需要你幫忙','還沒有研究紀錄'])assert.ok(h.includes(k),k);});
+test('跳脫標題並擋掉非安全連結',()=>{const h=f({state:{highlight:{title:'<img>',link:'javascript:alert(1)'},help_needed:[{title:'x',link:'javascript:1'}]},log:[]});assert.ok(!h.includes('<img>'));assert.ok(!h.includes('javascript:'));});
+test('研究員是研究室第一個分頁，讀 researcher_home surface',()=>{assert.match(app,/key:'lab',label:'研究室',icon:'✦',tabs:\[\n\s+\{key:'researcher',label:'研究員'/);assert.match(fs.readFileSync(new URL('../adapter.js',import.meta.url),'utf8'),/'researcher_home'/);
+  const mig=fs.readFileSync(new URL('../supabase/migrations/20261011_researcher_home_v1.sql',import.meta.url),'utf8');assert.match(mig,/enable row level security/);assert.match(mig,/stable security definer/);assert.match(mig,/revoke all on function growth_control.researcher_home_update_v1/);});

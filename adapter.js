@@ -170,6 +170,11 @@
       await this.refreshPersonalHome();
       return clone({unblock:result?.data?.unblock||null,artifacts:latest});
     },
+    async getResearcherHome(){
+      if(this.mode!=='live') throw Object.assign(new Error('請先登入。'),{code:'not_signed_in'});
+      const result=await liveRequest('GET',undefined,'researcher_home');
+      return clone(extractSurface(result));
+    },
     async getMyJobs(){
       if(this.mode!=='live') throw Object.assign(new Error('請先登入。'),{code:'not_signed_in'});
       const result=await liveRequest('GET',undefined,'my_jobs');

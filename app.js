@@ -1990,6 +1990,7 @@ const NAV_PAGES=[
     {key:'playbooks',label:'作戰手冊',view:'capabilities',desc:'作戰手冊＝做過的事整理成的步驟筆記，需要時照著做。',run:()=>renderCapabilities('playbooks')},
     {key:'relations',label:'知識關係',view:'synapse',desc:'看你存的知識之間怎麼連起來、能幫哪個作品。',run:()=>renderSynapse()}]},
   {key:'lab',label:'研究室',icon:'✦',tabs:[
+    {key:'researcher',label:'研究員',view:'research',desc:'研究員今天在做什麼、找到什麼、需要你幫什麼。',run:()=>renderResearcherHome()},
     {key:'today',label:'今日探索',view:'research',desc:'AI 研究員自己上網找資料、反覆想，只推薦值得你看的一件事。',run:()=>lab().renderResearch($('#view-research'),'today',{filter:'active'})},
     {key:'ai',label:'AI 技術',view:'research',desc:'AI 研究員找到的 AI 工具與技術。',run:()=>lab().renderResearch($('#view-research'),'ai',{filter:'active'})},
     {key:'distribution',label:'流量分發',view:'research',desc:'讓內容被更多人看到的方法（流量分發＝內容怎麼被平台推給人）。',run:()=>lab().renderResearch($('#view-research'),'distribution',{filter:'active'})},
@@ -2095,6 +2096,37 @@ function renderTodayProgress(){
   if(A.liveStatus!=='live'){root.innerHTML='<div class="td"><div class="td-card nav5-empty"><b>登入後才看得到你的進展</b><button class="td-btn td-btn-primary" data-auth>用信箱登入</button></div></div>';return;}
   root.innerHTML='<div class="td"><div class="nav5-list">'+(items.length?items.map(p=>'<article class="td-card nav5-row"><div><small>'+esc(p.occurred_at?new Date(p.occurred_at).toLocaleDateString('zh-TW'):'')+'</small><b>'+esc(p.title||'真實進展')+'</b><p>'+esc(p.summary||'')+'</p></div></article>').join(''):'<div class="td-card nav5-empty"><b>目前還沒有可追溯的真實進展</b><p>交出第一個證據後，這裡就會出現紀錄。</p></div>')+'</div></div>';
 }
+/* 研究室 › 研究員首頁：資料來自 growth_control.researcher_home_state / researcher_log（每天 09:06 例行研究更新） */
+function researcherHomeHtml(d,now=new Date()){
+  const W=window.GROWTH_BRAIN_W1P,ic=(n,c)=>W?W.icon(n,c):'';
+  const s=d?.state||null,log=Array.isArray(d?.log)?d.log:[];
+  const arr=x=>Array.isArray(x)?x:[];
+  const t=x=>{const v=new Date(x);return isNaN(v)?'':(v.getMonth()+1)+'/'+v.getDate()+' '+String(v.getHours()).padStart(2,'0')+':'+String(v.getMinutes()).padStart(2,'0');};
+  const safeLink=l=>{l=String(l||'');return /^(#\/|https:\/\/)/.test(l)?l:'';};
+  const item=(x,iconName,tone)=>'<li class="rowi"><span class="icirc '+(tone||'')+'">'+ic(iconName,'i i-sm')+'</span><div class="grow"><b>'+esc(x?.title||'')+'</b>'+(x?.note||x?.detail?'<small>'+esc(x.note||x.detail)+'</small>':'')+'</div>'+(safeLink(x?.link)?'<a class="link" href="'+esc(safeLink(x.link))+'"'+(x.link.startsWith('https')?' target="_blank" rel="noopener"':'')+'>前往'+ic('chevron-right')+'</a>':'')+'</li>';
+  const kindLabel={decision:'要你決定',data:'要你給資料',login:'要你登入',other:'要你幫忙'};
+  const kindLog={setup:'設定',run:'例行研究',finding:'發現',note:'筆記',blocked:'卡住'};
+  const plan=arr(s?.today_plan),done=arr(s?.done_today),help=arr(s?.help_needed),hl=s?.highlight||null;
+  const empty=m=>'<p class="muted small">'+m+'</p>';
+  return '<div class="w1p w1p-researcher"><section class="head"><span class="eyebrow">'+ic('sparkles')+'研究室・研究員</span><h1>研究員</h1><p>每天早上 09:06 自己去找資料、想一遍，只把值得你看的放在這裡。</p></section>'+
+   '<div class="pg-bento rh-bento">'+
+    '<article class="card-current tile rh-id"><div class="rh-who"><img class="rh-avatar" src="assets/w1b/researcher.svg" alt="研究員插圖" width="96" height="96"><div><span class="label">你的 AI 研究員</span><h2>研究員</h2><p class="lead">'+esc(s?.status_line||'還沒有今天的狀態。')+'</p></div></div>'+
+     '<dl class="facts"><div><dt>'+ic('clock')+'下次例行研究</dt><dd>'+(s?.next_run_at?esc(t(s.next_run_at)):'每天 09:06')+'</dd></div><div><dt>'+ic('history')+'最後更新</dt><dd>'+(s?.updated_at?esc(t(s.updated_at)):'還沒有')+'</dd></div></dl></article>'+
+    '<article class="card tile rh-hl"><div class="tile-head"><span class="chip or"><span class="dot"></span>最值得你看的一件事</span></div>'+(hl?'<h3>'+esc(hl.title||'')+'</h3><p class="muted small">'+esc(hl.why||'')+'</p>'+(safeLink(hl.link)?'<a class="link" href="'+esc(safeLink(hl.link))+'">看這件事'+ic('chevron-right')+'</a>':''):empty('今天還沒有特別值得看的。'))+'</article>'+
+    '<article class="card tile rh-plan"><div class="tile-head"><h3 class="tile-title">今天打算做什麼</h3><span class="muted small">'+plan.length+' 件</span></div>'+(plan.length?'<ul class="rows">'+plan.map(x=>item(x,'circle-dashed')).join('')+'</ul>':empty('今天還沒有排研究。'))+'</article>'+
+    '<article class="card tile rh-done"><div class="tile-head"><h3 class="tile-title">已經做完什麼</h3><span class="muted small">'+done.length+' 件</span></div>'+(done.length?'<ul class="rows">'+done.map(x=>item(x,'circle-check-big','te')).join('')+'</ul>':empty('今天還沒有做完的研究。'))+'</article>'+
+    '<article class="card tile rh-help"><div class="tile-head"><h3 class="tile-title">需要你幫忙</h3><span class="ttag">'+help.length+'</span></div>'+(help.length?'<ul class="rows">'+help.map(x=>item({...x,detail:(kindLabel[x.kind]||kindLabel.other)+(x.detail?'・'+x.detail:'')},x.kind==='login'?'lock':x.kind==='data'?'paperclip':'flag','or')).join('')+'</ul>':empty('目前不需要你幫忙。'))+'</article>'+
+    '<article class="card tile rh-log"><div class="tile-head"><h3 class="tile-title">最近的研究紀錄</h3><span class="muted small">新的在上面</span></div>'+(log.length?'<ol class="tl">'+log.slice(0,10).map(x=>'<li><span class="icirc '+(x.kind==='finding'?'te':x.kind==='blocked'?'or':'')+'">'+ic(x.kind==='finding'?'lightbulb':x.kind==='blocked'?'flag':'search','i i-sm')+'</span><div><b>'+esc(x.title)+'</b><span class="muted">'+esc((kindLog[x.kind]||'紀錄')+(x.summary?'・'+x.summary:''))+'</span></div><time>'+esc(t(x.occurred_at))+'</time></li>').join('')+'</ol>':empty('還沒有研究紀錄。第一次例行研究跑完後會出現在這裡。'))+'</article>'+
+   '</div></div>';
+}
+async function renderResearcherHome(){
+  const root=$('#view-research');if(!root)return;
+  if(A.liveStatus!=='live'){root.innerHTML='<div class="w1p"><section class="head"><h1>研究員</h1><p>登入後才看得到研究員的狀態與紀錄。</p></section><button class="btn btn-primary" data-auth>用信箱登入</button></div>';return;}
+  root.innerHTML='<div class="empty">正在讀取研究員狀態…</div>';
+  try{root.innerHTML=researcherHomeHtml(await A.getResearcherHome());}
+  catch(e){root.innerHTML='<div class="empty">研究員狀態讀取失敗：'+esc(e.message||e)+'</div>';}
+}
+
 async function renderSystemPending(){
   const root=$('#view-ceo');
   if(A.liveStatus!=='live'){root.innerHTML='<div class="surface"><b>登入後才看得到待處理事項</b><p>系統資料只給本人看。</p><button class="primary-btn" data-auth>登入</button></div>';return;}

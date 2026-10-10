@@ -109,11 +109,15 @@ Deno.serve(async (req: Request) => {
     if (req.method === "GET") {
       const url = new URL(req.url);
       const surface = url.searchParams.get("surface") || "personal_home";
-      if (!["personal_home", "personal_outcome", "personal_artifacts", "system_cockpit", "inbox", "learning", "personal_synapse", "event_lab", "history", "capabilities", "my_jobs"].includes(surface)) {
+      if (!["personal_home", "personal_outcome", "personal_artifacts", "system_cockpit", "inbox", "learning", "personal_synapse", "event_lab", "history", "capabilities", "my_jobs", "researcher_home"].includes(surface)) {
         return json({ ok: false, reason: "unsupported_surface" }, 400);
       }
 
-      const result = surface === "my_jobs"
+      const result = surface === "researcher_home"
+        ? await adminRpc("growth_researcher_home_service_v1", {
+            p_auth_user_id: verified.user.id,
+          })
+        : surface === "my_jobs"
         ? await adminRpc("growth_my_jobs_snapshot_service_v1", {
             p_auth_user_id: verified.user.id,
           })
