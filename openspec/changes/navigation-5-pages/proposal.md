@@ -1,6 +1,6 @@
 # 變更提案：5 個主頁＋每頁頂部功能捷徑列（navigation-5-pages）
 
-狀態：proposed（使用者已確認需求修訂版，待核准後才實作）　決策紀錄：docs/decisions/0002-navigation-5-pages.md
+狀態：accepted（使用者 2026-10-10 核准實作）　決策紀錄：docs/decisions/0002-navigation-5-pages.md
 
 ## Why
 現行有 6 個主頁、多個子頁與 3 個隱藏頁（收件匣、學習、知識連結圖）。同一件事有多個名字、學習與收集被藏起來、系統維運混在個人導覽。

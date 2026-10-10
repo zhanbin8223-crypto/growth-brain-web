@@ -1,5 +1,5 @@
 ---
-status: proposed
+status: accepted
 date: 2026-10-10
 decision-makers: Liou Bi（使用者，需求已確認修訂版，待核准實作）
 ---
