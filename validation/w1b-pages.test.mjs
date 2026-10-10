@@ -1,0 +1,12 @@
+import test from 'node:test';import assert from 'node:assert/strict';import fs from 'node:fs';import vm from 'node:vm';
+const c={};vm.createContext(c);vm.runInContext(fs.readFileSync(new URL('../w1b-pages.js',import.meta.url),'utf8'),c);const W=c.GROWTH_BRAIN_W1P;
+const cur={id:'a',title:'單一商品<script>',objective:'x',done_evidence:['a','b','c'],evidence_progress:[{criterion_no:2,criterion_text:'b',status:'pending'},{criterion_no:1,criterion_text:'a',status:'confirmed',confirmed_at:'2026-10-08T00:00:00Z'},{criterion_no:3,criterion_text:'c',status:'pending'}]};
+const wait={id:'b',title:'數字人 AI 的 Instagram 帳號',status:'candidate',done_evidence:[]};
+test('完成條件依序號排序，已確認=完成、第一個未確認=進行中',()=>{const cs=W.criteria(cur);assert.deepEqual([...cs.map(x=>x.st)],['done','now','todo']);});
+test('沒有進度列時用 done_evidence 產生',()=>{assert.equal(W.criteria({done_evidence:['x','y']}).length,2);});
+test('作品色：數字人=玫瑰、分潤=赭橘，封面用設計稿圖',()=>{assert.equal(W.tone(wait),'vi');assert.equal(W.tone(cur),'or');assert.match(W.cover(wait),/cover-digital-human-ig/);});
+test('今天 bento 用設計稿 markup，標題被跳脫',()=>{const h=W.todayHtml({current:cur,waiting:[wait],stepTitle:'做 b',stepWhy:'w',stepEvidence:'e',ctaHtml:'<button data-jump="projects">開始</button>'});
+  for(const k of ['today-bento','b-next','b-prog','b-wait','b-steps','b-learn','ring','seg'])assert.ok(h.includes(k),k);assert.ok(!h.includes('<script>'));assert.ok(h.includes('data-jump="projects"'));});
+test('作品 bento 含主卡、四個數字、條件、證據、等待、已完成',()=>{const h=W.worksHtml({current:cur,candidates:[wait],history:[]});for(const k of ['works-bento','w-feat','k1','k4','w-checks','w-evid','w-wait','w-empty','empty-state.webp','data-open-current'])assert.ok(h.includes(k),k);});
+test('沒有作品時作品 bento 不輸出',()=>{assert.equal(W.worksHtml({candidates:[]}),'');});
+test('側欄我的作品列出目前與等待中',()=>{const h=W.sideWorksHtml({current:cur,candidates:[wait]});assert.ok(h.includes('1/3'));assert.ok(h.includes('等待'));});

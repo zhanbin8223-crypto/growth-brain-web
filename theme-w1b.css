@@ -154,3 +154,60 @@ input,textarea,select{border-radius:var(--w-r-sm);border:1px solid var(--w-line-
   .sidebar .brand-subtitle{display:none!important}
   .nav-tools .side-note,.nav-tools .status-row{display:none!important}
 }
+
+/* ===== 對齊設計稿 W1b 側欄（v2） ===== */
+.i{width:20px;height:20px;flex:none}.i-sm{width:16px;height:16px}
+.sidebar{width:248px;box-sizing:border-box}
+.brand-mark{width:34px!important;height:34px!important;display:grid!important;place-items:center}
+.brand-mark .i{width:18px;height:18px;color:var(--w-btn-ink)}
+.brand-subtitle{display:none!important}
+.nav-item span{background:transparent!important}
+.nav-item.active span{background:var(--w-or-soft)!important}
+.nav-item .i{width:16px;height:16px}
+.side-sec{display:flex;flex-direction:column;gap:4px;padding-top:20px;border-top:1px solid #dad6cf}
+.side-sec:empty{display:none}
+.side-sec .label{padding:0 12px 6px;font-size:12px;font-weight:700;color:var(--w-ink-3);letter-spacing:.04em}
+.mini{display:flex;align-items:flex-start;gap:10px;padding:8px 12px;border-radius:var(--w-r-sm);font-size:14px;color:var(--w-ink-2);text-decoration:none}
+.mini:hover{background:#f1eee8}
+.mini .dot{width:6px;height:6px;border-radius:50%;background:var(--w-vi);margin-top:8px;flex:none}.mini.tone-or .dot{background:var(--w-or)}
+.mini-t{flex:1;min-width:0;line-height:1.4}.mini-n{font-size:12px;font-weight:700;color:var(--w-ink-3)}.mini.cur .mini-n{color:var(--w-or-text)}
+.nav-tools{flex-direction:column;align-items:stretch!important;gap:12px!important;padding:0!important}
+.nav-tools .gear-wrap{order:1;width:100%;position:relative}
+.gear-btn.sys-row{width:100%!important;height:44px!important;border-radius:var(--w-r-pill)!important;display:flex;align-items:center;gap:8px;padding:0 10px 0 14px;font-size:14px;font-weight:700;color:var(--w-ink-2)!important;background:#f3f1eb!important}
+.gear-btn .sys-t{flex:1;text-align:left}
+.gear-btn .gear-badge{position:static!important;min-width:24px;height:24px;padding:0 7px;border-radius:12px;background:#dfdbd5!important;font-size:12px;line-height:24px;text-align:center}
+.nav-tools .me{order:2;display:flex;align-items:center;gap:10px;padding:4px 8px}
+.me .avatar{width:36px;height:36px;border-radius:50%;display:grid;place-items:center;font-weight:800;font-size:14px}
+.me-t b{display:block;font-size:14px}.me-t small{display:block;font-size:12px;color:var(--w-ink-3)}
+.nav-tools .auth-box{order:3;display:flex;align-items:center;gap:6px;flex-wrap:wrap}
+.nav-tools #captureBtn,.nav-tools #refreshBtn{order:4}
+.nav-tools .auth-box .pill{font-size:12px!important}
+.nav-tools{flex-wrap:wrap!important}
+.nav-tools>#captureBtn,.nav-tools>#refreshBtn{width:36px!important;height:36px!important;display:inline-grid;place-items:center}
+.nav-tools .i{width:16px;height:16px}
+/* 用設計稿版面的頁面：殼層說明句收起（頁面自己的標題已說明） */
+body:has(.view.active .w1p) .nav5-desc{display:none}
+.w1p{background:transparent!important}
+.w1p .head{margin-top:8px}
+.w1p .tone-vi.card-current{background:var(--w-vi-soft)}
+.w1p .tone-vi .ring,.w1p .b-prog .ring{--c:var(--w-or)}
+.w1p .chip.vi{background:var(--w-vi-soft);color:var(--w-vi-text);border-color:var(--w-vi-line)}
+.w1p a.prog-work{text-decoration:none;color:inherit}
+.w1p .w1p-extra{margin-top:20px}
+/* 選作品卡：用設計稿封面圖 */
+.td-cover{background-size:cover!important;background-position:center!important}
+.td-cover-a{background-image:url(assets/w1b/cover-single-product-600.webp)!important}
+.td-cover-b{background-image:url(assets/w1b/cover-digital-human-ig-600.webp)!important}
+@media (max-width:760px){
+  .sidebar{width:auto}
+  .side-sec,.nav-tools .me,.nav-tools .auth-box,.nav-tools #captureBtn,.nav-tools #refreshBtn{display:none!important}
+  .nav-tools{flex-direction:row}
+  .gear-btn.sys-row{width:auto!important;height:36px!important}
+  .gear-btn .sys-t2{display:none}
+}
+.w1p-more{margin-top:20px;background:var(--w-card);border-radius:var(--w-r-lg);box-shadow:var(--w-shadow);padding:0}
+.w1p-more>summary{cursor:pointer;list-style:none;display:flex;align-items:baseline;gap:12px;padding:18px 24px;font-size:16px}
+.w1p-more>summary span{font-size:14px;color:var(--w-ink-3)}
+.w1p-more>summary::after{content:"展開";margin-left:auto;font-size:14px;color:var(--w-or-text);font-weight:700}
+.w1p-more[open]>summary::after{content:"收起"}
+.w1p-more>#projectIaPane{padding:0 16px 16px}

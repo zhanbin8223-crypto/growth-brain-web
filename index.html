@@ -10,13 +10,14 @@
   <link rel="stylesheet" href="myjobs.css?v=w1b-20261010" />
   <link rel="stylesheet" href="project-kickoff.css?v=artifact-team-kickoff-v1-20261007" />
   <link rel="stylesheet" href="project-milestones.css?v=20261010" />
-  <link rel="stylesheet" href="theme-w1b.css?v=w1b-20261010" />
+  <link rel="stylesheet" href="w1b-proto.css?v=w1b2-20261010" />
+  <link rel="stylesheet" href="theme-w1b.css?v=w1b2-20261010" />
 </head>
 <body>
   <div class="app-shell">
     <aside class="sidebar" aria-label="主要導覽">
       <div class="brand">
-        <div class="brand-mark">G</div>
+        <div class="brand-mark"><svg class="i i-sm" aria-hidden="true"><use href="assets/w1b/icons.svg#sprout"/></svg></div>
         <div>
           <div class="brand-title">第二大腦</div>
           <div class="brand-subtitle">個人成長作業系統</div>
@@ -24,18 +25,20 @@
       </div>
 
       <nav class="nav" id="nav" aria-label="主導覽">
-        <button class="nav-item active" data-page="today"><span>☀</span><b>今天</b></button>
-        <button class="nav-item" data-page="works"><span>◎</span><b>作品</b></button>
-        <button class="nav-item" data-page="learn"><span>✎</span><b>學習</b></button>
-        <button class="nav-item" data-page="lab"><span>✦</span><b>研究室</b></button>
-        <button class="nav-item" data-page="collect"><span>＋</span><b>收集</b></button>
+        <button class="nav-item active" data-page="today"><span><svg class="i i-sm" aria-hidden="true"><use href="assets/w1b/icons.svg#sun"/></svg></span><b>今天</b></button>
+        <button class="nav-item" data-page="works"><span><svg class="i i-sm" aria-hidden="true"><use href="assets/w1b/icons.svg#layers-3"/></svg></span><b>作品</b></button>
+        <button class="nav-item" data-page="learn"><span><svg class="i i-sm" aria-hidden="true"><use href="assets/w1b/icons.svg#book-open"/></svg></span><b>學習</b></button>
+        <button class="nav-item" data-page="lab"><span><svg class="i i-sm" aria-hidden="true"><use href="assets/w1b/icons.svg#sparkles"/></svg></span><b>研究室</b></button>
+        <button class="nav-item" data-page="collect"><span><svg class="i i-sm" aria-hidden="true"><use href="assets/w1b/icons.svg#inbox"/></svg></span><b>收集</b></button>
       </nav>
 
+      <div class="side-sec" id="sideWorks" aria-label="我的作品"></div>
+
       <div class="nav-tools" aria-label="快速工具">
-        <button class="nav-tool nav-capture" id="captureBtn" aria-label="丟進第二大腦">＋</button>
-        <button class="nav-tool" id="refreshBtn" aria-label="重新整理">↻</button>
-        <div class="gear-wrap"><button class="nav-tool gear-btn" id="gearBtn" aria-label="系統" aria-haspopup="menu" aria-expanded="false">⚙<span class="gear-badge" id="gearBadge" hidden></span></button><div class="gear-menu" id="gearMenu" role="menu" hidden></div></div>
-        <div class="avatar">劉</div>
+        <button class="nav-tool nav-capture" id="captureBtn" aria-label="丟進第二大腦"><svg class="i i-sm" aria-hidden="true"><use href="assets/w1b/icons.svg#plus"/></svg></button>
+        <button class="nav-tool" id="refreshBtn" aria-label="重新整理"><svg class="i i-sm" aria-hidden="true"><use href="assets/w1b/icons.svg#repeat-2"/></svg></button>
+        <div class="gear-wrap"><button class="nav-tool gear-btn sys-row" id="gearBtn" aria-label="系統" aria-haspopup="menu" aria-expanded="false"><svg class="i i-sm" aria-hidden="true"><use href="assets/w1b/icons.svg#settings"/></svg><span class="sys-t">系統<span class="sys-t2">・待處理</span></span><span class="gear-badge" id="gearBadge" hidden></span></button><div class="gear-menu" id="gearMenu" role="menu" hidden></div></div>
+        <div class="me"><div class="avatar">劉</div><div class="me-t"><b>劉</b><small>個人帳號</small></div></div>
       </div>
     </aside>
 
@@ -67,7 +70,8 @@
   <script src="image-assets.js?v=image-flow-v1"></script>
   <script src="capmap.js?v=capmap-ab2-20261010"></script>
   <script src="myjobs.js?v=myjobs-20261010"></script>
-  <script src="app.js?v=myjobs-20261010"></script>
+  <script src="w1b-pages.js?v=w1b2-20261010"></script>
+  <script src="app.js?v=w1b2-20261010"></script>
   <script src="project-kickoff.js?v=project-persistence-20261010"></script>
   <script src="project-milestones.js?v=project-persistence-20261010"></script>
   <script src="inbox.js?v=nav5-20261010"></script>
