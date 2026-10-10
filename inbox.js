@@ -73,28 +73,23 @@
     return '<button class="primary-btn" data-route data-item-id="'+esc(item.id)+'">加入知識連結候選</button>';
   }
 
+  const ic=(n,c)=>'<svg class="'+(c||'i i-sm')+'" aria-hidden="true"><use href="assets/w1b/icons.svg#'+n+'"/></svg>';
+  function isGb(item){return Boolean(item.classification)&&item.ai_triage?.job?.status==='completed';}
+  function host(u){try{return new URL(u).hostname.replace(/^www\./,'')}catch{return ''}}
+  function when(t){const d=new Date(t);if(isNaN(d))return '';const n=new Date();const days=Math.floor((new Date(n.toDateString())-new Date(d.toDateString()))/864e5);return days===0?'今天 '+String(d.getHours()).padStart(2,'0')+':'+String(d.getMinutes()).padStart(2,'0'):days===1?'昨天':(d.getMonth()+1)+'/'+d.getDate();}
   function itemHtml(item){
-    const source=item.source_url?'<a href="'+esc(item.source_url)+'" target="_blank" rel="noopener">查看原始來源</a>':'直接輸入';
-    const kind=kindLabel[item.source_kind]||item.source_kind||'內容';
-    const triage=item.ai_triage||{};
-    const job=triage.job||null;
-    const routed=Boolean(item.routing);
-    const state=routed
-      ?'已送到對應流程'
-      :job&&['pending','claimed','processing'].includes(job.status)
-        ?'AI 整理中'
-        :item.classification
-          ?(classLabel[item.classification]||item.classification)
-          :'待整理';
-    const stateClass=routed?'success':job&&['pending','claimed','processing'].includes(job.status)?'warn':'';
-    return '<article class="surface">'+
-      '<div class="row-between"><div><span class="kicker">'+esc(kind)+'</span><b>'+esc((item.raw_content||'').slice(0,80)||'未命名內容')+(String(item.raw_content||'').length>80?'…':'')+'</b></div><span class="pill '+stateClass+'">'+esc(state)+'</span></div>'+
-      '<p class="muted">'+source+' · '+esc(item.created_at?new Date(item.created_at).toLocaleString('zh-TW'):'')+'</p>'+
-      '<details><summary><b>查看整理方式與下一步</b></summary><div style="margin-top:12px">'+
-        triageBlock(item)+
-        routeControls(item)+
-        '<div style="margin-top:12px">'+correctionControls(item)+'</div>'+
-      '</div></details>'+
+    const triage=item.ai_triage||{},job=triage.job||null,routed=Boolean(item.routing);
+    const busy=job&&['pending','claimed','processing'].includes(job.status);
+    const raw=String(item.raw_content||'');const title=raw.split(/\n|。/)[0].slice(0,60)||'未命名內容';const rest=raw.slice(title.length).replace(/^[。\s]+/,'').slice(0,90);
+    const src=item.source_url?host(item.source_url):'我寫的';
+    const unsorted=!item.classification;
+    const chip=routed?'<span class="chip te" style="align-self:flex-start">已送到對應流程</span>':busy?'<span class="chip or" style="align-self:flex-start">AI 整理中</span>':'';
+    const tags=(unsorted?'<span class="ttag">未分類</span>':'<span class="ttag">'+esc(classLabel[item.classification]||item.classification)+'</span>')+(isGb(item)?'<span class="ttag gb">GB 自動</span>':'');
+    return '<article class="card item '+(unsorted?'unsorted':'')+'" data-co-item data-cls="'+esc(item.classification||'none')+'" data-gb="'+(isGb(item)?1:0)+'">'+
+      '<div class="src"><span class="icirc '+(item.source_url?'mute':'or')+'" style="width:28px;height:28px">'+ic(item.source_url?'external-link':'pencil')+'</span>'+esc(src)+'</div>'+chip+
+      '<h3>'+esc(title)+'</h3>'+(rest?'<p>'+esc(rest)+(raw.length>title.length+90?'…':'')+'</p>':'')+
+      '<div class="item-foot"><span class="meta">'+tags+'<span>'+esc(when(item.created_at))+'</span></span>'+(item.source_url?'<a class="link" href="'+esc(item.source_url)+'" target="_blank" rel="noopener">看內容</a>':'')+'</div>'+
+      '<details class="co-more"><summary>'+(unsorted?'分類':'整理方式與下一步')+'</summary><div style="margin-top:12px">'+triageBlock(item)+routeControls(item)+'<div style="margin-top:12px">'+correctionControls(item)+'</div></div></details>'+
       '</article>';
   }
 
@@ -114,15 +109,22 @@
     catch(e){root.innerHTML='<div class="empty">資料入口載入失敗：'+esc(e.message||e)+'</div>';return;}
     const items=snapshot?.items||[];
 
-    root.innerHTML=
-      '<div class="section-head"><div><h2>先收進來，不用先分類</h2><p>貼網址、文字或想法就好。AI 會在背景判斷用途；分類與送去哪裡放在每筆資料的「整理方式與下一步」裡。</p></div><span class="pill success">正式資料</span></div>'+
-      '<form class="surface project-form" id="inboxForm">'+
-        '<label><b>貼網址、文字或想法</b><textarea id="inboxContent" placeholder="先收進來就好，不用先想它屬於知識、學習、作品還是行動"></textarea></label>'+
-        '<details><summary>補充來源網址（通常不用填）</summary><input id="inboxUrl" type="url" placeholder="https://..."></details>'+
-        '<div class="row-between"><div id="inboxMsg" class="muted">'+esc(notice||'收進來後再整理；AI 的分類只是建議，不會直接改主線或宣稱你已學會。')+'</div><button class="primary-btn" type="submit">收進去</button></div>'+
-      '</form>'+
-      '<div class="section-head"><div><h2>最近收進來</h2><p>先看狀態；只有要處理時才展開分類與下一步。</p></div><span>'+items.length+' 筆</span></div>'+
-      '<div class="stack" id="inboxItems">'+(items.length?items.map(itemHtml).join(''):'<div class="empty">目前沒有待整理內容。</div>')+'</div>';
+    const unsortedN=items.filter(x=>!x.classification).length,gbN=items.filter(isGb).length;
+    const counts={};items.forEach(x=>{if(x.classification)counts[x.classification]=(counts[x.classification]||0)+1;});
+    const tag=(k,l,n,cls)=>'<button type="button" class="tag '+(cls||'')+(k==='all'?' on':'')+'" role="tab" aria-selected="'+(k==='all')+'" data-co-tag="'+k+'">'+l+' <em>'+n+'</em></button>';
+    const cap='<article class="card tile co-cap"><form id="inboxForm"><div class="capture"><div class="input-ic"><textarea class="input" id="inboxContent" rows="1" placeholder="貼上連結，或寫一句想法…" aria-label="收集內容"></textarea></div><button class="btn btn-primary primary-btn" type="submit">收集</button></div>'+
+      '<details class="co-url"><summary class="hint">補充來源網址（通常不用填）</summary><input class="input" id="inboxUrl" type="url" placeholder="https://..."></details>'+
+      '<small class="hint" id="inboxMsg">'+esc(notice||'先丟進來就好，分類之後再說。AI 的分類只是建議，不會直接改主線或宣稱你已學會。')+'</small></form></article>';
+    root.innerHTML='<div class="w1p w1p-collect"><section class="head"><span class="eyebrow">'+(items.length?items.length+' 則・'+unsortedN+' 則未分類':'還沒有收集')+'</span><h1>收集</h1><p>把靈感、連結、研究候選先放進來，之後再分類。</p></section><div class="co-wrap">'+cap+
+      (items.length?
+        '<div class="tagbar" role="tablist" aria-label="標籤篩選">'+tag('all','全部',items.length)+tag('gb','GB 自動分類',gbN,'gb')+tag('none','未分類',unsortedN)+Object.keys(classLabel).filter(k=>counts[k]).map(k=>tag(k,classLabel[k],counts[k])).join('')+'</div>'+
+        '<p class="gb-note"><span><b>GB</b> ＝ Growth Brain 自動分類：AI 依內容幫你貼好標籤的項目，卡片上會標「GB 自動」。展開「整理方式」就能改，改過就變成你的分類。</span></p>'+
+        '<div class="items" id="inboxItems">'+items.map(itemHtml).join('')+'</div>'
+      :'<article class="card tile empty"><img src="assets/w1b/empty-state.webp" alt="" width="800" height="600"><h2>這裡還是空的</h2><p>看到有用的東西，先丟進來。GB（Growth Brain）會自動分類看得懂的，其餘之後再一起整理。</p></article>'+
+        '<div class="ways"><article class="card tile way"><span class="icirc">'+ic('external-link','i')+'</span><h3>貼一個連結</h3><p class="muted">文章、影片、別人的作品都可以。</p></article><article class="card tile way"><span class="icirc or">'+ic('pencil','i')+'</span><h3>寫一句想法</h3><p class="muted">一句話就夠，之後可以變成作品。</p></article><article class="card tile way"><span class="icirc te">'+ic('search','i')+'</span><h3>研究候選</h3><p class="muted">想深入的主題，可以到研究室交給研究員。</p></article></div><div id="inboxItems"></div>')+
+      '</div></div>';
+    root.querySelectorAll('[data-co-tag]').forEach(b=>b.onclick=()=>{const k=b.dataset.coTag;root.querySelectorAll('[data-co-tag]').forEach(x=>{x.classList.toggle('on',x===b);x.setAttribute('aria-selected',String(x===b));});
+      root.querySelectorAll('[data-co-item]').forEach(it=>{it.hidden=!(k==='all'||(k==='gb'?it.dataset.gb==='1':it.dataset.cls===k));});});
 
     $('#inboxForm')?.addEventListener('submit',async e=>{
       e.preventDefault();
