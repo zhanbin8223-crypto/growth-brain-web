@@ -52,7 +52,80 @@ function modeStrip(){
   return `<div class="system-strip"><div><span class="system-kicker">資料狀態</span><b>${live?'已連線正式資料':'尚未讀取正式個人資料'}</b><span>私人單人模式</span></div><p>${live?'首頁正在讀取登入後的正式個人資料；系統資料只有進入系統頁才載入。':'登出時不顯示快取或示範個人資料；登入後才讀取正式內容。'}</p></div>`;
 }
 
-function renderHome(){
+const TODAY_COVERS=['a','b'];
+function todayDateLabel(d=new Date()){return '星期'+'日一二三四五六'[d.getDay()]+'・'+(d.getMonth()+1)+' 月 '+d.getDate()+' 日'}
+function todayCandidates(){
+  const s=A.personalArtifacts||{};
+  const list=Array.isArray(s.candidates)?s.candidates:(s.candidate?[s.candidate]:[]);
+  return list.filter(x=>x&&x.status==='candidate'&&x.id);
+}
+function todayCriteria(w){return Array.isArray(w?.done_evidence)?w.done_evidence:[]}
+function todayLoggedOutHtml(){
+  return `<div class="td"><section class="td-hero"><div><span class="td-chip td-chip-brand">你的個人成長系統</span>
+    <h1>每天只做<em>一件事</em>，<br>做完就看得見成長</h1>
+    <p>第二大腦幫你選定一件作品、拆成小步驟，做完留下證據，能力會跟著真實紀錄長大。</p>
+    <div class="td-actions"><button class="td-btn td-btn-primary" data-auth>用信箱登入 →</button><a class="td-btn td-btn-ghost" href="#td-loop">看它怎麼運作</a></div></div>
+    <div class="td-art"><img src="assets/ui/home-hero-workspace.webp" alt="" aria-hidden="true">
+      <div class="td-card td-float td-f1"><span class="td-dot td-ok"></span>今天的一步完成了</div>
+      <div class="td-card td-float td-f2"><span class="td-dot td-violet"></span>能力 +1：選品判斷</div></div></section>
+    <section class="td-loop" id="td-loop">
+      <div class="td-card td-step"><i class="td-soft-brand">①</i><div><h3>選一件作品</h3><p>真實要完成的事，不是待辦清單</p></div></div>
+      <div class="td-card td-step"><i class="td-soft-teal">②</i><div><h3>一次一小步</h3><p>系統只給你唯一下一步</p></div></div>
+      <div class="td-card td-step"><i class="td-soft-violet">③</i><div><h3>證據變能力</h3><p>只有真實證據會改變你的能力</p></div></div>
+    </section></div>`;
+}
+function todayChooseHtml(cands,msg=''){
+  const cards=cands.map((w,i)=>{
+    const c=TODAY_COVERS[i%2],crit=todayCriteria(w);
+    return `<article class="td-card td-work" data-work="${esc(w.id)}"><div class="td-cover td-cover-${c}"><span class="td-chip">尚未開始</span></div>
+      <div class="td-wbody"><h2>${esc(w.title)}</h2><p>${esc(w.objective||'')}</p>
+      <div class="td-first td-first-${c}"><span class="td-n">1</span><div><small>第一步</small><b>${esc(crit[0]||'開始後由系統產生第一步')}</b></div></div>
+      <div class="td-meta"><span>🎯 ${crit.length?'共 '+crit.length+' 個完成條件':'完成條件待產生'}</span></div>
+      <div class="td-pick"><button class="td-btn td-btn-primary td-btn-${c}" type="button" data-today-pick="${esc(w.id)}">選這件開始 →</button></div></div></article>`;
+  }).join('');
+  return `<div class="td"><div class="td-greet"><div class="td-eyebrow">${esc(todayDateLabel())}</div>
+    <h1>${cands.length>1?'今天，先選一件作品開始':'今天，開始這件作品'}</h1>
+    <p>${cands.length>1?'兩件都還沒開始。一次只推一件，另一件會安全地等你。':'這件作品還沒開始，按下開始後會給你第一步。'}</p></div>
+    ${msg?'<p class="td-msg" role="status">'+esc(msg)+'</p>':''}
+    <div class="td-works">${cards}</div>
+    <div class="td-note">🔒 選了之後，另一件會留在「作品」頁的等待中，不會消失。</div>
+    <div class="td-card td-how"><b>怎麼運作</b><span>🛠 做一小步</span><span>→</span><span>📎 留下證據</span><span>→</span><span>🌱 能力更新</span></div></div>`;
+}
+function todayRing(pctv){
+  const r=34,c=2*Math.PI*r,off=c*(1-pctv/100);
+  return `<svg class="td-ring" width="88" height="88" viewBox="0 0 88 88" aria-hidden="true"><circle cx="44" cy="44" r="${r}" fill="none" stroke="var(--td-line)" stroke-width="8"/><circle cx="44" cy="44" r="${r}" fill="none" stroke="var(--td-brand)" stroke-width="8" stroke-linecap="round" stroke-dasharray="${c.toFixed(1)}" stroke-dashoffset="${off.toFixed(1)}" transform="rotate(-90 44 44)"/><text x="44" y="50" text-anchor="middle" font-size="18" font-weight="800" fill="var(--td-ink)">${pctv}%</text></svg>`;
+}
+function bindTodayPick(){
+  $$('#view-home [data-today-pick]').forEach(btn=>btn.onclick=()=>{
+    const id=btn.dataset.todayPick,box=btn.closest('.td-pick'),title=btn.closest('.td-work')?.querySelector('h2')?.textContent||'';
+    box.innerHTML=`<div class="td-confirm"><p>確定先做「${esc(title)}」？另一件會留在等待中。</p><div class="td-actions"><button class="td-btn td-btn-primary" type="button" data-today-confirm>確定開始</button><button class="td-btn td-btn-ghost" type="button" data-today-cancel>再想想</button></div></div>`;
+    box.querySelector('[data-today-cancel]').onclick=()=>renderHome();
+    box.querySelector('[data-today-confirm]').onclick=async e=>{
+      e.target.disabled=true;e.target.textContent='開始中…';
+      try{
+        await A.decidePersonalArtifact({artifactId:id,decision:'start'});
+        D=await A.getSnapshot();renderHome();
+        renderProjectsIA?.();
+      }catch(err){renderHome(err.message||'開始作品失敗，請再試一次。')}
+    };
+  });
+}
+
+function renderHome(notice=''){
+  if(A.liveStatus==='signed_out'){$('#view-home').innerHTML=todayLoggedOutHtml();return;}
+  if(A.liveStatus==='live'&&!home().artifact_summary?.current){
+    if(!A.personalArtifacts){
+      $('#view-home').innerHTML='<div class="td"><p class="td-msg">正在讀取你的作品…</p></div>';
+      A.getPersonalArtifacts().then(()=>renderHome(notice)).catch(e=>{$('#view-home').innerHTML='<div class="td"><p class="td-msg">讀取作品失敗：'+esc(e.message||e)+'</p></div>'});
+      return;
+    }
+    const cands=todayCandidates();
+    if(cands.length){$('#view-home').innerHTML=todayChooseHtml(cands,notice);bindTodayPick();return;}
+  }
+  renderTodayFocus();
+}
+
+function renderTodayFocus(){
   const H=home(),dir=H.primary_direction||{},action=H.primary_action||{},learn=H.learning_support||{},progress=(H.recent_real_progress?.items||[]).slice(0,4);
   const currentArtifact=H.artifact_summary?.current||null;
   const artifactProgress=currentArtifact?.progress_summary||{};
@@ -66,6 +139,7 @@ function renderHome(){
   const stepWhy=action.why||'先把目前作品往前推一小步，不開新的支線。';
   const stepEvidence=action.success_evidence||currentArtifact?.next_evidence_item?.criterion_text||'完成後留下可追溯的真實證據。';
   const latest=progress[0]||null;
+  const waiting=currentArtifact?todayCandidates().filter(w=>w.id!==currentArtifact.id):[];
   const directSkills=currentSkills.filter(s=>s.minimum_needed_now||String(s.evidence_state||'').toLowerCase()==='unknown').slice(0,3);
 
   let cta='';
@@ -81,7 +155,7 @@ function renderHome(){
     ?directSkills.map(s=>'<button class="focus-support-row" type="button" data-jump="capabilities"><span>'+esc(s.name_zh||s.name||human(s.skill_key||'能力'))+'</span><small>'+esc(s.minimum_needed_now||'目前仍待作品證據驗證')+'</small></button>').join('')
     :'<div class="focus-support-empty">目前這一步沒有需要先補的能力。</div>';
 
-  $('#view-home').innerHTML=`
+  $('#view-home').innerHTML=`<div class="td td-focus">
     <header class="v4-page-head">
       <span class="v4-eyebrow">TODAY · 今天</span>
       <div><h2>現在只做這一步</h2><p>第二大腦的其他內容都先退後，直到它真的能幫目前這一步。</p></div>
@@ -112,11 +186,12 @@ function renderHome(){
 
       <aside class="focus-progress">
         <div class="focus-progress-head"><span>作品進度</span><strong>${total?confirmed+' / '+total:'—'}</strong></div>
-        <div class="focus-progress-track"><i style="width:${progressPct}%"></i></div>
-        <small>${total?progressPct+'% 完成':'等待正式作品資料'}</small>
+        ${todayRing(progressPct)}
+        <small>${total?'已確認 '+confirmed+' 個，還差 '+(total-confirmed)+' 個':'等待正式作品資料'}</small>
         ${latest?'<div class="focus-latest"><span>最近進展</span><b>'+esc(latest.title||latest.summary||'已有新進展')+'</b></div>':''}
       </aside>
     </section>
+    ${waiting.length?'<section class="td-waiting td-card"><span class="focus-label">等待中的作品</span>'+waiting.map(w=>'<div><b>'+esc(w.title)+'</b><small>目前先不做，會安全地等你；可在「作品」頁切換。</small></div>').join('')+'</section>':''}
 
     <section class="focus-support">
       <details class="focus-support-panel">
@@ -137,7 +212,7 @@ function renderHome(){
         <summary><span>只看真實紀錄</span><b>最近進展</b></summary>
         <div class="focus-progress-list-v4">${progress.length?progress.map(p=>'<div><span>'+esc(p.occurred_at?new Date(p.occurred_at).toLocaleDateString('zh-TW'):'')+'</span><b>'+esc(p.title||'真實進展')+'</b><p>'+esc(p.summary||'')+'</p></div>').join(''):'<div class="focus-support-empty">目前還沒有可追溯的真實進展。</div>'}</div>
       </details>
-    </section>`;
+    </section></div>`;
 }
 
 async function renderProjects(notice=''){
