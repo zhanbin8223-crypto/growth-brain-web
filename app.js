@@ -288,7 +288,8 @@ async function renderProjects(notice=''){
 
   const skillHtml=artifact=>{
     const skills=Array.isArray(artifact?.skills)?artifact.skills:[];
-    if(!skills.length) return '<div class="empty">這件作品還沒有技能驗證目標。</div>';
+    const editBtn='<button class="ghost-btn small" type="button" data-work-skills-global="'+esc(artifact?.id||'')+'" data-work-title="'+esc(artifact?.title||'')+'">'+(skills.length?'修改能力清單':'依完成條件產生建議清單')+'</button>';
+    if(!skills.length) return '<div class="empty">這件作品還沒有能力清單。'+editBtn+'</div>';
     const core=skills.filter(s=>s.skill_kind==='core');
     const tools=skills.filter(s=>s.skill_kind==='tool');
     const card=s=>{
@@ -308,6 +309,8 @@ async function renderProjects(notice=''){
     return `
       ${core.length?`<div class="stack">${core.map(card).join('')}</div>`:''}
       ${tools.length?`<details class="surface" style="margin-top:10px"><summary><b>工具能力（會隨技術更新）</b></summary><p>這些工具可以替換；底層能力沒有失效時，不會因此推翻整條路徑。</p><div class="stack">${tools.map(card).join('')}</div></details>`:''}
+
+      <div style="margin-top:10px">${editBtn}</div>
     `;
   };
 
@@ -1026,31 +1029,20 @@ async function renderCapabilities(active='cells'){
       (x.practice?'<div class="cap-detail"><b>實作</b><span>'+esc(x.practice)+'</span></div>':'');
 
     if(active==='cells'){
-      const buckets={verified:[],independent:[],developing:[],exploring:[]};
-      personalSkills.forEach(skill=>buckets[bucketOf(skill)].push(skill));
-      const evidenceCount=buckets.verified.length+buckets.independent.length+buckets.developing.length;
-      const skillNode=s=>'<button class="capability-skill-node" type="button" data-personal-skill-key="'+esc(s.skill_key||s.key||'')+'"><b>'+esc(nameOf(s))+'</b><small>'+esc(stateLabel(s.evidence_state||s.status))+'</small></button>';
-      const methodNodes=cells.slice(0,8).map(x=>'<button type="button" class="capability-method-node" data-capability-key="'+esc(x.key||'')+'"><b>'+esc(nameOf(x))+'</b><small>參考方法</small></button>').join('');
-
-      pane.innerHTML='<div class="v4-page-head"><span class="v4-eyebrow">CAPABILITIES · 能力庫</span><div><h2>能力圖譜</h2><p>位置代表證據狀態，不代表漂亮程度；只有作品、回答或操作證據才會把能力往前移。</p></div></div>'+
-        '<section class="capability-orbit">'+
-          '<div class="capability-orbit-center"><strong>'+evidenceCount+'</strong><span>已有能力證據</span></div>'+
-          ['verified','independent','developing','exploring'].map(k=>'<div class="capability-zone '+k+'"><header><span>'+bucketLabel[k]+'</span><b>'+buckets[k].length+'</b></header><div class="capability-zone-nodes">'+(buckets[k].length?buckets[k].slice(0,6).map(skillNode).join(''):'<small>目前沒有能力落在這一層</small>')+'</div></div>').join('')+
-        '</section>'+
-        '<section class="capability-methods"><div class="row-between"><div><span class="kicker">方法庫</span><h3>需要時再拿來用</h3></div><span>'+cells.length+' 個方法</span></div><p>方法存在不等於你已掌握；點一個方法只會展開怎麼用。</p><div class="capability-method-node-grid">'+(methodNodes||'<div class="empty">目前沒有能力方法資料。</div>')+'</div></section>'+
-        '<aside class="capability-selected" id="capabilityDetail"><span class="kicker">詳細</span><h3>選一個能力或方法</h3><p>這裡才展開證據、使用方式與常見失敗，不把全部內容塞在第一屏。</p></aside>';
-
-      const detail=$('#capabilityDetail',pane);
-      $$('[data-capability-key]',pane).forEach(btn=>btn.onclick=()=>{
-        const x=cells.find(v=>String(v.key||'')===btn.dataset.capabilityKey);
-        if(!x)return;
-        detail.innerHTML='<span class="kicker">參考方法</span><h3>'+esc(nameOf(x))+'</h3><p>'+esc(x.principle||x.summary||'這是一個可重用方法。')+'</p>'+detailHtml(x)+'<div class="cap-detail"><b>個人能力規則</b><span>方法存在不等於掌握；只有真實證據才會改變上方能力狀態。</span></div>';
-      });
-      $$('[data-personal-skill-key]',pane).forEach(btn=>btn.onclick=()=>{
-        const x=personalSkills.find(v=>String(v.skill_key||v.key||'')===btn.dataset.personalSkillKey);
-        if(!x)return;
-        detail.innerHTML='<span class="kicker">'+esc(bucketLabel[bucketOf(x)])+'</span><h3>'+esc(nameOf(x))+'</h3><p>'+esc(x.why||x.summary||'目前沒有更多說明。')+'</p><div class="cap-detail"><b>證據狀態</b><span>'+esc(stateLabel(x.evidence_state||x.status))+'</span></div>'+(x.artifact_title?'<div class="cap-detail"><b>關聯作品</b><span>'+esc(x.artifact_title)+'</span></div>':'');
-      });
+      root.querySelector('.subtabs')?.classList.add('cm-hide-tabs');
+      await window.GROWTH_BRAIN_CAPMAP.render(pane,A,{afterPaint:(slot,lib)=>{
+        if(!slot)return;
+        const list=Array.isArray(lib?.cells)?lib.cells:cells;
+        slot.innerHTML='<details class="cm-card cm-meth"><summary><b>方法庫</b><span class="cm-muted">'+list.length+' 個參考方法（做事的套路，不是你的能力）</span></summary><div class="cm-meth-grid">'+
+          (list.map(x=>'<button type="button" class="cm-meth-b" data-capability-key="'+esc(x.key||'')+'">'+esc(nameOf(x))+'</button>').join('')||'<p class="cm-muted">目前沒有能力方法資料。</p>')+
+          '</div><div class="cm-meth-detail" id="capabilityDetail"><p class="cm-muted">點一個方法，展開怎麼用。方法存在不等於掌握。</p></div></details>';
+        const detail=$('#capabilityDetail',slot);
+        $$('[data-capability-key]',slot).forEach(btn=>btn.onclick=()=>{
+          const x=list.find(v=>String(v.key||'')===btn.dataset.capabilityKey);
+          if(!x)return;
+          detail.innerHTML='<h3>'+esc(nameOf(x))+'</h3><p>'+esc(x.principle||x.summary||'這是一個可重用方法。')+'</p>'+detailHtml(x)+'<div class="cap-detail"><b>個人能力規則</b><span>方法存在不等於掌握；只有真實證據才會改變能力程度。</span></div>';
+        });
+      }});
     }else if(active==='playbooks'){
       const card=x=>'<details class="v4-list-row"><summary><span><small>'+esc(x.when_to_use||'需要時使用')+'</small><b>'+esc(nameOf(x))+'</b></span><span>展開</span></summary><p>'+esc(x.principle||x.summary||'把多個能力方法組合成可執行流程。')+'</p>'+detailHtml(x)+'</details>';
       pane.innerHTML='<div class="v4-page-head"><span class="v4-eyebrow">PLAYBOOKS · 作戰手冊</span><div><h2>需要時照著做</h2><p>不是課程清單；只有目前作品需要時才打開。</p></div></div>'+
@@ -1729,12 +1721,13 @@ async function renderProjectsIA(active='gateway',notice=''){
               '<div class="project-actions">'+(candidateRoute.source_evidence?.artifact_team_builder?'<button class="ghost-btn" type="button" data-resume-project-team>繼續團隊規劃</button>':'')+'<button class="primary-btn" type="button" data-select-route-id="'+esc(candidateRoute.id)+'">設為目前主線</button><button class="ghost-btn" type="button" data-reject-route-id="'+esc(candidateRoute.id)+'">刪除候選</button></div>'+
             '</article>');
           }
-          if(candidate){
+          const candidateList=(Array.isArray(artifacts?.candidates)&&artifacts.candidates.length?artifacts.candidates:(candidate?[candidate]:[])).filter(c=>c&&c.status==='candidate');
+          candidateList.forEach(candidate=>{
             plannedCards.push('<article class="project-gateway-card is-locked">'+
               '<span class="project-cover"><img class="project-cover-image" data-image-placement="projects.cover" src="assets/ui/home-project-cover.webp" alt="" aria-hidden="true"><span class="project-cover-badge muted">預計作品</span></span>'+
-              '<span class="project-gateway-copy"><span class="project-family-row"><b class="project-name">'+esc(candidate.title||'下一件候選作品')+'</b></span><b class="project-version-title">等待你確認</b><span class="project-status">'+esc(statusText(candidate.status||'candidate'))+'</span><span class="project-progress">確認後才會進入正式作品，不會先算成進度。</span><span class="project-progress-track"><i style="width:0%"></i></span></span>'+
+              '<span class="project-gateway-copy"><span class="project-family-row"><b class="project-name">'+esc(candidate.title||'下一件候選作品')+'</b></span><b class="project-version-title">等待你確認</b><span class="project-status">'+esc(statusText(candidate.status||'candidate'))+'</span><span class="project-progress">確認後才會進入正式作品，不會先算成進度。</span><span class="project-progress-track"><i style="width:0%"></i></span><button class="ghost-btn small" type="button" data-work-skills-global="'+esc(candidate.id||'')+'" data-work-title="'+esc(candidate.title||'')+'">'+((candidate.skills||[]).length?'需要的能力（'+(candidate.skills||[]).length+'）':'依完成條件產生能力清單')+'</button></span>'+
             '</article>');
-          }
+          });
           if(planningJob&&planningJob.status&&!['completed','cancelled'].includes(String(planningJob.status).toLowerCase())){
             plannedCards.push('<article class="project-gateway-card is-locked">'+
               '<span class="project-cover"><img class="project-cover-image" data-image-placement="projects.cover" src="assets/ui/home-project-cover.webp" alt="" aria-hidden="true"><span class="project-cover-badge muted">規劃中</span></span>'+
@@ -2143,6 +2136,7 @@ function loginModal(){
 }
 
 async function init(){
+  window.addEventListener('growth:work-skills-saved',()=>{const v=document.querySelector('#view-projects');if(v&&v.offsetParent)renderProjectsIA(v.querySelector('#projectIaPane')?'planned':'current');});
   try{
     await A.initialize();
     D=await A.getSnapshot();

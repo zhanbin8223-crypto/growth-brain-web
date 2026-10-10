@@ -170,6 +170,23 @@
       await this.refreshPersonalHome();
       return clone({unblock:result?.data?.unblock||null,artifacts:latest});
     },
+    async proposeWorkSkills({artifactId}){
+      if(this.mode!=='live') throw Object.assign(new Error('請先登入。'),{code:'not_signed_in'});
+      const result=await liveRequest('POST',{action:'propose_work_skills',artifact_id:artifactId});
+      return clone(result?.data||{});
+    },
+    async saveWorkSkills({artifactId,skills}){
+      if(this.mode!=='live') throw Object.assign(new Error('請先登入。'),{code:'not_signed_in'});
+      const result=await liveRequest('POST',{action:'save_work_skills',artifact_id:artifactId,skills:Array.isArray(skills)?skills:[]});
+      this.capabilityLibrary=null;this.personalArtifacts=null;
+      return clone(result?.data||{});
+    },
+    async claimSkill({artifactId,skillKey,note}){
+      if(this.mode!=='live') throw Object.assign(new Error('請先登入。'),{code:'not_signed_in'});
+      const result=await liveRequest('POST',{action:'claim_skill',artifact_id:artifactId,skill_key:skillKey,note:note||''});
+      this.capabilityLibrary=null;
+      return clone(result?.data||{});
+    },
     async recordPersonalArtifactEvidence({artifactId,criterionNo,evidenceText,evidenceRefs,metadata}){
       if(this.mode!=='live') throw Object.assign(new Error('請先登入。'),{code:'not_signed_in'});
       const result=await liveRequest('POST',{

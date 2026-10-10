@@ -460,6 +460,38 @@ Deno.serve(async (req: Request) => {
         );
       }
 
+      if (body?.action === "propose_work_skills" || body?.action === "save_work_skills" || body?.action === "claim_skill") {
+        if (typeof body?.artifact_id !== "string" || !body.artifact_id) {
+          return json({ ok: false, reason: "artifact_id_required" }, 400);
+        }
+        let result: any;
+        if (body.action === "propose_work_skills") {
+          result = await adminRpc("growth_work_skill_proposal_service_v1", {
+            p_auth_user_id: verified.user.id, p_artifact_id: body.artifact_id,
+          });
+        } else if (body.action === "save_work_skills") {
+          if (!Array.isArray(body?.skills) || body.skills.length < 1 || body.skills.length > 10) {
+            return json({ ok: false, reason: "skills_1_to_10_required" }, 400);
+          }
+          result = await adminRpc("growth_work_skill_targets_save_service_v1", {
+            p_auth_user_id: verified.user.id, p_artifact_id: body.artifact_id, p_skills: body.skills,
+          });
+        } else {
+          if (typeof body?.skill_key !== "string" || !body.skill_key) {
+            return json({ ok: false, reason: "skill_key_required" }, 400);
+          }
+          result = await adminRpc("growth_skill_self_claim_service_v1", {
+            p_auth_user_id: verified.user.id, p_artifact_id: body.artifact_id,
+            p_skill_key: body.skill_key, p_note: typeof body?.note === "string" ? body.note.slice(0, 300) : "",
+          });
+        }
+        if (result?.accepted === false) {
+          const reason = result.reason || "work_skills_rejected";
+          return json({ ok: false, reason, data: result }, reason.includes("verified") ? 403 : 400);
+        }
+        return json({ ok: true, data: result }, 200);
+      }
+
       if (body?.action === "record_personal_artifact_evidence") {
         const evidenceText =
           typeof body?.evidence_text === "string" ? body.evidence_text.trim() : "";
