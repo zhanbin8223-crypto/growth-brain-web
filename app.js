@@ -772,7 +772,7 @@ async function renderLearn(notice=''){
       <div class="provenance">來源：${esc(active.session?.source_ref||'未記錄')} · 資料：你的正式學習紀錄${supportsCurrent&&currentArtifact?` · 支援作品：${esc(currentArtifact.title)}`:''}</div>
       <div class="evidence-box">
         <b>AI 解釋任務 · ${esc(aiLabel)}</b>
-        <span>${aiText?esc(aiText):aiError?esc(aiError):ai?'你的 Mac 上 AI 執行器處理完成後，GPT 的整理結果會顯示在這裡。':'尚未建立 AI 解釋任務；你仍可先自己閱讀與作答。'}</span>
+        <span>${aiText?esc(aiText):aiError?esc(aiError):ai?'你的 Mac 上 AI 執行器處理完成後，GPT 的整理結果會顯示在這裡。':'尚未建立 AI 解釋任務；你仍可先自己閱讀與作答。'}${ai&&['pending','claimed','processing'].includes(ai.status)?'<span class="mq-inline-worker" data-worker-inline>正在確認處理程式狀態…</span><a href="#/collect/questions">到「我的提問」看進度 →</a>':''}</span>
         ${canQueue?'<button class="ghost-btn small" id="enqueueLearningAi">'+(ai?.status==='failed'?'重新排隊':'建立 AI 解釋任務')+'</button>':''}
         <small>AI 解釋只是輔助，不會自動算成你已學會。</small>
       </div>
@@ -783,6 +783,7 @@ async function renderLearn(notice=''){
         <button class="primary-btn" id="submitAnswer" ${pending?'disabled':''}>${pending?'等待審核':'送出可審核回答'}</button>
         <div id="answerMsg" class="muted">${promoted?'這筆回答已通過審核並形成學習證據。':sub?.status==='rejected'?'上一筆回答未通過審核，可修改後再提交。':sub?.status==='reviewed'?'上一筆只完成審核，沒有升成個人學習證據。':'回答送出後只會先進待審核，不會直接算已學會。'}</div>
       </div>`;
+    const wInline=$('[data-worker-inline]',detail);if(wInline&&window.GROWTH_BRAIN_MYJOBS)window.GROWTH_BRAIN_MYJOBS.workerBannerText(A).then(t=>{wInline.textContent=t||'處理程式狀態無法讀取。';});
     $('#enqueueLearningAi')?.addEventListener('click',async()=>{
       const btn=$('#enqueueLearningAi');
       try{
@@ -1948,6 +1949,7 @@ const NAV_PAGES=[
       {key:'trying',label:'正在試做',view:'research',run:()=>lab().renderResearch($('#view-research'),'today',{filter:'trial'})}]}]},
   {key:'collect',label:'收集',icon:'＋',tabs:[
     {key:'inbox',label:'收件匣',view:'inbox',desc:'先把想法、連結丟進來，之後再分類。',run:()=>window.GROWTH_BRAIN_INBOX?.render()},
+            {key:'questions',label:'我的提問',view:'inbox',desc:'你送出、需要 AI 處理的事：排到哪、等多久、做完沒有。',run:()=>window.GROWTH_BRAIN_MYJOBS?.render($('#view-inbox'),A)},
     {key:'saved',label:'收藏',view:'research',desc:'研究室推薦中你先收起來的事。',run:()=>lab().renderResearch($('#view-research'),'today',{filter:'saved'})},
     {key:'ignored',label:'已略過',view:'research',desc:'你略過的推薦；需要時可以再拿回來看。',run:()=>lab().renderResearch($('#view-research'),'today',{filter:'ignored'})}]},
   {key:'system',label:'系統',icon:'⚙',gear:true,tabs:[
@@ -2136,6 +2138,7 @@ function loginModal(){
 }
 
 async function init(){
+  setInterval(()=>window.GROWTH_BRAIN_MYJOBS?.refreshBadge(A),60000);setTimeout(()=>window.GROWTH_BRAIN_MYJOBS?.refreshBadge(A),2500);
   window.addEventListener('growth:work-skills-saved',()=>{const v=document.querySelector('#view-projects');if(v&&v.offsetParent)renderProjectsIA(v.querySelector('#projectIaPane')?'planned':'current');});
   try{
     await A.initialize();

@@ -1,0 +1,6 @@
+- [x] DB snapshot + cancel（備份 ai_jobs）
+- [x] Edge v19
+- [x] 前端列表、離線判定、重試／取消、徽章與今天提示
+- [x] node --test、Playwright
+- [ ] 使用者登入實測
+- [ ] (b) 伺服器端 AI 處理：等 AI 金鑰

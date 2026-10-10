@@ -11,12 +11,12 @@ const navSrc=app.slice(app.indexOf('/* ===== 5-page navigation'),app.indexOf('fu
 function load(){
   const calls=[];
   const rec=name=>(...a)=>{calls.push([name,...a.filter(x=>x!==undefined)]);};
-  const c={calls,location:{hash:''},history:{pushState(){},replaceState(){}},console,
+  const c={calls,A:{},location:{hash:''},history:{pushState(){},replaceState(){}},console,
     renderHome:rec('renderHome'),renderTodayWaiting:rec('renderTodayWaiting'),renderTodayProgress:rec('renderTodayProgress'),
     renderProjectsIA:rec('renderProjectsIA'),renderHistory:rec('renderHistory'),renderLearn:rec('renderLearn'),
     renderCapabilities:rec('renderCapabilities'),renderSynapse:rec('renderSynapse'),renderSystemPending:rec('renderSystemPending'),
     renderTeamIA:rec('renderTeamIA'),renderResearch:rec('renderResearch'),
-    window:{GROWTH_BRAIN_LAB:{renderResearch:(el,tab,o)=>calls.push(['lab.renderResearch',tab,o.filter])},GROWTH_BRAIN_INBOX:{render:rec('renderInbox')}},
+    window:{GROWTH_BRAIN_LAB:{renderResearch:(el,tab,o)=>calls.push(['lab.renderResearch',tab,o.filter])},GROWTH_BRAIN_INBOX:{render:rec('renderInbox')},GROWTH_BRAIN_MYJOBS:{render:rec('myjobs.render')}},
     $:()=>null,$$:()=>[],esc:s=>String(s)};
   vm.createContext(c);
   vm.runInContext(navSrc+';this.api={NAV_PAGES,LEGACY_ROUTES,resolveLegacy,navFind,parseNavHash,navGo,setView};',c);
@@ -90,7 +90,7 @@ test('舊程式裡所有分頁都還找得到（沒有功能被刪除）',()=>{
 });
 
 test('每個分頁與子分頁都可執行，且只呼叫既有資料來源',()=>{
-  const allowed=new Set(['renderHome','renderTodayWaiting','renderTodayProgress','renderProjectsIA','renderHistory','renderLearn','renderCapabilities','renderSynapse','renderSystemPending','renderTeamIA','renderResearch','lab.renderResearch','renderInbox']);
+  const allowed=new Set(['renderHome','renderTodayWaiting','renderTodayProgress','renderProjectsIA','renderHistory','renderLearn','renderCapabilities','renderSynapse','renderSystemPending','renderTeamIA','renderResearch','lab.renderResearch','renderInbox','myjobs.render']);
   const c=load();
   for(const p of c.api.NAV_PAGES)for(const t of p.tabs)for(const s of (t.segs||[null])){
     c.calls.length=0;c.api.navGo(p.key,t.key,s?.key);
@@ -147,7 +147,7 @@ test('今日探索：一張推薦卡、一個主要按鈕；換一件與先收�
 
 test('術語白話化：移除英文眉標與未解釋術語',()=>{
   for(const bad of ['LAB · 研究室','資料庫 Context','研究沙盒','本機執行器','待採用審查'])assert.ok(!lab.includes(bad),bad);
-  assert.match(lab,/Worker）/);assert.match(lab,/送進試驗（讓 AI 小規模試做）/);
+  assert.match(lab,/處理程式離線/);assert.match(lab,/送進試驗（讓 AI 小規模試做）/);
   assert.match(css,/\.v4-eyebrow\{display:none!important\}/);
   assert.match(app,/作戰手冊＝做過的事整理成的步驟筆記/);
 });
