@@ -22,8 +22,8 @@ test('參考來源只允許 http 與 https，不執行 javascript/data/file',()=
   assert.equal(safeUrl('https://supabase.com/docs'),'https://supabase.com/docs');
   for(const u of ['javascript:alert(1)','data:text/html,<script>','file:///etc/passwd','bad url'])assert.equal(safeUrl(u),null);
 });
-test('維持六區與全域收集入口',()=>{
+test('維持五區（ADR-0002）、齒輪系統入口與全域收集入口',()=>{
   const html=readFileSync(new URL('../index.html',import.meta.url),'utf8');
-  assert.equal((html.match(/class="nav-item/g)||[]).length,6);
+  assert.equal((html.match(/class="nav-item/g)||[]).length,5);assert.match(html,/id="gearBtn"/);
   assert.match(html,/id="captureBtn"/);assert.match(html,/src="event-lab\.js(?:\?[^\"]*)?"/);
 });
