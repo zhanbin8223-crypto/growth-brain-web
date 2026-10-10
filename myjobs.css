@@ -1,9 +1,8 @@
-/* 我的提問 — W1b 柔和卡片（暖灰紙），只作用在 .mq-w1b、徽章與今天提示 */
-.mq-w1b{--bg:#f3f0eb;--s1:#fcfbf8;--s2:#f9f7f3;--s3:#e9e6e1;--line:#e3e0da;--line-2:#d0ccc5;--ink:#25211b;--ink-2:#413c37;--ink-3:#615d59;--ink-4:#9b9894;
-  --or:#ab5c37;--or-soft:#f2e4dc;--or-line:#e1c1b1;--or-text:#954c29;--or-wash:#f5e9e2;--vi-soft:#ede4e3;--vi-text:#7c535c;--te-soft:#e7e8e1;--te-text:#5d684a;
-  --btn:#a1532e;--btn-ink:#fcfbf8;--btn-hi:#91451e;--bad:#9b3b2e;--bad-soft:#f6e1dc;
-  --r-md:16px;--r-lg:24px;--r-pill:999px;--soft-shadow:0 1px 2px rgba(37,33,27,.04),0 10px 28px -14px rgba(60,40,25,.16);
-  background:var(--bg);color:var(--ink);border-radius:var(--r-lg);padding:28px;display:flex;flex-direction:column;gap:16px}
+/* 我的提問 — 顏色取自 theme-w1b.css 全站 token */
+.mq-w1b{--bg:var(--w-bg);--s1:var(--w-card);--s2:var(--w-card-2);--s3:var(--w-s3);--line:var(--w-line);--line-2:var(--w-line-2);--ink:var(--w-ink);--ink-2:var(--w-ink-2);--ink-3:var(--w-ink-3);--ink-4:var(--w-ink-4);
+  --or:var(--w-or);--or-soft:var(--w-or-soft);--or-line:var(--w-or-line);--or-text:var(--w-or-text);--or-wash:var(--w-or-wash);--vi-soft:var(--w-vi-soft);--vi-text:var(--w-vi-text);--te-soft:var(--w-te-soft);--te-text:var(--w-te-text);
+  --btn:var(--w-btn);--btn-ink:var(--w-btn-ink);--btn-hi:var(--w-btn-hi);--bad:var(--w-bad);--bad-soft:var(--w-bad-soft);--r-md:var(--w-r-md);--r-lg:var(--w-r-lg);--r-pill:var(--w-r-pill);--soft-shadow:var(--w-shadow);
+  background:transparent;color:var(--ink);padding:0;display:flex;flex-direction:column;gap:16px}
 .mq-head h2{margin:0 0 4px;font-size:26px;color:var(--ink)}.mq-head p{margin:0;color:var(--ink-3)}
 .mq-worker{display:flex;align-items:center;gap:10px;padding:14px 18px;border-radius:var(--r-md);background:var(--s1);box-shadow:var(--soft-shadow);font-weight:700;color:var(--ink-2)}
 .mq-worker.off{background:var(--or-wash);color:var(--or-text)}
@@ -28,7 +27,7 @@
 .mq-empty{padding:28px;border-radius:var(--r-md);background:var(--s1);color:var(--ink-3);display:flex;flex-direction:column;gap:12px;align-items:flex-start}
 .mq-msg{margin:0;color:var(--bad);min-height:1em}
 .nav-item{position:relative}
-.mq-badge{position:absolute;top:2px;right:2px;min-width:18px;height:18px;padding:0 5px;border-radius:999px;background:#a1532e;color:#fcfbf8;font:700 11px/18px system-ui;font-style:normal;text-align:center}
+.mq-badge{position:absolute;top:2px;right:2px;min-width:18px;height:18px;padding:0 5px;border-radius:999px;background:#a1532e;color:#fcfbf8;font:700 12px/18px system-ui;font-style:normal;text-align:center}
 .mq-today{display:block;margin:0 auto 12px;max-width:1180px;padding:12px 18px;border-radius:16px;background:#e7e8e1;color:#5d684a;font-weight:700;text-decoration:none}
 .mq-inline-worker{display:block;margin-top:6px;color:#954c29;font-weight:700}
 @media (max-width:760px){.mq-w1b{padding:18px 14px}.mq-row{flex-direction:column}.mq-side{flex-direction:row;flex-wrap:wrap;align-items:center}}

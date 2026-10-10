@@ -76,7 +76,7 @@ function todayLoggedOutHtml(){
 }
 function todayChooseHtml(cands,msg=''){
   const cards=cands.map((w,i)=>{
-    const c=TODAY_COVERS[i%2],crit=todayCriteria(w);
+    const c=/數字人|Instagram|\bIG\b/i.test(String(w.title||''))?'b':'a',crit=todayCriteria(w);
     return `<article class="td-card td-work" data-work="${esc(w.id)}"><div class="td-cover td-cover-${c}"><span class="td-chip">尚未開始</span></div>
       <div class="td-wbody"><h2>${esc(w.title)}</h2><p>${esc(w.objective||'')}</p>
       <div class="td-first td-first-${c}"><span class="td-n">1</span><div><small>第一步</small><b>${esc(crit[0]||'開始後由系統產生第一步')}</b></div></div>
@@ -155,6 +155,17 @@ function renderTodayFocus(){
     ?directSkills.map(s=>'<button class="focus-support-row" type="button" data-jump="capabilities"><span>'+esc(s.name_zh||s.name||human(s.skill_key||'能力'))+'</span><small>'+esc(s.minimum_needed_now||'目前仍待作品證據驗證')+'</small></button>').join('')
     :'<div class="focus-support-empty">目前這一步沒有需要先補的能力。</div>';
 
+  if(currentArtifact&&window.GROWTH_BRAIN_W1P){
+    const W=window.GROWTH_BRAIN_W1P;
+    const ctaW=cta.replace('class="primary-btn focus-primary"','class="btn btn-primary focus-primary"');
+    const funnelW=A.liveStatus==='live'&&stepTitle?'<button class="btn btn-ghost" data-funnel-kind="current_artifact" data-funnel-id="'+esc(currentArtifact.id)+'" data-funnel-goal="'+esc(currentArtifact?.next_evidence_item?.criterion_text||stepTitle)+'">我卡住了，幫我拆小</button>':'';
+    const ds=directSkills[0];
+    const learnHtml=ds?'<div class="learn-row"><span class="ibox te">'+W.icon('lightbulb','i')+'</span><div><h3>學習補一下：'+esc(ds.name_zh||ds.name||human(ds.skill_key||'能力'))+'</h3><p class="muted small">'+esc(ds.minimum_needed_now||'只補這一步用得到的部分')+'</p></div></div><a class="link" href="#/learn/practice">去練習'+W.icon('chevron-right')+'</a>'
+      :'<div class="learn-row"><span class="ibox te">'+W.icon('lightbulb','i')+'</span><div><h3>目前不用先學</h3><p class="muted small">'+esc(learn.primary_card?.next_action||'沒有缺口就繼續做作品，不先學一堆。')+'</p></div></div>';
+    const extra='<details class="card tile w1p-extra"><summary><b>最近進展</b><span class="muted small">只看真實紀錄</span></summary><div class="focus-progress-list-v4">'+(progress.length?progress.map(p=>'<div><span>'+esc(p.occurred_at?new Date(p.occurred_at).toLocaleDateString('zh-TW'):'')+'</span><b>'+esc(p.title||'真實進展')+'</b></div>').join(''):'<p class="muted small">還沒有真實進展紀錄。</p>')+'</div></details>';
+    $('#view-home').innerHTML=W.todayHtml({current:currentArtifact,waiting,stepTitle,stepWhy,stepEvidence,ctaHtml:ctaW,funnelHtml:funnelW,learnHtml,extraHtml:extra});
+    return;
+  }
   $('#view-home').innerHTML=`<div class="td td-focus">
     <header class="v4-page-head">
       <span class="v4-eyebrow">TODAY · 今天</span>
@@ -1546,6 +1557,7 @@ async function renderProjectsIA(active='gateway',notice=''){
     return;
   }else if(active==='gateway'){
     root.innerHTML=iaTabs(tabs,active)+'<div id="projectIaPane" class="tab-pane"><div class="empty">正在整理作品路徑…</div></div>';
+    if(A.liveStatus==='live'&&window.GROWTH_BRAIN_W1P){A.getPersonalArtifacts().then(pa=>{const html=window.GROWTH_BRAIN_W1P.worksHtml(pa);const pane=$('#projectIaPane');if(html&&pane&&!root.querySelector('.w1p-works')){pane.insertAdjacentHTML('beforebegin',html+'<details class="w1p-more"><summary><b>作品路徑與新作品</b><span>建立新路徑、組隊、里程碑都在這裡</span></summary></details>');root.querySelector('.w1p-more').appendChild(pane);root.querySelector('[data-open-current]')?.addEventListener('click',()=>renderProjectsIA('current'));}}).catch(()=>{});}
     const pane=$('#projectIaPane');
     const hero='<header class="v4-page-head project-v4-head"><span class="v4-eyebrow">ARTIFACTS · 作品</span><div><h2>我的作品路徑</h2><p>先看現在在哪、下一個候選在哪。登入後可直接在下方輸入一條新作品路徑。</p><button class="primary-btn project-new-route-btn" type="button" '+(A.liveStatus==='live'?'data-new-project-route':'data-auth')+'>'+(A.liveStatus==='live'?'↓ 輸入新作品路徑':'登入後新增路徑')+'</button></div><img class="v4-page-art" data-image-placement="projects.hero" src="assets/ui/home-project-cover.webp" alt="" aria-hidden="true"></header>';
 
@@ -2138,6 +2150,7 @@ function loginModal(){
 }
 
 async function init(){
+  const paintSideWorks=()=>{const el=$('#sideWorks');if(!el||A.liveStatus!=='live'||!window.GROWTH_BRAIN_W1P)return;A.getPersonalArtifacts().then(pa=>{el.innerHTML=window.GROWTH_BRAIN_W1P.sideWorksHtml(pa);}).catch(()=>{});};setTimeout(paintSideWorks,2000);window.addEventListener('hashchange',()=>setTimeout(paintSideWorks,800));
   setInterval(()=>window.GROWTH_BRAIN_MYJOBS?.refreshBadge(A),60000);setTimeout(()=>window.GROWTH_BRAIN_MYJOBS?.refreshBadge(A),2500);
   window.addEventListener('growth:work-skills-saved',()=>{const v=document.querySelector('#view-projects');if(v&&v.offsetParent)renderProjectsIA(v.querySelector('#projectIaPane')?'planned':'current');});
   try{
