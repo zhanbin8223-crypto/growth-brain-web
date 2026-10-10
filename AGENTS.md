@@ -6,6 +6,12 @@
 
 首讀交接已包含 `execution_recovery_policy` 及 `execution_gate_function`。按當輪實際可用的工具與技能工作，不沿用其他環境的能力假設。原生平台對技能載入與安全的要求優先。
 
+## 提案與決策放哪裡
+
+- 變更提案（規格、設計、任務）放 `openspec/changes/<change-id>/`，完成後的規格在 `openspec/specs/`。
+- 架構與產品決策用 MADR 格式寫在 `docs/decisions/`（範本 `adr-template.md`）。
+- 進度、工作包與驗收狀態仍只以 Supabase 為準，不寫在這兩個資料夾。
+
 ## 遇錯必須先解決
 
 1. 保留原始目標與驗收條件。不能把「工具成功」「改好程式」「已部署」當成完整功能成功。
