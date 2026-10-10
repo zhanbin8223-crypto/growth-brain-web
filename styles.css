@@ -1883,3 +1883,7 @@ button.project-route-node{cursor:pointer}
   .project-team-grid,.project-team-library-list{grid-template-columns:1fr}
   .project-team-summary{display:grid}
 }
+
+.pending-block{border-left:4px solid var(--danger,#c0392b)}
+.pending-list{list-style:none;margin:8px 0 0;padding:0;display:grid;gap:10px}
+.pending-item{line-height:1.5}
