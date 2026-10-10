@@ -195,6 +195,7 @@
     if($('#view-inbox')?.classList.contains('active')) renderInbox();
   }
 
+  window.GROWTH_BRAIN_INBOX={render:(...a)=>renderInbox(...a)};
   if(document.readyState==='loading') document.addEventListener('DOMContentLoaded',bind);
   else bind();
 })();
