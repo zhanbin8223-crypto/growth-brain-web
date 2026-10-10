@@ -7,7 +7,7 @@ const css=readFileSync(new URL('../styles.css',import.meta.url),'utf8');
 const index=readFileSync(new URL('../index.html',import.meta.url),'utf8');
 
 test('今天頁維持單一焦點構圖，並恢復節制的製圖素材',()=>{
-  const home=app.slice(app.indexOf('function renderHome(){'),app.indexOf('async function renderProjects',app.indexOf('function renderHome(){')));
+  const home=app.slice(app.indexOf('function renderTodayFocus(){'),app.indexOf('async function renderProjects',app.indexOf('function renderTodayFocus(){')));
   for(const token of ['v4-page-head','focus-stage','focus-step','focus-progress'])assert.ok(home.includes(token),token);
   assert.match(home,/home-hero-workspace\.webp/);
   assert.match(home,/v4-page-art/);

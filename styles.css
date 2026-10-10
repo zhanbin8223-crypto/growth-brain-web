@@ -1887,3 +1887,61 @@ button.project-route-node{cursor:pointer}
 .pending-block{border-left:4px solid var(--danger,#c0392b)}
 .pending-list{list-style:none;margin:8px 0 0;padding:0;display:grid;gap:10px}
 .pending-item{line-height:1.5}
+
+/* ===== Today redesign (2026-10-10): tokens scoped to .td so other pages are untouched ===== */
+.td{--td-fs-cap:12px;--td-fs-sm:14px;--td-fs-body:16px;--td-fs-lg:18px;--td-fs-h3:22px;--td-fs-h1:40px;--td-fs-hero:56px;
+ --td-ink:#1f1a17;--td-ink-2:#4a423c;--td-ink-3:#7a6f66;--td-paper:#fbf7f1;--td-card:#fff;--td-line:#ece3d6;
+ --td-brand:#e8833a;--td-brand-deep:#c45f17;--td-brand-soft:#fff1e4;--td-teal-soft:#e2f4f0;--td-violet:#6b5bd2;--td-violet-soft:#eeebfd;--td-ok:#2e9a5b;
+ --td-r-md:16px;--td-r-lg:24px;--td-shadow-1:0 1px 2px rgba(60,40,20,.06),0 4px 14px rgba(60,40,20,.06);--td-shadow-2:0 10px 30px rgba(60,40,20,.12);
+ font-family:"Noto Sans TC","PingFang TC","Microsoft JhengHei",system-ui,sans-serif;font-size:var(--td-fs-body);line-height:1.6;color:var(--td-ink);max-width:1180px;margin:0 auto}
+.td *{box-sizing:border-box}
+.td-card{background:var(--td-card);border-radius:var(--td-r-lg);box-shadow:var(--td-shadow-1);border:1px solid var(--td-line)}
+.td-btn{display:inline-flex;align-items:center;gap:8px;border:0;border-radius:999px;padding:14px 26px;font-size:var(--td-fs-body);font-weight:700;cursor:pointer;text-decoration:none;min-height:48px}
+.td-btn-primary{background:var(--td-brand);color:#fff;box-shadow:0 6px 16px rgba(232,131,58,.35)}
+.td-btn-primary.td-btn-b{background:var(--td-violet);box-shadow:0 6px 16px rgba(107,91,210,.3)}
+.td-btn-ghost{background:transparent;color:var(--td-ink-2);border:1.5px solid var(--td-line)}
+.td-btn:focus-visible{outline:3px solid var(--td-brand-deep);outline-offset:2px}
+.td-chip{display:inline-flex;align-items:center;padding:4px 12px;border-radius:999px;font-size:var(--td-fs-cap);font-weight:700;background:rgba(255,255,255,.9);color:var(--td-ink)}
+.td-chip-brand{background:var(--td-brand-soft);color:var(--td-brand-deep)}
+.td-actions{display:flex;gap:12px;flex-wrap:wrap}
+.td-eyebrow{color:var(--td-brand-deep);font-weight:800;font-size:var(--td-fs-sm)}
+.td-greet{margin-bottom:32px}.td-greet h1{font-size:var(--td-fs-h1);line-height:1.15;margin:6px 0 8px}.td-greet p{color:var(--td-ink-3);margin:0;font-size:var(--td-fs-lg)}
+.td-msg{background:var(--td-brand-soft);color:var(--td-brand-deep);padding:12px 16px;border-radius:var(--td-r-md);font-weight:700}
+.td-works{display:grid;grid-template-columns:1fr 1fr;gap:24px}
+.td-work{overflow:hidden;display:flex;flex-direction:column}
+.td-cover{height:170px;display:flex;align-items:flex-end;padding:20px}
+.td-cover-a{background:linear-gradient(135deg,#ffe2c4,#ffb877 60%,#f08a3c)}.td-cover-b{background:linear-gradient(135deg,#e6e1ff,#a99cf0 55%,#6b5bd2)}
+.td-wbody{padding:24px 26px 26px;display:flex;flex-direction:column;gap:14px;flex:1}
+.td-wbody h2{font-size:var(--td-fs-h3);margin:0;line-height:1.3}.td-wbody p{margin:0;color:var(--td-ink-2)}
+.td-first{display:flex;gap:12px;align-items:center;background:var(--td-paper);border-radius:var(--td-r-md);padding:14px 16px}
+.td-n{width:36px;height:36px;border-radius:50%;background:var(--td-card);border:2px dashed var(--td-brand);display:grid;place-items:center;font-weight:800;color:var(--td-brand-deep);flex:none}
+.td-first-b .td-n{border-color:var(--td-violet);color:var(--td-violet)}
+.td-first small{display:block;color:var(--td-ink-3);font-size:var(--td-fs-cap)}
+.td-meta{color:var(--td-ink-3);font-size:var(--td-fs-sm)}
+.td-confirm{background:var(--td-paper);border-radius:var(--td-r-md);padding:14px 16px}.td-confirm p{margin:0 0 10px;font-weight:700;color:var(--td-ink)}
+.td-note{margin-top:24px;color:var(--td-ink-3);font-size:var(--td-fs-sm)}
+.td-how{margin-top:32px;padding:16px 22px;display:flex;gap:24px;align-items:center;flex-wrap:wrap;font-size:var(--td-fs-sm);color:var(--td-ink-2)}
+.td-hero{display:grid;grid-template-columns:1.1fr .9fr;gap:48px;align-items:center;padding-top:24px}
+.td-hero h1{font-size:var(--td-fs-hero);line-height:1.1;margin:12px 0 18px}.td-hero h1 em{font-style:normal;color:var(--td-brand-deep)}
+.td-hero p{font-size:var(--td-fs-lg);color:var(--td-ink-2);margin:0 0 28px}
+.td-art{position:relative}.td-art img{width:100%;border-radius:28px;box-shadow:var(--td-shadow-2);display:block}
+.td-float{position:absolute;padding:12px 16px;display:flex;gap:10px;align-items:center;font-size:var(--td-fs-sm);font-weight:700}
+.td-f1{left:-30px;bottom:40px}.td-f2{right:-20px;top:30px}
+.td-dot{width:10px;height:10px;border-radius:50%}.td-ok{background:var(--td-ok)}.td-violet{background:var(--td-violet)}
+.td-loop{margin-top:48px;display:grid;grid-template-columns:repeat(3,1fr);gap:16px}
+.td-step{padding:22px;display:flex;gap:14px;align-items:flex-start}.td-step i{width:44px;height:44px;border-radius:14px;display:grid;place-items:center;font-style:normal;font-size:22px;flex:none}
+.td-soft-brand{background:var(--td-brand-soft)}.td-soft-teal{background:var(--td-teal-soft)}.td-soft-violet{background:var(--td-violet-soft)}
+.td-step h3{margin:0 0 4px;font-size:var(--td-fs-lg)}.td-step p{margin:0;color:var(--td-ink-3);font-size:var(--td-fs-sm)}
+.td-focus .focus-label{font-size:var(--td-fs-sm)}
+.td-focus .focus-progress{display:flex;flex-direction:column;align-items:flex-start;gap:8px}
+.td-focus .focus-progress small,.td-focus .focus-why,.td-focus p{font-size:var(--td-fs-body)}
+.td-ring{display:block}
+.td-waiting{margin-top:16px;padding:18px 22px;display:grid;gap:8px}.td-waiting div{display:flex;flex-direction:column}.td-waiting small{color:var(--td-ink-3);font-size:var(--td-fs-sm)}
+@media(max-width:600px){
+ .td-greet h1{font-size:30px}.td-greet p{font-size:var(--td-fs-body)}
+ .td-works{grid-template-columns:1fr;gap:16px}.td-cover{height:120px}.td-wbody{padding:20px}
+ .td-loop{grid-template-columns:1fr}.td-hero{grid-template-columns:1fr;gap:28px}.td-hero h1{font-size:36px}.td-f1{left:10px}.td-f2{right:10px}
+ .td-btn{width:100%;justify-content:center}
+}
+.td-focus .v4-eyebrow,.td-focus .focus-evidence span,.td-focus .focus-support-panel summary span,.td-focus .focus-progress-head span,.td-focus small{font-size:var(--td-fs-sm)}
+.td-focus .focus-evidence b{font-size:var(--td-fs-body)}
