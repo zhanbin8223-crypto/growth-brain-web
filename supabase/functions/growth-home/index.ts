@@ -109,11 +109,15 @@ Deno.serve(async (req: Request) => {
     if (req.method === "GET") {
       const url = new URL(req.url);
       const surface = url.searchParams.get("surface") || "personal_home";
-      if (!["personal_home", "personal_outcome", "personal_artifacts", "system_cockpit", "inbox", "learning", "personal_synapse", "event_lab", "history", "capabilities"].includes(surface)) {
+      if (!["personal_home", "personal_outcome", "personal_artifacts", "system_cockpit", "inbox", "learning", "personal_synapse", "event_lab", "history", "capabilities", "my_jobs"].includes(surface)) {
         return json({ ok: false, reason: "unsupported_surface" }, 400);
       }
 
-      const result = surface === "history"
+      const result = surface === "my_jobs"
+        ? await adminRpc("growth_my_jobs_snapshot_service_v1", {
+            p_auth_user_id: verified.user.id,
+          })
+        : surface === "history"
         ? await adminRpc("growth_history_snapshot_service_v1", {
             p_auth_user_id: verified.user.id,
           })
@@ -458,6 +462,20 @@ Deno.serve(async (req: Request) => {
           { ok: true, data: { unblock: result, snapshot } },
           202,
         );
+      }
+
+      if (body?.action === "cancel_job") {
+        if (typeof body?.job_id !== "string" || !body.job_id) {
+          return json({ ok: false, reason: "job_id_required" }, 400);
+        }
+        const result = await adminRpc("growth_my_job_cancel_service_v1", {
+          p_auth_user_id: verified.user.id, p_job_id: body.job_id,
+        });
+        if (result?.accepted === false) {
+          const reason = result.reason || "cancel_rejected";
+          return json({ ok: false, reason, data: result }, reason.includes("verified") ? 403 : 400);
+        }
+        return json({ ok: true, data: result }, 200);
       }
 
       if (body?.action === "propose_work_skills" || body?.action === "save_work_skills" || body?.action === "claim_skill") {

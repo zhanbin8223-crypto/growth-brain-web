@@ -170,6 +170,16 @@
       await this.refreshPersonalHome();
       return clone({unblock:result?.data?.unblock||null,artifacts:latest});
     },
+    async getMyJobs(){
+      if(this.mode!=='live') throw Object.assign(new Error('請先登入。'),{code:'not_signed_in'});
+      const result=await liveRequest('GET',undefined,'my_jobs');
+      return clone(extractSurface(result));
+    },
+    async cancelMyJob(jobId){
+      if(this.mode!=='live') throw Object.assign(new Error('請先登入。'),{code:'not_signed_in'});
+      const result=await liveRequest('POST',{action:'cancel_job',job_id:jobId});
+      return clone(result?.data||{});
+    },
     async proposeWorkSkills({artifactId}){
       if(this.mode!=='live') throw Object.assign(new Error('請先登入。'),{code:'not_signed_in'});
       const result=await liveRequest('POST',{action:'propose_work_skills',artifact_id:artifactId});

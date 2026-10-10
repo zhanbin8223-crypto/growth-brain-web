@@ -22,7 +22,7 @@
   }).join('');}
   function list(items){return arr(items).length?'<ul>'+arr(items).slice(0,8).map(x=>'<li>'+esc(typeof x==='string'?x?.trim():x?.description||x?.title||'')+'</li>').join('')+'</ul>':'<p class="muted">尚未提供，不能當成已確認。</p>';}
   function validFunnel(o){return o&&typeof o==='object'&&['goal','key_hub','minimum_artifact','bottleneck','next_step'].every(k=>text(o[k]).trim())&&['boundaries','dependencies','unknowns','failure_points','required_evidence'].every(k=>Array.isArray(o[k]))&&arr(o.required_evidence).length>0&&routes[o.primary_route?.kind];}
-  function workerNote(){const h=snapshot?.worker_health;return h?.status==='online'?'你電腦上的 AI 執行程式（Worker）有在運作，會依序處理。':'你電腦上的 AI 執行程式（Worker）現在沒開，工作已存好，等它開了就會處理。';}
+  function workerNote(){const ws=snapshot?.worker_health?.workers;const last=(Array.isArray(ws)?ws:[]).map(w=>w?.last_seen_at).filter(Boolean).sort().pop()||null;const M=window.GROWTH_BRAIN_MYJOBS;if(M)return M.workerState(last).text;const t=last?new Date(last).getTime():NaN;return Number.isFinite(t)&&Date.now()-t<=600000?'處理程式在線，會依序處理。':'處理程式離線，工作已存好，它上線後才會處理。';}
   function jobs(){return arr(snapshot?.jobs);}
   function label(j){if(j.status==='completed'&&j.task_type==='event_funnel_v1'&&!validFunnel(j.output))return 'AI 回覆格式不完整';return {pending:'等待執行器',claimed:'已領取',processing:'AI 正在處理',completed:'AI 已回覆',failed:'本次失敗',cancelled:'已取消'}[j.status]||'狀態待確認';}
   function jobBanner(j){return '<div class="lab-job" role="status"><b>'+esc(label(j))+'</b><span>'+esc(j.status==='failed'?'原輸入仍保留，可在上限內重試。':workerNote())+'</span>'+(j.status==='failed'?'<button class="ghost-btn small" data-lab-retry="'+esc(j.id)+'">重試</button>':'')+'</div>';}
