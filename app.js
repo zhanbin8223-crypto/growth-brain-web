@@ -1075,6 +1075,25 @@ async function renderHistory(active='system'){
   $$('[data-ia-tab]',root).forEach(b=>b.onclick=()=>renderHistory(b.dataset.iaTab));
 }
 
+const PENDING_NEEDS={user:'需要你本人操作',approval:'等你核准',decision:'等你決定',worker:'需要 Mac Worker',rerun:'待重新檢查'};
+const PENDING_ORDER=['user','decision','approval','worker','rerun'];
+function pendingItemsFromPackages(pkgs){
+  const items=[];
+  (Array.isArray(pkgs)?pkgs:[]).forEach(p=>(Array.isArray(p?.blockers)?p.blockers:[]).forEach(b=>{
+    if(!b||b.status==='resolved'||b.status==='done')return;
+    items.push({code:b.code||b.type||'',title:b.title||b.code||b.reason||'未命名待辦',reason:b.title?(b.reason||''):'',needs:PENDING_NEEDS[b.needs]?b.needs:'rerun',severity:b.severity||'',ref:b.ref||'',pkg:p.title||p.package_key||''});
+  }));
+  const rank=x=>{const i=PENDING_ORDER.indexOf(x.needs);return i<0?99:i;};
+  return items.sort((a,b)=>rank(a)-rank(b)||String(a.severity).localeCompare(String(b.severity)));
+}
+function pendingBlockHtml(items){
+  if(!items.length)return '<article class="surface pending-block"><span class="kicker">待處理</span><h3>目前沒有待處理項目</h3></article>';
+  return '<article class="surface pending-block"><div class="row-between"><div><span class="kicker">待處理</span><h3 style="margin:6px 0 0">還沒完成的事（'+items.length+'）</h3></div></div>'+
+    '<p class="muted">這些都還沒完成，先記下來，之後依序處理。</p><ul class="pending-list">'+
+    items.map(x=>'<li class="pending-item"><span class="pill '+(x.needs==='rerun'||x.needs==='worker'?'warn':'danger')+'">'+esc(PENDING_NEEDS[x.needs])+'</span> <b>'+esc(x.title)+'</b>'+(x.reason?'<br><small>'+esc(x.reason)+'</small>':'')+(x.pkg?'<br><small class="muted">屬於：'+esc(x.pkg)+'</small>':'')+'</li>').join('')+
+    '</ul></article>';
+}
+
 async function renderSystem(){
   const root=$('#view-ceo');
   if(A.liveStatus!=='live'){
@@ -1182,7 +1201,7 @@ async function renderSystem(){
 
   const usageHtml=recentUsage.slice(0,6).map(u=>`<div class="surface"><div class="row-between"><b>${esc(roleNames[u.skill_key]||u.skill_key)}</b><span class="pill success">實際使用 ${esc(u.usefulness??'-')}/5</span></div><p>${esc(u.notes||'')}</p><small class="muted">返工 ${esc(u.rework_count??0)} · 發現問題 ${esc(u.defects_found??0)} · 越界 ${esc(u.scope_violations??0)}</small></div>`).join('');
 
-  root.innerHTML=`
+  root.innerHTML=pendingBlockHtml(pendingItemsFromPackages(pkgs))+`
     <div class="section-head"><div><h2>系統建置與 AI 團隊</h2><p>這裡只看第二大腦本身怎麼運作、誰在做什麼、哪裡卡住；不會混進你的個人成長成果。</p></div>${pill(cur.status||'current')}</div>
 
     <article class="surface">
