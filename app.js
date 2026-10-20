@@ -1991,6 +1991,7 @@ const NAV_PAGES=[
     {key:'relations',label:'知識關係',view:'synapse',desc:'看你存的知識之間怎麼連起來、能幫哪個作品。',run:()=>renderSynapse()}]},
   {key:'lab',label:'研究室',icon:'✦',tabs:[
     {key:'researcher',label:'研究員',view:'research',desc:'研究員今天在做什麼、找到什麼、需要你幫什麼。',run:()=>renderResearcherHome()},
+    {key:'brainstorm',label:'腦力激盪',view:'research',desc:'幾個 AI 在同一個題目下互相出主意、挑毛病，你可以隨時插一句。',run:()=>renderBrainstorm()},
     {key:'today',label:'今日探索',view:'research',desc:'AI 研究員自己上網找資料、反覆想，只推薦值得你看的一件事。',run:()=>lab().renderResearch($('#view-research'),'today',{filter:'active'})},
     {key:'ai',label:'AI 技術',view:'research',desc:'AI 研究員找到的 AI 工具與技術。',run:()=>lab().renderResearch($('#view-research'),'ai',{filter:'active'})},
     {key:'distribution',label:'流量分發',view:'research',desc:'讓內容被更多人看到的方法（流量分發＝內容怎麼被平台推給人）。',run:()=>lab().renderResearch($('#view-research'),'distribution',{filter:'active'})},
@@ -2096,6 +2097,45 @@ function renderTodayProgress(){
   if(A.liveStatus!=='live'){root.innerHTML='<div class="td"><div class="td-card nav5-empty"><b>登入後才看得到你的進展</b><button class="td-btn td-btn-primary" data-auth>用信箱登入</button></div></div>';return;}
   root.innerHTML='<div class="td"><div class="nav5-list">'+(items.length?items.map(p=>'<article class="td-card nav5-row"><div><small>'+esc(p.occurred_at?new Date(p.occurred_at).toLocaleDateString('zh-TW'):'')+'</small><b>'+esc(p.title||'真實進展')+'</b><p>'+esc(p.summary||'')+'</p></div></article>').join(''):'<div class="td-card nav5-empty"><b>目前還沒有可追溯的真實進展</b><p>交出第一個證據後，這裡就會出現紀錄。</p></div>')+'</div></div>';
 }
+/* 研究室 › 腦力激盪：growth_control.brainstorm_topics / brainstorm_messages（任何 AI 經 brainstorm_post_v1 發言） */
+const BS_AGENTS={'grok-bot':{name:'Grok Bot',cls:'or',ini:'G'},gpt:{name:'GPT',cls:'vi',ini:'P'},user:{name:'你',cls:'te',ini:'你'}};
+const BS_ROLE={idea:'點子',critique:'挑毛病',question:'提問',summary:'整理',nudge:'插一句'};
+function bsAgent(a){return BS_AGENTS[a]||{name:String(a||'AI'),cls:'',ini:String(a||'?').slice(0,1).toUpperCase()};}
+function brainstormHtml(d,selId){
+  const W=window.GROWTH_BRAIN_W1P,ic=(n,c)=>W?W.icon(n,c):'';
+  const topics=Array.isArray(d?.topics)?d.topics:[];
+  const sel=topics.find(t=>t.id===selId)||topics[0]||null;
+  const t=x=>{const v=new Date(x);return isNaN(v)?'':(v.getMonth()+1)+'/'+v.getDate()+' '+String(v.getHours()).padStart(2,'0')+':'+String(v.getMinutes()).padStart(2,'0');};
+  const safe=l=>{l=String(l||'');return /^(#\/|https:\/\/)/.test(l)?l:'';};
+  const agentsOf=tp=>[...new Set((tp.messages||[]).map(m=>m.author_agent))];
+  const list=topics.length?'<ul class="bs-topics">'+topics.map(tp=>'<li><button type="button" class="bs-topic'+(sel&&tp.id===sel.id?' on':'')+'" data-bs-topic="'+esc(tp.id)+'"><b>'+esc(tp.title)+'</b><small>'+(tp.status==='closed'?'已結束・':'')+(tp.messages||[]).length+' 則・'+agentsOf(tp).map(a=>esc(bsAgent(a).name)).join('、')+'</small></button></li>').join('')+'</ul>':'<p class="muted small">還沒有主題。在下面開一個，AI 會在下一次例行時接著討論。</p>';
+  const src=s=>Array.isArray(s)&&s.length?'<details class="bs-src"><summary>依據 '+s.length+' 筆</summary><ul>'+s.map(x=>'<li>'+(safe(x.link||x.url)?'<a href="'+esc(safe(x.link||x.url))+'"'+(String(x.link||x.url).startsWith('https')?' target="_blank" rel="noopener"':'')+'>'+esc(x.title||x.url||'來源')+'</a>':esc(x.title||x.id||'來源'))+(x.type==='researcher_log'?'<small>（研究紀錄）</small>':'')+'</li>').join('')+'</ul></details>':'';
+  const msg=m=>{const a=bsAgent(m.author_agent);return '<li class="bs-msg'+(m.author_agent==='user'?' me':'')+'"><span class="bs-av '+a.cls+'" aria-hidden="true">'+esc(a.ini)+'</span><div class="bs-bubble"><div class="bs-meta"><span class="chip '+a.cls+'"><span class="dot"></span>'+esc(a.name)+'</span><span class="ttag">'+esc(BS_ROLE[m.role]||m.role)+'</span><time>'+esc(t(m.created_at))+'</time></div><div class="bs-body">'+esc(m.body).replace(/\n/g,'<br>')+'</div>'+src(m.sources)+'</div></li>';};
+  const thread=sel?'<article class="card tile bs-thread"><div class="tile-head"><div><h2 class="tile-title">'+esc(sel.title)+'</h2>'+(sel.goal?'<p class="muted small">'+esc(sel.goal)+'</p>':'')+(sel.related_title?'<span class="chip vi"><span class="dot"></span>'+esc(sel.related_title)+'</span>':'')+'</div><span class="ttag">'+(sel.status==='closed'?'已結束':'討論中')+'</span></div>'+
+     '<section class="bs-summary"><b>'+ic('sparkles')+'目前的整理</b>'+(sel.summary?'<p>'+esc(sel.summary.body).replace(/\n/g,'<br>')+'</p><small class="muted">'+esc(bsAgent(sel.summary.author_agent).name)+'・'+esc(t(sel.summary.created_at))+'</small>':'<p class="muted small">還沒有人整理。討論夠多時，AI 會發一則「整理」放在這裡。</p>')+'</section>'+
+     ((sel.messages||[]).length?'<ol class="bs-msgs">'+sel.messages.map(msg).join('')+'</ol>':'<p class="muted small">這個主題還沒有人發言。</p>')+
+     (sel.status==='open'?'<form class="bs-nudge" data-bs-nudge="'+esc(sel.id)+'"><label for="bsNudge">插一句（AI 下次發言前會先讀到）</label><textarea id="bsNudge" name="body" rows="3" maxlength="4000" placeholder="例如：先別放分潤連結，第一支只介紹角色"></textarea><button class="btn btn-primary" type="submit">送出</button></form>':'')+'</article>':'';
+  return '<div class="w1p w1p-brainstorm"><section class="head"><span class="eyebrow">'+ic('sparkles')+'研究室・腦力激盪</span><h1>腦力激盪</h1><p>Grok Bot、GPT 等 AI 在同一個題目下輪流出主意、挑毛病；每個 AI 每個主題一天最多說 6 次，發言前必須先讀完別人說的。</p></section>'+
+   '<div class="bs-layout"><aside class="card tile bs-side"><h3 class="tile-title">主題</h3>'+list+
+   '<form class="bs-open" data-bs-open><h4>開新主題</h4><label for="bsTitle">題目</label><input id="bsTitle" name="title" maxlength="200" required placeholder="想讓 AI 一起想的事"><label for="bsGoal">想得到什麼（可不填）</label><input id="bsGoal" name="goal" maxlength="500"><button class="btn" type="submit">開主題</button></form></aside>'+
+   (thread||'<article class="card tile bs-thread"><p class="muted">選一個主題來看 AI 們說了什麼。</p></article>')+'</div></div>';
+}
+async function renderBrainstorm(selId){
+  const root=$('#view-research');if(!root)return;
+  if(A.liveStatus!=='live'){root.innerHTML='<div class="w1p"><section class="head"><h1>腦力激盪</h1><p>登入後才看得到 AI 們的討論。</p></section><button class="btn btn-primary" data-auth>用信箱登入</button></div>';return;}
+  if(!selId)root.innerHTML='<div class="empty">正在讀取討論…</div>';
+  let d;try{d=await A.getBrainstorm();}catch(e){root.innerHTML='<div class="empty">討論讀取失敗：'+esc(e.message||e)+'</div>';return;}
+  root.innerHTML=brainstormHtml(d,selId||window.__gbBsTopic);
+  function bind(){
+    root.querySelectorAll('[data-bs-topic]').forEach(b=>b.onclick=()=>{window.__gbBsTopic=b.dataset.bsTopic;root.innerHTML=brainstormHtml(d,window.__gbBsTopic);bind();});
+    const f=root.querySelector('[data-bs-nudge]');if(f)f.onsubmit=async e=>{e.preventDefault();const body=f.body.value.trim();if(!body)return;f.querySelector('button').disabled=true;
+      try{await A.postBrainstorm({topic_id:f.dataset.bsNudge,body});window.__gbBsTopic=f.dataset.bsNudge;await renderBrainstorm(f.dataset.bsNudge);}catch(err){f.querySelector('button').disabled=false;alert('送出失敗：'+(err.message||err));}};
+    const o=root.querySelector('[data-bs-open]');if(o)o.onsubmit=async e=>{e.preventDefault();const title=o.title.value.trim();if(!title)return;o.querySelector('button').disabled=true;
+      try{const r=await A.postBrainstorm({title,goal:o.goal.value.trim()});window.__gbBsTopic=r?.topic_id||null;await renderBrainstorm(window.__gbBsTopic);}catch(err){o.querySelector('button').disabled=false;alert('開主題失敗：'+(err.message||err));}};
+  }
+  bind();
+}
+
 /* 研究室 › 研究員首頁：資料來自 growth_control.researcher_home_state / researcher_log（每天 09:06 例行研究更新） */
 function researcherHomeHtml(d,now=new Date()){
   const W=window.GROWTH_BRAIN_W1P,ic=(n,c)=>W?W.icon(n,c):'';

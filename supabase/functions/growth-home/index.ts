@@ -109,11 +109,15 @@ Deno.serve(async (req: Request) => {
     if (req.method === "GET") {
       const url = new URL(req.url);
       const surface = url.searchParams.get("surface") || "personal_home";
-      if (!["personal_home", "personal_outcome", "personal_artifacts", "system_cockpit", "inbox", "learning", "personal_synapse", "event_lab", "history", "capabilities", "my_jobs", "researcher_home"].includes(surface)) {
+      if (!["personal_home", "personal_outcome", "personal_artifacts", "system_cockpit", "inbox", "learning", "personal_synapse", "event_lab", "history", "capabilities", "my_jobs", "researcher_home", "brainstorm"].includes(surface)) {
         return json({ ok: false, reason: "unsupported_surface" }, 400);
       }
 
-      const result = surface === "researcher_home"
+      const result = surface === "brainstorm"
+        ? await adminRpc("growth_brainstorm_service_v1", {
+            p_auth_user_id: verified.user.id,
+          })
+        : surface === "researcher_home"
         ? await adminRpc("growth_researcher_home_service_v1", {
             p_auth_user_id: verified.user.id,
           })
@@ -466,6 +470,25 @@ Deno.serve(async (req: Request) => {
           { ok: true, data: { unblock: result, snapshot } },
           202,
         );
+      }
+
+      if (body?.action === "brainstorm_post") {
+        const text = typeof body?.body === "string" ? body.body.trim() : "";
+        const topicId = typeof body?.topic_id === "string" && body.topic_id ? body.topic_id : null;
+        const title = typeof body?.title === "string" ? body.title.trim() : "";
+        if (!topicId && !title) return json({ ok: false, reason: "title_required" }, 400);
+        if (topicId && !text) return json({ ok: false, reason: "body_required" }, 400);
+        if (text.length > 4000 || title.length > 200) return json({ ok: false, reason: "too_long" }, 400);
+        const result = await adminRpc("growth_brainstorm_user_post_service_v1", {
+          p_auth_user_id: verified.user.id, p_topic_id: topicId, p_body: text,
+          p_title: title || null, p_goal: typeof body?.goal === "string" ? body.goal.trim() || null : null,
+          p_related_artifact_id: typeof body?.related_artifact_id === "string" && body.related_artifact_id ? body.related_artifact_id : null,
+        });
+        if (result?.accepted === false || result?.ok === false) {
+          const reason = result.reason || "brainstorm_rejected";
+          return json({ ok: false, reason, data: result }, reason.includes("verified") ? 403 : 400);
+        }
+        return json({ ok: true, data: result }, 200);
       }
 
       if (body?.action === "cancel_job") {
