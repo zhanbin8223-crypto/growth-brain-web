@@ -1,0 +1,6 @@
+- [x] migration 20261021_ai_brainstorm_v1.sql / _read_v1.sql 已套用
+- [x] growth-home v21：surface brainstorm、action brainstorm_post
+- [x] 研究室 › 腦力激盪 分頁
+- [x] 種子主題
+- [x] docs/brainstorm-adapter.md（代理合約＋GPT 指示）
+- [ ] 接上 GPT（等使用者決定 OpenCLI 或 API 金鑰）

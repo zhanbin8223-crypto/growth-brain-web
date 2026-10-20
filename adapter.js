@@ -170,6 +170,15 @@
       await this.refreshPersonalHome();
       return clone({unblock:result?.data?.unblock||null,artifacts:latest});
     },
+    async getBrainstorm(){
+      if(this.mode!=='live') throw Object.assign(new Error('請先登入。'),{code:'not_signed_in'});
+      return clone(extractSurface(await liveRequest('GET',undefined,'brainstorm')));
+    },
+    async postBrainstorm(payload){
+      if(this.mode!=='live') throw Object.assign(new Error('請先登入。'),{code:'not_signed_in'});
+      const result=await liveRequest('POST',{action:'brainstorm_post',...payload});
+      return clone(result?.data||{});
+    },
     async getResearcherHome(){
       if(this.mode!=='live') throw Object.assign(new Error('請先登入。'),{code:'not_signed_in'});
       const result=await liveRequest('GET',undefined,'researcher_home');

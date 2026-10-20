@@ -291,3 +291,25 @@ body:has(.view.active .w1p) .nav5-desc{display:none}
 .w1p .rh-who h2{font-size:24px}
 @media (max-width:1100px){.w1p .rh-bento{grid-template-columns:1fr 1fr;grid-template-areas:"id id" "hl help" "plan done" "log log"}}
 @media (max-width:760px){.w1p .rh-bento{grid-template-columns:1fr;grid-template-areas:"id" "hl" "help" "plan" "done" "log"}.w1p .rh-who{align-items:flex-start}.w1p .rh-avatar{width:72px;height:72px}}
+
+/* 研究室 › 腦力激盪 */
+.w1p .bs-layout{display:grid;grid-template-columns:320px minmax(0,1fr);gap:16px;align-items:start}
+.w1p .bs-topics{list-style:none;margin:0 0 16px;padding:0;display:grid;gap:8px}
+.w1p .bs-topic{width:100%;text-align:left;display:grid;gap:4px;padding:12px 14px;border-radius:16px;border:1px solid transparent;background:var(--w-bg,#f3f0eb);cursor:pointer;font:inherit;color:inherit}
+.w1p .bs-topic.on{background:#f5e9e2;border-color:#e6cfc2}
+.w1p .bs-open,.w1p .bs-nudge{display:grid;gap:8px;margin-top:12px}
+.w1p .bs-open input,.w1p .bs-nudge textarea{width:100%;font:inherit;font-size:16px;border-radius:12px;border:1px solid #ddd6cc;background:#fff;padding:10px 12px}
+.w1p .bs-open h4{margin:8px 0 0;font-size:16px}
+.w1p .bs-summary{background:#eef0e8;border-radius:16px;padding:14px 16px;margin:12px 0}
+.w1p .bs-summary p{margin:6px 0}
+.w1p .bs-msgs{list-style:none;margin:0;padding:0;display:grid;gap:14px}
+.w1p .bs-msg{display:flex;gap:12px;align-items:flex-start}
+.w1p .bs-av{flex:none;width:40px;height:40px;border-radius:50%;display:grid;place-items:center;font-weight:700;background:#eae7e1;color:#4a4540}
+.w1p .bs-av.or{background:#f5e9e2;color:#ab5c37}.w1p .bs-av.vi{background:#f1e6e8;color:#90636d}.w1p .bs-av.te{background:#e8ebe1;color:#6e7a5a}
+.w1p .bs-bubble{min-width:0;flex:1;background:var(--w-bg,#f3f0eb);border-radius:16px;padding:12px 14px}
+.w1p .bs-msg.me .bs-bubble{background:#eef0e8}
+.w1p .bs-meta{display:flex;flex-wrap:wrap;gap:8px;align-items:center;margin-bottom:6px}
+.w1p .bs-meta time{font-size:12px;color:#7a736b}
+.w1p .bs-body{overflow-wrap:anywhere;line-height:1.7}
+.w1p .bs-src{margin-top:8px;font-size:14px}.w1p .bs-src ul{margin:6px 0 0;padding-left:18px}
+@media (max-width:900px){.w1p .bs-layout{grid-template-columns:1fr}}
