@@ -15,3 +15,11 @@ test('腦力激盪是研究室第二個分頁；資料庫守則存在',()=>{asse
  const m=fs.readFileSync(new URL('../supabase/migrations/20261021_ai_brainstorm_v1.sql',import.meta.url),'utf8')+fs.readFileSync(new URL('../supabase/migrations/20261021_ai_brainstorm_read_v1.sql',import.meta.url),'utf8');
  for(const k of ['stale_read','daily_turn_limit','enable row level security','brainstorm_read_v1','stable security definer'])assert.ok(m.includes(k),k);
  assert.match(fs.readFileSync(new URL('../supabase/functions/growth-home/index.ts',import.meta.url),'utf8'),/"brainstorm_post"/);});
+test('代理憑證：雜湊、範圍、不得自稱 user、端點不洩漏',()=>{
+ const m=fs.readFileSync(new URL('../supabase/migrations/20261021_brainstorm_agent_tokens_v1.sql',import.meta.url),'utf8');
+ for(const k of ['token_hash','sha256','scope_denied','user_author_reserved',"agent <> 'user'",'revoked_at is null','from public, anon, authenticated, service_role'])assert.ok(m.includes(k),k);
+ const e=fs.readFileSync(new URL('../supabase/functions/brainstorm-agent/index.ts',import.meta.url),'utf8');
+ assert.match(e,/growth_brainstorm_agent_service_v1/);assert.ok(!/author_agent/.test(e));assert.match(e,/\["read", "post", "open_topic", "research"\]/);
+ const all=fs.readdirSync(new URL('..',import.meta.url),{recursive:true}).filter(f=>!String(f).includes('node_modules')&&!String(f).startsWith('.git'));
+ for(const f of all){const p=new URL('../'+f,import.meta.url);try{if(fs.statSync(p).isFile()&&fs.statSync(p).size<2e6)assert.ok(!/gbat_[A-Za-z0-9_-]{40,}/.test(fs.readFileSync(p,'utf8')),'secret in '+f);}catch(err){if(err.code!=='EISDIR')throw err;}}
+});

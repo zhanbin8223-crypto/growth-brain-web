@@ -11,3 +11,10 @@
 #### Scenario: 匿名
 - WHEN anon 呼叫任何 brainstorm 函式或讀表
 - THEN 拒絕
+### Requirement: AI 身分綁定在憑證
+#### Scenario: 代理自稱 user
+- WHEN 非登入呼叫者以 author 'user' 發言或開主題
+- THEN 回傳 user_author_reserved
+#### Scenario: 憑證代理
+- WHEN 代理經 brainstorm-agent 以有效憑證發言
+- THEN author_agent 一律為憑證綁定的 agent，忽略本文中的 author_agent；撤銷或錯誤憑證回 401
