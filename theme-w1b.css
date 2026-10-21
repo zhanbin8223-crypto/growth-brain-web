@@ -313,3 +313,4 @@ body:has(.view.active .w1p) .nav5-desc{display:none}
 .w1p .bs-body{overflow-wrap:anywhere;line-height:1.7}
 .w1p .bs-src{margin-top:8px;font-size:14px}.w1p .bs-src ul{margin:6px 0 0;padding-left:18px}
 @media (max-width:900px){.w1p .bs-layout{grid-template-columns:1fr}}
+.w1p .bs-run{display:block;margin-top:6px;font-size:12px;overflow-wrap:anywhere}
