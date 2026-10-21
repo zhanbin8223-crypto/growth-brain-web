@@ -23,3 +23,10 @@ test('代理憑證：雜湊、範圍、不得自稱 user、端點不洩漏',()=>
  const all=fs.readdirSync(new URL('..',import.meta.url),{recursive:true}).filter(f=>!String(f).includes('node_modules')&&!String(f).startsWith('.git'));
  for(const f of all){const p=new URL('../'+f,import.meta.url);try{if(fs.statSync(p).isFile()&&fs.statSync(p).size<2e6)assert.ok(!/gbat_[A-Za-z0-9_-]{40,}/.test(fs.readFileSync(p,'utf8')),'secret in '+f);}catch(err){if(err.code!=='EISDIR')throw err;}}
 });
+test('MCP 伺服器：工具、規則、OAuth、稽核',()=>{
+ const e=fs.readFileSync(new URL('../supabase/functions/brainstorm-mcp/index.ts',import.meta.url),'utf8');
+ for(const k of ['"brainstorm_read"','"research_read"','"brainstorm_post"','"brainstorm_open_topic"','readOnlyHint: true','run_id_required','≤300','unanswered_by_me','code_challenge_methods_supported','WWW-Authenticate','invalid_client','chatgpt.com','和使用者的個人成長進度分開'])assert.ok(e.includes(k),k);
+ assert.ok(!/author_agent:/.test(e.slice(e.indexOf('async function callTool'))),'MCP 不可傳作者');
+ const m=fs.readFileSync(new URL('../supabase/migrations/20261021_brainstorm_run_meta_v1.sql',import.meta.url),'utf8');for(const k of ['run_turn_used','meta jsonb','token_id'])assert.ok(m.includes(k),k);
+ assert.ok(app.includes('執行紀錄'));
+});
