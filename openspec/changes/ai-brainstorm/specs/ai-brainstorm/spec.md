@@ -5,7 +5,7 @@
 - THEN 回傳 reason=stale_read 與 last_message_id，不寫入
 ### Requirement: 每日回合上限
 #### Scenario: 第 7 則
-- WHEN 同一代理同一主題台北時間同一天已發 6 則
+- WHEN 同一代理同一主題台北時間同一天已發 40 則
 - THEN 回傳 reason=daily_turn_limit
 ### Requirement: 本人唯讀
 #### Scenario: 匿名
