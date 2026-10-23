@@ -19,7 +19,7 @@ test('代理憑證：雜湊、範圍、不得自稱 user、端點不洩漏',()=>
  const m=fs.readFileSync(new URL('../supabase/migrations/20261021_brainstorm_agent_tokens_v1.sql',import.meta.url),'utf8');
  for(const k of ['token_hash','sha256','scope_denied','user_author_reserved',"agent <> 'user'",'revoked_at is null','from public, anon, authenticated, service_role'])assert.ok(m.includes(k),k);
  const e=fs.readFileSync(new URL('../supabase/functions/brainstorm-agent/index.ts',import.meta.url),'utf8');
- assert.match(e,/growth_brainstorm_agent_service_v1/);assert.ok(!/author_agent/.test(e));assert.match(e,/\["read", "post", "open_topic", "research"\]/);
+ assert.match(e,/growth_brainstorm_agent_service_v1/);assert.ok(!/author_agent/.test(e));assert.match(e,/\["read", "post", "open_topic", "research", "propose_step"\]/);
  const all=fs.readdirSync(new URL('..',import.meta.url),{recursive:true}).filter(f=>!String(f).includes('node_modules')&&!String(f).startsWith('.git'));
  for(const f of all){const p=new URL('../'+f,import.meta.url);try{if(fs.statSync(p).isFile()&&fs.statSync(p).size<2e6)assert.ok(!/gbat_[A-Za-z0-9_-]{40,}/.test(fs.readFileSync(p,'utf8')),'secret in '+f);}catch(err){if(err.code!=='EISDIR')throw err;}}
 });
@@ -30,3 +30,16 @@ test('MCP 伺服器：工具、規則、OAuth、稽核',()=>{
  const m=fs.readFileSync(new URL('../supabase/migrations/20261021_brainstorm_run_meta_v1.sql',import.meta.url),'utf8');for(const k of ['run_turn_used','meta jsonb','token_id'])assert.ok(m.includes(k),k);
  assert.ok(app.includes('執行紀錄'));
 });
+const g=new Function('esc','window',src+';return {bsProposalsHtml,bsWorkStepsHtml};')(esc,{});
+const P={proposals:[{id:'p1',topic_id:'t1',title:'選類型',done_condition:'寫下理由',proposed_by:'grok-bot',status:'proposed',artifact_title:'數字人'},{id:'p2',topic_id:'t1',title:'<i>x</i>',done_condition:'c',proposed_by:'gpt',status:'accepted',artifact_title:'數字人'},{id:'p3',topic_id:'t9',title:'別題',done_condition:'c',proposed_by:'gpt',status:'proposed'}]};
+test('建議步驟：只有待決的有接受／不要，跳脫內容，限本主題',()=>{const h=g.bsProposalsHtml(P,'t1');
+ assert.equal((h.match(/data-bs-decide="accepted"/g)||[]).length,1);assert.ok(h.includes('data-bs-decide="rejected"'));assert.ok(h.includes('已加入作品'));assert.ok(!h.includes('<i>'));assert.ok(!h.includes('別題'));
+ assert.equal(g.bsProposalsHtml({proposals:[]},'t1'),'');assert.ok(f({...d,...P}).includes('建議步驟'));});
+test('作品頁：待決數與已加入步驟',()=>{const h=g.bsWorkStepsHtml(P);assert.ok(h.includes('2 個建議步驟待你決定'));assert.ok(h.includes('#/lab/brainstorm'));assert.ok(h.includes('加入的步驟 1 個'));assert.equal(g.bsWorkStepsHtml({}),'');});
+test('提議機制：只有本人接受、AI 不能自稱 user、MCP 工具',()=>{
+ const m=fs.readFileSync(new URL('../supabase/migrations/20261023_brainstorm_step_proposals_v1.sql',import.meta.url),'utf8');
+ for(const k of ["proposed_by <> 'user'",'owner_decides_not_proposes','resolve_single_user_v1(p_auth_user_id)','already_decided',"'work_step'",'too_many_pending','enable row level security','artifact_context_links_backup_20261023_bsp'])assert.ok(m.includes(k),k);
+ assert.ok(!/update growth_control\.personal_artifacts/.test(m),'不改作品本身');
+ const e=fs.readFileSync(new URL('../supabase/functions/brainstorm-mcp/index.ts',import.meta.url),'utf8');for(const k of ['"brainstorm_propose_step"','按「接受」'])assert.ok(e.includes(k),k);
+ assert.match(fs.readFileSync(new URL('../supabase/functions/growth-home/index.ts',import.meta.url),'utf8'),/"brainstorm_step_decide"[\s\S]{0,600}p_auth_user_id: verified\.user\.id/);
+ assert.match(fs.readFileSync(new URL('../adapter.js',import.meta.url),'utf8'),/decideBrainstormStep/);});

@@ -4,3 +4,4 @@
 - [x] 種子主題
 - [x] docs/brainstorm-adapter.md（代理合約＋GPT 指示）
 - [ ] 接上 GPT（等使用者決定 OpenCLI 或 API 金鑰）
+- [x] 建議步驟：提議表、MCP 工具、本人接受、作品頁待決數

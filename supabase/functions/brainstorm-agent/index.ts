@@ -9,7 +9,7 @@ function adminKey() {
   return Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") || "";
 }
 
-const ACTIONS = new Set(["read", "post", "open_topic", "research"]);
+const ACTIONS = new Set(["read", "post", "open_topic", "research", "propose_step"]);
 
 Deno.serve(async (req: Request) => {
   if (req.method !== "POST") return json({ ok: false, reason: "post_only" }, 405);

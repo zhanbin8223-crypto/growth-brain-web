@@ -1585,6 +1585,7 @@ async function renderProjectsIA(active='gateway',notice=''){
     return;
   }else if(active==='gateway'){
     root.innerHTML=iaTabs(tabs,active)+'<div id="projectIaPane" class="tab-pane"><div class="empty">正在整理作品路徑…</div></div>';
+    if(A.liveStatus==='live'&&A.getBrainstorm)A.getBrainstorm().then(d=>{const h=bsWorkStepsHtml(d);const pane=$('#projectIaPane');if(h&&pane&&!root.querySelector('.bs-work-steps'))pane.insertAdjacentHTML('beforebegin',h);}).catch(()=>{});
     if(A.liveStatus==='live'&&window.GROWTH_BRAIN_W1P){A.getPersonalArtifacts().then(pa=>{const html=window.GROWTH_BRAIN_W1P.worksHtml(pa);const pane=$('#projectIaPane');if(html&&pane&&!root.querySelector('.w1p-works')){pane.insertAdjacentHTML('beforebegin',html+'<details class="w1p-more"><summary><b>作品路徑與新作品</b><span>建立新路徑、組隊、里程碑都在這裡</span></summary></details>');root.querySelector('.w1p-more').appendChild(pane);if(window.__gbNewWork){window.__gbNewWork=false;const m=root.querySelector('.w1p-more');m.open=true;setTimeout(()=>m.scrollIntoView({behavior:'smooth',block:'start'}),50);}root.querySelector('[data-open-current]')?.addEventListener('click',()=>renderProjectsIA('current'));}}).catch(()=>{});}
     const pane=$('#projectIaPane');
     const hero='<header class="v4-page-head project-v4-head"><span class="v4-eyebrow">ARTIFACTS · 作品</span><div><h2>我的作品路徑</h2><p>先看現在在哪、下一個候選在哪。登入後可直接在下方輸入一條新作品路徑。</p><button class="primary-btn project-new-route-btn" type="button" '+(A.liveStatus==='live'?'data-new-project-route':'data-auth')+'>'+(A.liveStatus==='live'?'↓ 輸入新作品路徑':'登入後新增路徑')+'</button></div><img class="v4-page-art" data-image-placement="projects.hero" src="assets/ui/home-project-cover.webp" alt="" aria-hidden="true"></header>';
@@ -2101,6 +2102,21 @@ function renderTodayProgress(){
 const BS_AGENTS={'grok-bot':{name:'Grok Bot',cls:'or',ini:'G'},gpt:{name:'GPT',cls:'vi',ini:'P'},user:{name:'你',cls:'te',ini:'你'}};
 const BS_ROLE={idea:'點子',critique:'挑毛病',question:'提問',summary:'整理',nudge:'插一句'};
 function bsAgent(a){return BS_AGENTS[a]||{name:String(a||'AI'),cls:'',ini:String(a||'?').slice(0,1).toUpperCase()};}
+/* 腦力激盪 → 作品：AI 只「提議」步驟，使用者按接受才寫進作品（artifact_context_links work_step） */
+function bsProposalsHtml(d,topicId){
+  const ps=(Array.isArray(d?.proposals)?d.proposals:[]).filter(p=>p.topic_id===topicId);
+  if(!ps.length)return '';
+  const st={proposed:'待你決定',accepted:'已加入作品',rejected:'不要'};
+  return '<section class="bs-props"><b>建議步驟</b><ul>'+ps.map(p=>'<li class="bs-prop '+esc(p.status)+'"><div><strong>'+esc(p.title)+'</strong><small>完成條件：'+esc(p.done_condition)+'</small><small class="muted">'+esc(bsAgent(p.proposed_by).name)+' 提議・'+esc(p.artifact_title||'作品')+'</small></div>'+
+    (p.status==='proposed'?'<span class="bs-prop-act"><button type="button" class="btn btn-primary" data-bs-decide="accepted" data-pid="'+esc(p.id)+'">接受</button><button type="button" class="btn" data-bs-decide="rejected" data-pid="'+esc(p.id)+'">不要</button></span>':'<span class="ttag">'+esc(st[p.status]||p.status)+'</span>')+'</li>').join('')+'</ul></section>';
+}
+function bsWorkStepsHtml(d){
+  const ps=Array.isArray(d?.proposals)?d.proposals:[];
+  const pending=ps.filter(p=>p.status==='proposed').length, acc=ps.filter(p=>p.status==='accepted');
+  if(!pending&&!acc.length)return '';
+  return '<section class="card tile bs-work-steps">'+(pending?'<p><b>腦力激盪有 '+pending+' 個建議步驟待你決定</b> <a class="link" href="#/lab/brainstorm">去看</a></p>':'')+
+    (acc.length?'<details><summary>從腦力激盪加入的步驟 '+acc.length+' 個</summary><ul>'+acc.map(p=>'<li>'+esc(p.artifact_title||'作品')+'：'+esc(p.title)+'<small class="muted">（完成條件：'+esc(p.done_condition)+'）</small></li>').join('')+'</ul></details>':'')+'</section>';
+}
 function brainstormHtml(d,selId){
   const W=window.GROWTH_BRAIN_W1P,ic=(n,c)=>W?W.icon(n,c):'';
   const topics=Array.isArray(d?.topics)?d.topics:[];
@@ -2112,7 +2128,7 @@ function brainstormHtml(d,selId){
   const src=s=>Array.isArray(s)&&s.length?'<details class="bs-src"><summary>依據 '+s.length+' 筆</summary><ul>'+s.map(x=>'<li>'+(safe(x.link||x.url)?'<a href="'+esc(safe(x.link||x.url))+'"'+(String(x.link||x.url).startsWith('https')?' target="_blank" rel="noopener"':'')+'>'+esc(x.title||x.url||'來源')+'</a>':esc(x.title||x.id||'來源'))+(x.type==='researcher_log'?'<small>（研究紀錄）</small>':'')+'</li>').join('')+'</ul></details>':'';
   const msg=m=>{const a=bsAgent(m.author_agent);return '<li class="bs-msg'+(m.author_agent==='user'?' me':'')+'"><span class="bs-av '+a.cls+'" aria-hidden="true">'+esc(a.ini)+'</span><div class="bs-bubble"><div class="bs-meta"><span class="chip '+a.cls+'"><span class="dot"></span>'+esc(a.name)+'</span><span class="ttag">'+esc(BS_ROLE[m.role]||m.role)+'</span><time>'+esc(t(m.created_at))+'</time></div><div class="bs-body">'+esc(m.body).replace(/\n/g,'<br>')+'</div>'+src(m.sources)+(m.meta&&(m.meta.run_id||m.meta.run_note)?'<small class="bs-run muted">執行紀錄：'+esc([m.meta.run_id,m.meta.run_note,m.meta.channel].filter(Boolean).join('・'))+'</small>':'')+'</div></li>';};
   const thread=sel?'<article class="card tile bs-thread"><div class="tile-head"><div><h2 class="tile-title">'+esc(sel.title)+'</h2>'+(sel.goal?'<p class="muted small">'+esc(sel.goal)+'</p>':'')+(sel.related_title?'<span class="chip vi"><span class="dot"></span>'+esc(sel.related_title)+'</span>':'')+'</div><span class="ttag">'+(sel.status==='closed'?'已結束':'討論中')+'</span></div>'+
-     '<section class="bs-summary"><b>'+ic('sparkles')+'目前的整理</b>'+(sel.summary?'<p>'+esc(sel.summary.body).replace(/\n/g,'<br>')+'</p><small class="muted">'+esc(bsAgent(sel.summary.author_agent).name)+'・'+esc(t(sel.summary.created_at))+'</small>':'<p class="muted small">還沒有人整理。討論夠多時，AI 會發一則「整理」放在這裡。</p>')+'</section>'+
+     '<section class="bs-summary"><b>'+ic('sparkles')+'目前的整理</b>'+(sel.summary?'<p>'+esc(sel.summary.body).replace(/\n/g,'<br>')+'</p><small class="muted">'+esc(bsAgent(sel.summary.author_agent).name)+'・'+esc(t(sel.summary.created_at))+'</small>':'<p class="muted small">還沒有人整理。討論夠多時，AI 會發一則「整理」放在這裡。</p>')+'</section>'+bsProposalsHtml(d,sel.id)+
      ((sel.messages||[]).length?'<ol class="bs-msgs">'+sel.messages.map(msg).join('')+'</ol>':'<p class="muted small">這個主題還沒有人發言。</p>')+
      (sel.status==='open'?'<form class="bs-nudge" data-bs-nudge="'+esc(sel.id)+'"><label for="bsNudge">插一句（AI 下次發言前會先讀到）</label><textarea id="bsNudge" name="body" rows="3" maxlength="4000" placeholder="例如：先別放分潤連結，第一支只介紹角色"></textarea><button class="btn btn-primary" type="submit">送出</button></form>':'')+'</article>':'';
   return '<div class="w1p w1p-brainstorm"><section class="head"><span class="eyebrow">'+ic('sparkles')+'研究室・腦力激盪</span><h1>腦力激盪</h1><p>Grok Bot、GPT 等 AI 在同一個題目下輪流出主意、挑毛病；每個 AI 每個主題一天最多說 6 次，發言前必須先讀完別人說的。</p></section>'+
@@ -2127,6 +2143,8 @@ async function renderBrainstorm(selId){
   let d;try{d=await A.getBrainstorm();}catch(e){root.innerHTML='<div class="empty">討論讀取失敗：'+esc(e.message||e)+'</div>';return;}
   root.innerHTML=brainstormHtml(d,selId||window.__gbBsTopic);
   function bind(){
+    root.querySelectorAll('[data-bs-decide]').forEach(b=>b.onclick=async()=>{root.querySelectorAll('[data-bs-decide]').forEach(x=>x.disabled=true);
+      try{await A.decideBrainstormStep({proposal_id:b.dataset.pid,decision:b.dataset.bsDecide});await renderBrainstorm(window.__gbBsTopic);}catch(err){alert('沒有成功：'+(err.message||err));await renderBrainstorm(window.__gbBsTopic);}});
     root.querySelectorAll('[data-bs-topic]').forEach(b=>b.onclick=()=>{window.__gbBsTopic=b.dataset.bsTopic;root.innerHTML=brainstormHtml(d,window.__gbBsTopic);bind();});
     const f=root.querySelector('[data-bs-nudge]');if(f)f.onsubmit=async e=>{e.preventDefault();const body=f.body.value.trim();if(!body)return;f.querySelector('button').disabled=true;
       try{await A.postBrainstorm({topic_id:f.dataset.bsNudge,body});window.__gbBsTopic=f.dataset.bsNudge;await renderBrainstorm(f.dataset.bsNudge);}catch(err){f.querySelector('button').disabled=false;alert('送出失敗：'+(err.message||err));}};
