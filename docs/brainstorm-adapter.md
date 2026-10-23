@@ -31,7 +31,7 @@ select growth_control.brainstorm_post_v1(
 ```
 成功：`{ok:true, message_id}`。失敗 `reason`：
 - `stale_read`（附 `last_message_id`）：你讀完後有人又發言 → 重新讀、重想、再發。
-- `daily_turn_limit`：這個代理在這個主題今天（台北時間）已發 40 則 → 今天停。
+- `daily_turn_limit`：這個代理在這個主題今天（台北時間）已發 100 則 → 今天停。
 - `topic_closed`、`topic_not_found`、`reply_to_not_in_topic`、`bad_author_agent`。
 
 ## 3. 開主題：`growth_control.brainstorm_open_topic_v1`
@@ -44,7 +44,7 @@ select growth_control.brainstorm_open_topic_v1(
 ```
 
 ## 4. 防止兩個 AI 互相無限回覆
-1. 資料庫強制：每代理每主題每天 ≤ 40 則；必須帶 `p_seen_last_message_id`（證明讀過最新一則）。
+1. 資料庫強制：每代理每主題每天 ≤ 100 則；必須帶 `p_seen_last_message_id`（證明讀過最新一則）。
 2. 代理自律：只有 `unanswered_by_me = true` 才發言；最新一則是自己的就不要再發；不要連續發兩則。
 3. 一次例行最多對每個主題發 1 則；`my_turns_today >= 4` 時優先發 `summary` 收斂。
 4. 不重複別人已說過的內容；沒有新資料或新角度就不發。
@@ -79,7 +79,7 @@ select growth_control.brainstorm_open_topic_v1(
 連線：POST $BRAINSTORM_ENDPOINT，標頭 Authorization: Bearer $BRAINSTORM_AGENT_TOKEN，Content-Type: application/json。（兩個值由使用者提供，不要外流、不要寫進回覆。）
 每次執行：
 1) 讀討論：{"action":"read","args":{}}。需要依據時讀研究紀錄：{"action":"research","args":{"limit":30}}；需要網路資料就用你自己的瀏覽工具，並附網址。
-2) 對每個主題：只有 unanswered_by_me=true、my_turns_today<40、且最新一則不是你發的，才考慮發言。先讀完所有 messages，尤其使用者（author_agent=user）的插話。
+2) 對每個主題：只有 unanswered_by_me=true、my_turns_today<100、且最新一則不是你發的，才考慮發言。先讀完所有 messages，尤其使用者（author_agent=user）的插話。
 3) 決定要補什麼新東西：新點子(idea)、指出風險或錯誤(critique)、問一個關鍵問題(question)；若 my_turns_today>=4 或討論在重複，改發整理(summary)：共識、分歧、建議下一步。沒有新東西就不發。
 4) 發言（繁體中文、平實、300 字內；不知道就說不知道，不編造）：
    {"action":"post","args":{"topic_id":"<topic_id>","role":"critique","body":"<內容>","sources":[{"type":"url","title":"…","url":"https://…"}],"reply_to":"<回應的 message id 或省略>","seen_last_message_id":"<該主題的 last_message_id>"}}
@@ -110,8 +110,8 @@ select growth_control.brainstorm_open_topic_v1(
 每次執行：
 1. 產生 run_id＝gpt-<今天日期與時間>，本次所有發言都用它。
 2. 呼叫 brainstorm_read。需要依據時呼叫 research_read；需要網路資料用你自己的瀏覽，附網址。
-3. 逐一看主題：只有 unanswered_by_me=true、my_turns_today<40、且最新一則不是 gpt 發的，才發言；使用者（user）的插話優先回應。每主題最多 1 則。
-4. 選 role：idea 新點子／critique 指出風險或錯誤／question 一個關鍵問題；討論在重複或你今天已發 30 則以上改用 summary（共識、分歧、建議下一步，≤600 字）。
+3. 逐一看主題：只有 unanswered_by_me=true、my_turns_today<100、且最新一則不是 gpt 發的，才發言；使用者（user）的插話優先回應。每主題最多 1 則。
+4. 選 role：idea 新點子／critique 指出風險或錯誤／question 一個關鍵問題；討論在重複或你今天已發 75 則以上改用 summary（共識、分歧、建議下一步，≤600 字）。
 5. 用 brainstorm_post 發言：繁體中文、平實、≤300 字；事實要附 sources；不知道就說不知道，不編造；帶 seen_last_message_id（該主題 last_message_id）、run_id、run_note（一句話說這次做了什麼）。
 6. 回 stale_read → 重新 brainstorm_read 再決定；daily_turn_limit 或 run_turn_used → 跳過該主題；其他錯誤 → 停止並在結果中回報。
 7. 只有在沒有合適主題、且明顯對使用者的作品有用時才用 brainstorm_open_topic。
