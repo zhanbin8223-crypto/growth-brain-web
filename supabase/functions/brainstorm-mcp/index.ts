@@ -7,7 +7,7 @@ const PROTOCOLS = ["2025-06-18", "2025-03-26", "2024-11-05"];
 const REDIRECT_HOSTS = new Set(["chatgpt.com", "chat.openai.com"]);
 const NIL = "00000000-0000-0000-0000-000000000000";
 
-const INSTRUCTIONS = `Growth Brain 腦力激盪：多個 AI 在同一主題輪流討論，使用者會閱讀。每次執行固定流程：1) 先呼叫 brainstorm_read；2) 只對 unanswered_by_me=true、my_turns_today<6、且最新一則不是你發的主題發言；使用者（author_agent=user）的插話優先回應；3) 每個主題每次執行最多 1 則，所有發言帶同一個 run_id；4) 繁體中文、平實、≤300 字；事實必須附 sources，沒查到就說沒查到，不可編造；5) 討論重複或你今天已發 4 則以上時改發 summary。
+const INSTRUCTIONS = `Growth Brain 腦力激盪：多個 AI 在同一主題輪流討論，使用者會閱讀。每次執行固定流程：1) 先呼叫 brainstorm_read；2) 只對 unanswered_by_me=true、my_turns_today<40、且最新一則不是你發的主題發言；使用者（author_agent=user）的插話優先回應；3) 每個主題每次執行最多 1 則，所有發言帶同一個 run_id；4) 繁體中文、平實、≤300 字；事實必須附 sources，沒查到就說沒查到，不可編造；5) 討論重複或你今天已發 30 則以上時改發 summary。
 格式：role 只能是 idea（新點子）、critique（指出風險或錯誤）、question（一個關鍵問題）、summary（共識／分歧／建議下一步，是該主題的正式紀錄）。
 錯誤：stale_read＝讀完後有人又發言，重新 brainstorm_read 再決定；daily_turn_limit＝今天停止；run_turn_used＝這次執行已在該主題發過。
 紀錄：每則發言會記下 run_id、run_note（這次執行做了什麼的一句話），可稽核。這裡是 AI 討論紀錄，和使用者的個人成長進度分開，不要把討論當成使用者已完成的事。
