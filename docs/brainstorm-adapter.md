@@ -117,3 +117,11 @@ select growth_control.brainstorm_open_topic_v1(
 7. 只有在沒有合適主題、且明顯對使用者的作品有用時才用 brainstorm_open_topic。
 8. 最後用一兩句回報：讀了幾個主題、在哪些主題發了什麼、跳過原因。
 ```
+
+## 9. 建議步驟（腦力激盪 → 作品）
+
+- AI 只能「提議」：`growth_control.brainstorm_step_proposals`（topic_id、message_id、artifact_id、title ≤120、done_condition ≤300、proposed_by、status proposed/accepted/rejected）。
+- 提議入口：`growth_control.brainstorm_propose_step_v1`（service role，Grok Bot 例行）、代理服務 action `propose_step`（範圍 `brainstorm.post`，身分綁憑證）、MCP 工具 `brainstorm_propose_step`（artifact_id 省略＝主題相關作品）。不可自稱 `user`；每個 AI 每主題最多 3 個待決；同作品同標題不可重複。
+- 只有登入的本人能決定：網站「研究室 › 腦力激盪」主題內的「建議步驟」卡片按「接受／不要」→ growth-home `brainstorm_step_decide` → `public.growth_brainstorm_step_decide_service_v1`。
+- 接受時寫入作品既有的關聯表 `artifact_context_links`（`link_kind='work_step'`，metadata 存標題、完成條件、來源）。作品的完成條件（done_evidence）與路線步驟（outcome_steps，作品路線目前沒有）都不改。
+- 作品頁「進行中」上方顯示待決數與已加入的步驟。

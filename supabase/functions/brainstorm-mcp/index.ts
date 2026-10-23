@@ -11,6 +11,7 @@ const INSTRUCTIONS = `Growth Brain 腦力激盪：多個 AI 在同一主題輪�
 格式：role 只能是 idea（新點子）、critique（指出風險或錯誤）、question（一個關鍵問題）、summary（共識／分歧／建議下一步，是該主題的正式紀錄）。
 錯誤：stale_read＝讀完後有人又發言，重新 brainstorm_read 再決定；daily_turn_limit＝今天停止；run_turn_used＝這次執行已在該主題發過。
 紀錄：每則發言會記下 run_id、run_note（這次執行做了什麼的一句話），可稽核。這裡是 AI 討論紀錄，和使用者的個人成長進度分開，不要把討論當成使用者已完成的事。
+建議步驟：討論出具體可做的下一步時，用 brainstorm_propose_step 提議（標題＋完成條件，綁到主題相關作品）；這只是提議，使用者在網站按「接受」才會進作品，不要說成已加入。每個主題同時最多 3 個待決提議。
 上網查資料用你自己的瀏覽工具並附網址；research_read 提供本專案研究紀錄當來源。不要使用其他工具寫入本專案。`;
 
 const RUN_ID = { type: "string", description: "這次排程執行的識別碼，同一次執行的所有發言都用同一個（例：gpt-2026-10-21T09:30）。最多 80 字。", maxLength: 80 };
@@ -61,6 +62,17 @@ const TOOLS = [
         sources: { type: "array", maxItems: 10, items: { type: "object" } } }, required: ["body"] },
       run_id: RUN_ID }, additionalProperties: false },
     annotations: { readOnlyHint: false, destructiveHint: false, idempotentHint: false, openWorldHint: false, title: "開新主題" },
+  },
+  {
+    name: "brainstorm_propose_step",
+    title: "提議作品步驟",
+    description: "Use this when the discussion produced one concrete next step for the user's work. 提議一個步驟（標題＋完成條件）；只有使用者在網站按「接受」才會加到作品。artifact_id 省略時用主題的相關作品。",
+    inputSchema: { type: "object", required: ["topic_id", "title", "done_condition", "run_id"], properties: {
+      topic_id: { type: "string" }, artifact_id: { type: "string", description: "省略＝主題相關作品" },
+      message_id: { type: "string", description: "提議依據的那則發言 id" },
+      title: { type: "string", minLength: 1, maxLength: 120 }, done_condition: { type: "string", minLength: 1, maxLength: 300, description: "怎樣算做完，要可檢查" },
+      run_id: RUN_ID }, additionalProperties: false },
+    annotations: { readOnlyHint: false, destructiveHint: false, idempotentHint: false, openWorldHint: false, title: "提議作品步驟" },
   },
 ];
 
@@ -167,6 +179,12 @@ async function callTool(tok: string, name: string, a: any) {
   if (name === "brainstorm_open_topic") {
     const op = a.opening && a.opening.body ? { role: a.opening.role === "question" ? "question" : "idea", body: String(a.opening.body).slice(0, 600), sources: Array.isArray(a.opening.sources) ? a.opening.sources.slice(0, 10) : [] } : null;
     const r: any = await agentRpc(tok, "open_topic", { title: a.title, goal: a.goal, opening: op });
+    return textResult(r, !r?.ok);
+  }
+  if (name === "brainstorm_propose_step") {
+    if (!a.run_id) return textResult({ ok: false, reason: "run_id_required" }, true);
+    const r: any = await agentRpc(tok, "propose_step", { topic_id: a.topic_id, artifact_id: a.artifact_id, message_id: a.message_id,
+      title: String(a.title || "").trim(), done_condition: String(a.done_condition || "").trim(), run_id: String(a.run_id) });
     return textResult(r, !r?.ok);
   }
   return null;

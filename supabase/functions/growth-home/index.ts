@@ -491,6 +491,20 @@ Deno.serve(async (req: Request) => {
         return json({ ok: true, data: result }, 200);
       }
 
+      if (body?.action === "brainstorm_step_decide") {
+        const pid = typeof body?.proposal_id === "string" ? body.proposal_id : "";
+        const decision = body?.decision === "accepted" || body?.decision === "rejected" ? body.decision : "";
+        if (!pid || !decision) return json({ ok: false, reason: "proposal_id_and_decision_required" }, 400);
+        const result = await adminRpc("growth_brainstorm_step_decide_service_v1", {
+          p_auth_user_id: verified.user.id, p_proposal_id: pid, p_decision: decision,
+        });
+        if (result?.accepted === false || result?.ok === false) {
+          const reason = result.reason || "decide_rejected";
+          return json({ ok: false, reason, data: result }, reason.includes("verified") ? 403 : 400);
+        }
+        return json({ ok: true, data: result }, 200);
+      }
+
       if (body?.action === "cancel_job") {
         if (typeof body?.job_id !== "string" || !body.job_id) {
           return json({ ok: false, reason: "job_id_required" }, 400);

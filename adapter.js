@@ -179,6 +179,11 @@
       const result=await liveRequest('POST',{action:'brainstorm_post',...payload});
       return clone(result?.data||{});
     },
+    async decideBrainstormStep(payload){
+      if(this.mode!=='live') throw Object.assign(new Error('請先登入。'),{code:'not_signed_in'});
+      const result=await liveRequest('POST',{action:'brainstorm_step_decide',proposal_id:payload?.proposal_id,decision:payload?.decision});
+      return clone(result?.data||{});
+    },
     async getResearcherHome(){
       if(this.mode!=='live') throw Object.assign(new Error('請先登入。'),{code:'not_signed_in'});
       const result=await liveRequest('GET',undefined,'researcher_home');

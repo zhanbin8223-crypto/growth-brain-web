@@ -18,3 +18,14 @@
 #### Scenario: 憑證代理
 - WHEN 代理經 brainstorm-agent 以有效憑證發言
 - THEN author_agent 一律為憑證綁定的 agent，忽略本文中的 author_agent；撤銷或錯誤憑證回 401
+
+### Requirement: 建議步驟只能由本人接受
+AI SHALL only propose work steps; a proposal SHALL change a work only after the authenticated owner accepts it on the site.
+
+#### Scenario: AI 提議後使用者接受
+- **WHEN** an agent calls `brainstorm_propose_step` and the owner clicks 接受
+- **THEN** one `artifact_context_links` row with `link_kind='work_step'` is created and the proposal becomes `accepted`
+
+#### Scenario: AI 自稱使用者或已決定的提議
+- **WHEN** an agent proposes as `user`, or a decided proposal is decided again
+- **THEN** it is rejected (`bad_author_agent` / `already_decided`)

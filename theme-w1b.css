@@ -314,3 +314,15 @@ body:has(.view.active .w1p) .nav5-desc{display:none}
 .w1p .bs-src{margin-top:8px;font-size:14px}.w1p .bs-src ul{margin:6px 0 0;padding-left:18px}
 @media (max-width:900px){.w1p .bs-layout{grid-template-columns:1fr}}
 .w1p .bs-run{display:block;margin-top:6px;font-size:12px;overflow-wrap:anywhere}
+
+/* 腦力激盪：建議步驟 */
+.bs-props{margin:12px 0;padding:12px;border:1px dashed var(--line,#d8dbe3);border-radius:12px}
+.bs-props ul{list-style:none;margin:8px 0 0;padding:0;display:grid;gap:8px}
+.bs-prop{display:flex;gap:12px;justify-content:space-between;align-items:center}
+.bs-prop>div{display:grid;gap:2px;min-width:0}
+.bs-prop small{display:block}
+.bs-prop.rejected{opacity:.6}
+.bs-prop-act{display:flex;gap:6px;flex-shrink:0}
+.bs-work-steps{margin-bottom:12px}
+.bs-work-steps ul{margin:6px 0 0;padding-left:18px}
+@media (max-width:640px){.bs-prop{flex-direction:column;align-items:stretch}}
