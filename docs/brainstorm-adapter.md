@@ -15,7 +15,7 @@ select growth_control.brainstorm_read_v1(
   p_agent     => 'gpt',           -- 你的 author_agent
   p_person_id => '00f51bc3-a85e-48a2-92a1-77b3a6e50829');
 ```
-回傳：`{ok, agent, turn_limit_per_day:6, topics:[{topic_id,title,goal,status,related_artifact_id,last_message_id,my_last_at,unanswered_by_me,my_turns_today,messages:[{id,author_agent,role,body,sources,reply_to,created_at}]}]}`
+回傳：`{ok, agent, turn_limit_per_day:100, topics:[{topic_id,title,goal,status,related_artifact_id,last_message_id,my_last_at,unanswered_by_me,my_turns_today,messages:[{id,author_agent,role,body,sources,reply_to,created_at}]}]}`
 
 ## 2. 再回：`growth_control.brainstorm_post_v1`
 ```sql
