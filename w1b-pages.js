@@ -139,11 +139,49 @@
     return '<div class="pg-bento ss-bento ss-top"><article class="card tile wash ss-health"><div class="health"><span class="icirc lg '+(on?'te':'or')+'">'+icon(on?'check':'flag','i')+'</span><div><h2>'+(on?'運作正常':'處理程式離線')+'</h2><p class="muted">'+(isNaN(last)?'還沒有上線紀錄。':'最後上線 '+(last.getMonth()+1)+'/'+last.getDate()+' '+String(last.getHours()).padStart(2,'0')+':'+String(last.getMinutes()).padStart(2,'0')+(on?'':'；排隊的工作會等它上線後處理。'))+'</p></div></div>'+
       '<div class="stats"><div><b>'+(on?1:0)+'</b><span>處理程式上線</span></div><div><b>'+queued+'</b><span>排隊中</span></div><div><b>'+failed+'</b><span>失敗</span></div><div><b>'+rate+'%</b><span>成功率（我的提問）</span></div></div></article></div>';
   }
+
+  /* 作品：研究路線圖（roadmap_nodes + research_node_links，資料來自 personal_artifacts.roadmap） */
+  function roadmapHtml(pa,sel){
+    const rm=pa?.roadmap;const nodes=Array.isArray(rm?.nodes)?rm.nodes:[];if(!nodes.length)return '';
+    const cur=pa?.current||null;const cands=(Array.isArray(pa?.candidates)?pa.candidates:(pa?.candidate?[pa.candidate]:[])).filter(Boolean);
+    const works=[cur,...cands].filter(Boolean);
+    const curMap=rm.current||{};
+    const stages=nodes.filter(n=>!n.parent_id&&!n.artifact_id);
+    const findings=Array.isArray(rm.findings)?rm.findings:[];
+    const work=works.find(w=>curMap[w.id])||works[0]||null;
+    const curNode=work?curMap[work.id]:null;
+    const open=sel&&nodes.some(n=>n.id===sel)?sel:(curNode||stages[0]?.id);
+    const cnt=id=>findings.filter(f=>f.node_id===id).length;
+    const safe=l=>/^https:\/\//.test(String(l||''))?String(l):'';
+    const bar='<ol class="rm-bar" role="list">'+stages.map((n,i)=>'<li><button type="button" class="rm-st'+(n.id===curNode?' cur':'')+(n.id===open?' open':'')+(n.status==='proposed'?' prop':'')+'" data-rm-node="'+esc(n.id)+'" aria-pressed="'+(n.id===open)+'"><span class="num">'+(i+1)+'</span><b>'+esc(n.name_zh)+'</b>'+(n.status==='proposed'?'<small>待你確認</small>':'<small>'+cnt(n.id)+' 則研究</small>')+'</button></li>').join('')+'</ol>';
+    const on=nodes.find(n=>n.id===open);
+    const subs=nodes.filter(n=>n.parent_id===open);
+    const list=findings.filter(f=>f.node_id===open).sort((a,b)=>String(b.occurred_at).localeCompare(String(a.occurred_at)));
+    const arr=x=>Array.isArray(x)?x:(x?[x]:[]);
+    const rel={supports:'支持證據',sub_item:'子項',proposes_new_stage:'提議新站'};
+    const item=f=>{const u=f.usable||{};const srcs=arr(u.sources);const pr=arr(u.prompts);const st=arr(u.steps);
+      return '<li class="rm-f"><div class="tile-head"><b>'+esc(f.title)+'</b><span class="chip">'+esc(rel[f.relation]||'')+'</span></div>'+
+       (u.method?'<p><span class="label">做法</span>'+esc(u.method)+'</p>':(f.summary?'<p class="muted small">'+esc(f.summary)+'</p>':''))+
+       (st.length?'<ol class="rm-steps">'+st.map(x=>'<li>'+esc(x)+'</li>').join('')+'</ol>':'')+
+       (pr.length?'<details><summary>提示詞 '+pr.length+'</summary>'+pr.map(x=>'<pre class="rm-pr">'+esc(x)+'</pre>').join('')+'</details>':'')+
+       '<p class="muted small">分類理由：'+esc(f.rationale)+'</p>'+
+       (srcs.length||safe(f.link)?'<p class="small">來源：'+[...srcs.map(x=>typeof x==='string'?{url:x}:x),...(safe(f.link)?[{url:f.link,title:'研究紀錄'}]:[])].map(x=>safe(x.url)?'<a href="'+esc(safe(x.url))+'" target="_blank" rel="noopener">'+esc(x.title||'來源')+'</a>':esc(x.title||'')).join('・')+'</p>':'')+
+       '<time class="muted small">'+esc(String(f.occurred_at||'').slice(0,10))+'</time></li>';};
+    const panel=on?'<article class="card tile rm-panel" id="rm-panel"><div class="tile-head"><h3 class="tile-title">研究室結果・'+esc(on.name_zh)+'</h3><span class="muted small">'+list.length+' 則，新的在上面</span></div>'+
+      (on.done_condition?'<p class="small"><span class="label">完成條件</span>'+esc(on.done_condition)+'</p>':'')+
+      (on.status==='proposed'?'<div class="note">'+esc(on.proposed_reason||'研究室提議新增這一站')+'<div class="actions"><button class="btn btn-primary btn-sm" type="button" data-rm-decide="accept" data-node="'+esc(on.id)+'">同意加入</button><button class="btn btn-ghost btn-sm" type="button" data-rm-decide="reject" data-node="'+esc(on.id)+'">不要</button></div></div>':'')+
+      (subs.length?'<ul class="rm-subs">'+subs.map(x=>'<li>'+esc(x.name_zh)+(x.status==='proposed'?' <small>待你確認</small>':'')+'</li>').join('')+'</ul>':'')+
+      (list.length?'<ul class="rm-list">'+list.map(item).join('')+'</ul>':'<p class="muted small">這一站還沒有掛上研究結果。</p>')+'</article>':'';
+    const props=nodes.filter(n=>n.status==='proposed'&&n.id!==open);
+    return '<section class="w1p w1p-roadmap" data-rm-root><div class="tile-head"><h2 class="tile-title">'+icon('layers-3')+'作品路線圖</h2><span class="muted small">'+(work?esc(work.title)+'・目前在「'+esc((nodes.find(n=>n.id===curNode)||{}).name_zh||'未設定')+'」':'')+'</span></div>'+
+      (works.length>1?'<p class="muted small">'+works.map(w=>esc(w.title)+'：'+esc((nodes.find(n=>n.id===curMap[w.id])||{}).name_zh||'未設定')).join('　')+'</p>':'')+
+      bar+(props.length?'<p class="small">'+props.length+' 個新站待你確認</p>':'')+panel+'</section>';
+  }
   /* 側欄：我的作品 */
   function sideWorksHtml(pa){
     const cur=pa?.current||null;const cands=(Array.isArray(pa?.candidates)?pa.candidates:(pa?.candidate?[pa.candidate]:[])).filter(x=>x&&x.status==='candidate');
     const rows=[cur,...cands].filter(Boolean);if(!rows.length)return '';
     return '<div class="label">我的作品</div>'+rows.map(w=>{const k=counts(criteria(w));return '<a class="mini '+(w===cur?'cur':'')+' tone-'+tone(w)+'" href="#/works/'+(w===cur?'active':'waiting')+'"><span class="dot"></span><span class="mini-t">'+esc(w.title)+'</span><span class="mini-n">'+(w===cur?k.done+'/'+k.total:'等待')+'</span></a>';}).join('')+'<a class="mini add" href="#/works/active" data-new-work>'+icon('plus')+'<span class="mini-t">新增作品</span></a>';
   }
-  root.GROWTH_BRAIN_W1P={icon,tone,cover,criteria,counts,todayHtml,worksHtml,sideWorksHtml,dateLabel,periodRange,reviewHtml,decideHtml,decideItems,sysHead,sysPendingHtml,sysStatusHead};
+  root.GROWTH_BRAIN_W1P={roadmapHtml,icon,tone,cover,criteria,counts,todayHtml,worksHtml,sideWorksHtml,dateLabel,periodRange,reviewHtml,decideHtml,decideItems,sysHead,sysPendingHtml,sysStatusHead};
 })(typeof window!=='undefined'?window:globalThis);

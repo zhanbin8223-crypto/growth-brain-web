@@ -167,6 +167,26 @@ Deno.serve(async (req: Request) => {
         );
       }
 
+      if ((surface === "personal_artifacts" || surface === "researcher_home") && result && typeof result === "object") {
+        try {
+          const roadmap = await adminRpc("growth_roadmap_snapshot_service_v1", { p_auth_user_id: verified.user.id });
+          if (roadmap && roadmap.accepted !== false) {
+            if (surface === "personal_artifacts") {
+              (result as Record<string, unknown>).roadmap = roadmap;
+            } else {
+              const names: Record<string, string> = {};
+              for (const n of roadmap.nodes || []) names[n.id] = n.name_zh;
+              const tags: Record<string, unknown[]> = {};
+              for (const f of roadmap.findings || []) {
+                (tags[f.log_id] ||= []).push({ node_id: f.node_id, name_zh: names[f.node_id] || "", relation: f.relation, artifact_id: f.artifact_id });
+              }
+              (result as Record<string, unknown>).stage_tags = tags;
+              (result as Record<string, unknown>).roadmap_nodes = roadmap.nodes || [];
+            }
+          }
+        } catch (_e) { /* roadmap is additive; never break the base surface */ }
+      }
+
       return json({
         ok: true,
         user: { id: verified.user.id, email: verified.user.email || null },
@@ -395,6 +415,21 @@ Deno.serve(async (req: Request) => {
         }
 
         return json({ ok: true, data: { ...result, path_plan: pathPlan } }, 200);
+      }
+
+      if (body?.action === "roadmap_node_decide") {
+        if (!body?.node_id || !["accept", "reject"].includes(body?.decision)) {
+          return json({ ok: false, reason: "node_id_and_decision_required" }, 400);
+        }
+        const result = await adminRpc("growth_roadmap_node_decide_service_v1", {
+          p_auth_user_id: verified.user.id,
+          p_node_id: body.node_id,
+          p_decision: body.decision,
+        });
+        if (result?.accepted === false) {
+          return json({ ok: false, reason: result.reason || "roadmap_decide_rejected", data: result }, 400);
+        }
+        return json({ ok: true, data: result }, 200);
       }
 
       if (body?.action === "decide_personal_artifact") {

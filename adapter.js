@@ -158,6 +158,13 @@
       await this.refreshPersonalHome();
       return clone(latest);
     },
+    async decideRoadmapNode({nodeId,decision}){
+      if(this.mode!=='live') throw Object.assign(new Error('請先登入。'),{code:'not_signed_in'});
+      const result=await liveRequest('POST',{action:'roadmap_node_decide',node_id:nodeId,decision});
+      this.personalArtifacts=null;
+      await this.getPersonalArtifacts({force:true});
+      return clone(result?.data||{});
+    },
     async requestArtifactStageUnblock({artifactId,userNote}){
       if(this.mode!=='live') throw Object.assign(new Error('請先登入。'),{code:'not_signed_in'});
       const result=await liveRequest('POST',{

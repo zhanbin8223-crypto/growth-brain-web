@@ -1586,7 +1586,7 @@ async function renderProjectsIA(active='gateway',notice=''){
   }else if(active==='gateway'){
     root.innerHTML=iaTabs(tabs,active)+'<div id="projectIaPane" class="tab-pane"><div class="empty">正在整理作品路徑…</div></div>';
     if(A.liveStatus==='live'&&A.getBrainstorm)A.getBrainstorm().then(d=>{const h=bsWorkStepsHtml(d);const pane=$('#projectIaPane');if(h&&pane&&!root.querySelector('.bs-work-steps'))pane.insertAdjacentHTML('beforebegin',h);}).catch(()=>{});
-    if(A.liveStatus==='live'&&window.GROWTH_BRAIN_W1P){A.getPersonalArtifacts().then(pa=>{const html=window.GROWTH_BRAIN_W1P.worksHtml(pa);const pane=$('#projectIaPane');if(html&&pane&&!root.querySelector('.w1p-works')){pane.insertAdjacentHTML('beforebegin',html+'<details class="w1p-more"><summary><b>作品路徑與新作品</b><span>建立新路徑、組隊、里程碑都在這裡</span></summary></details>');root.querySelector('.w1p-more').appendChild(pane);if(window.__gbNewWork){window.__gbNewWork=false;const m=root.querySelector('.w1p-more');m.open=true;setTimeout(()=>m.scrollIntoView({behavior:'smooth',block:'start'}),50);}root.querySelector('[data-open-current]')?.addEventListener('click',()=>renderProjectsIA('current'));}}).catch(()=>{});}
+    if(A.liveStatus==='live'&&window.GROWTH_BRAIN_W1P){A.getPersonalArtifacts().then(pa=>{const html=window.GROWTH_BRAIN_W1P.worksHtml(pa)+window.GROWTH_BRAIN_W1P.roadmapHtml(pa,window.__gbRoadmapNode);const pane=$('#projectIaPane');if(html&&pane&&!root.querySelector('.w1p-works')){pane.insertAdjacentHTML('beforebegin',html+'<details class="w1p-more"><summary><b>作品路徑與新作品</b><span>建立新路徑、組隊、里程碑都在這裡</span></summary></details>');root.querySelector('.w1p-more').appendChild(pane);if(window.__gbNewWork){window.__gbNewWork=false;const m=root.querySelector('.w1p-more');m.open=true;setTimeout(()=>m.scrollIntoView({behavior:'smooth',block:'start'}),50);}root.querySelector('[data-open-current]')?.addEventListener('click',()=>renderProjectsIA('current'));bindRoadmap(root.querySelector('[data-rm-root]'));}}).catch(()=>{});}
     const pane=$('#projectIaPane');
     const hero='<header class="v4-page-head project-v4-head"><span class="v4-eyebrow">ARTIFACTS · 作品</span><div><h2>我的作品路徑</h2><p>先看現在在哪、下一個候選在哪。登入後可直接在下方輸入一條新作品路徑。</p><button class="primary-btn project-new-route-btn" type="button" '+(A.liveStatus==='live'?'data-new-project-route':'data-auth')+'>'+(A.liveStatus==='live'?'↓ 輸入新作品路徑':'登入後新增路徑')+'</button></div><img class="v4-page-art" data-image-placement="projects.hero" src="assets/ui/home-project-cover.webp" alt="" aria-hidden="true"></header>';
 
@@ -2043,7 +2043,8 @@ function navFind(pageKey,tabKey,segKey){
 }
 function navHash(p,t,s){return '#/'+p+'/'+t+(s?'/'+s:'')}
 function parseNavHash(hash){
-  const h=String(hash||'');
+  let h=String(hash||'');
+  if(/^#\/?(projects|works)[^?]*\?node=/.test(h)){const m=h.match(/node=([0-9a-f-]{36})/i);window.__gbRoadmapNode=m?m[1]:null;h=h.split('?')[0];}
   if(!h||h.includes('=')||h.includes('access_token'))return null;
   const parts=h.replace(/^#\/?/,'').split('/').filter(Boolean).map(decodeURIComponent);
   if(!parts.length)return null;
@@ -2164,6 +2165,8 @@ function researcherHomeHtml(d,now=new Date()){
   const item=(x,iconName,tone)=>'<li class="rowi"><span class="icirc '+(tone||'')+'">'+ic(iconName,'i i-sm')+'</span><div class="grow"><b>'+esc(x?.title||'')+'</b>'+(x?.note||x?.detail?'<small>'+esc(x.note||x.detail)+'</small>':'')+'</div>'+(safeLink(x?.link)?'<a class="link" href="'+esc(safeLink(x.link))+'"'+(x.link.startsWith('https')?' target="_blank" rel="noopener"':'')+'>前往'+ic('chevron-right')+'</a>':'')+'</li>';
   const kindLabel={decision:'要你決定',data:'要你給資料',login:'要你登入',other:'要你幫忙'};
   const kindLog={setup:'設定',run:'例行研究',finding:'發現',note:'筆記',blocked:'卡住'};
+  const tagMap=d?.stage_tags||{};const relLabel={supports:'支持',sub_item:'子項',proposes_new_stage:'提議新站'};
+  const stageTags=id=>arr(tagMap[id]).map(g=>'<a class="chip rm-tag" href="#/projects?node='+esc(g.node_id)+'">'+esc(g.name_zh)+'<small>'+esc(relLabel[g.relation]||'')+'</small></a>').join('');
   const plan=arr(s?.today_plan),done=arr(s?.done_today),help=arr(s?.help_needed),hl=s?.highlight||null;
   const empty=m=>'<p class="muted small">'+m+'</p>';
   return '<div class="w1p w1p-researcher"><section class="head"><span class="eyebrow">'+ic('sparkles')+'研究室・研究員</span><h1>研究員</h1><p>每天早上 09:06 自己去找資料、想一遍，只把值得你看的放在這裡。</p></section>'+
@@ -2174,7 +2177,7 @@ function researcherHomeHtml(d,now=new Date()){
     '<article class="card tile rh-plan"><div class="tile-head"><h3 class="tile-title">今天打算做什麼</h3><span class="muted small">'+plan.length+' 件</span></div>'+(plan.length?'<ul class="rows">'+plan.map(x=>item(x,'circle-dashed')).join('')+'</ul>':empty('今天還沒有排研究。'))+'</article>'+
     '<article class="card tile rh-done"><div class="tile-head"><h3 class="tile-title">已經做完什麼</h3><span class="muted small">'+done.length+' 件</span></div>'+(done.length?'<ul class="rows">'+done.map(x=>item(x,'circle-check-big','te')).join('')+'</ul>':empty('今天還沒有做完的研究。'))+'</article>'+
     '<article class="card tile rh-help"><div class="tile-head"><h3 class="tile-title">需要你幫忙</h3><span class="ttag">'+help.length+'</span></div>'+(help.length?'<ul class="rows">'+help.map(x=>item({...x,detail:(kindLabel[x.kind]||kindLabel.other)+(x.detail?'・'+x.detail:'')},x.kind==='login'?'lock':x.kind==='data'?'paperclip':'flag','or')).join('')+'</ul>':empty('目前不需要你幫忙。'))+'</article>'+
-    '<article class="card tile rh-log"><div class="tile-head"><h3 class="tile-title">最近的研究紀錄</h3><span class="muted small">新的在上面</span></div>'+(log.length?'<ol class="tl">'+log.slice(0,10).map(x=>'<li><span class="icirc '+(x.kind==='finding'?'te':x.kind==='blocked'?'or':'')+'">'+ic(x.kind==='finding'?'lightbulb':x.kind==='blocked'?'flag':'search','i i-sm')+'</span><div><b>'+esc(x.title)+'</b><span class="muted">'+esc((kindLog[x.kind]||'紀錄')+(x.summary?'・'+x.summary:''))+'</span></div><time>'+esc(t(x.occurred_at))+'</time></li>').join('')+'</ol>':empty('還沒有研究紀錄。第一次例行研究跑完後會出現在這裡。'))+'</article>'+
+    '<article class="card tile rh-log"><div class="tile-head"><h3 class="tile-title">最近的研究紀錄</h3><span class="muted small">新的在上面</span></div>'+(log.length?'<ol class="tl">'+log.slice(0,10).map(x=>'<li><span class="icirc '+(x.kind==='finding'?'te':x.kind==='blocked'?'or':'')+'">'+ic(x.kind==='finding'?'lightbulb':x.kind==='blocked'?'flag':'search','i i-sm')+'</span><div><b>'+esc(x.title)+'</b>'+stageTags(x.id)+'<span class="muted">'+esc((kindLog[x.kind]||'紀錄')+(x.summary?'・'+x.summary:''))+'</span></div><time>'+esc(t(x.occurred_at))+'</time></li>').join('')+'</ol>':empty('還沒有研究紀錄。第一次例行研究跑完後會出現在這裡。'))+'</article>'+
    '</div></div>';
 }
 async function renderResearcherHome(){
@@ -2336,5 +2339,21 @@ async function init(){
     $('#captureBtn').onclick=()=>setView('inbox');
     $('#refreshBtn').onclick=()=>location.reload();
   }catch(e){$('.main').innerHTML=`<div class="empty">第二大腦 初始化失敗：${esc(e.message||e)}</div>`}
+}
+/* 作品路線圖：點站展開、提議新站同意／拒絕（綁在區塊本身） */
+function bindRoadmap(sec){
+  if(!sec||!sec.addEventListener)return;
+  sec.addEventListener('click',async e=>{
+    const st=e.target.closest('[data-rm-node]');const dc=e.target.closest('[data-rm-decide]');
+    if((!st&&!dc)||!window.GROWTH_BRAIN_W1P)return;
+    try{
+      if(dc){dc.disabled=true;await A.decideRoadmapNode({nodeId:dc.dataset.node,decision:dc.dataset.rmDecide});window.__gbRoadmapNode=dc.dataset.node;}
+      else window.__gbRoadmapNode=st.dataset.rmNode;
+      const pa=await A.getPersonalArtifacts();
+      const tmp=document.createElement('div');tmp.innerHTML=window.GROWTH_BRAIN_W1P.roadmapHtml(pa,window.__gbRoadmapNode);
+      const fresh=tmp.firstElementChild;if(fresh){sec.replaceWith(fresh);bindRoadmap(fresh);}
+    }catch(err){alert('路線圖操作失敗：'+(err.message||err));if(dc)dc.disabled=false;}
+  });
+  if(window.__gbRoadmapNode&&/node=/.test(location.hash))setTimeout(()=>sec.querySelector('#rm-panel')?.scrollIntoView({behavior:'smooth',block:'start'}),300);
 }
 init();
