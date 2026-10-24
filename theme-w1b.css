@@ -326,3 +326,22 @@ body:has(.view.active .w1p) .nav5-desc{display:none}
 .bs-work-steps{margin-bottom:12px}
 .bs-work-steps ul{margin:6px 0 0;padding-left:18px}
 @media (max-width:640px){.bs-prop{flex-direction:column;align-items:stretch}}
+/* 作品路線圖（roadmap v1） */
+.w1p-roadmap{margin:18px 0;display:grid;gap:12px}
+.rm-bar{list-style:none;margin:0;padding:0;display:flex;gap:8px;overflow-x:auto}
+.rm-bar li{flex:1 0 96px}
+.rm-st{width:100%;display:flex;flex-direction:column;align-items:flex-start;gap:2px;padding:10px 12px;border:1px solid var(--w-line);border-radius:var(--w-r-lg);background:var(--w-card);color:var(--w-ink);box-shadow:var(--w-shadow);cursor:pointer;text-align:left}
+.rm-st .num{font-size:12px;color:var(--w-ink-3)}
+.rm-st small{font-size:12px;color:var(--w-ink-3)}
+.rm-st.cur{background:var(--w-or-soft);border-color:var(--w-or)}
+.rm-st.cur b{color:var(--w-or-text)}
+.rm-st.open{outline:2px solid var(--w-or);outline-offset:1px}
+.rm-st.prop{border-style:dashed;background:var(--w-vi-soft)}
+.rm-panel{display:grid;gap:10px}
+.rm-list,.rm-subs{list-style:none;margin:0;padding:0;display:grid;gap:10px}
+.rm-f{padding:12px;border:1px solid var(--w-line);border-radius:var(--w-r-lg);background:var(--w-bg)}
+.rm-f p{margin:6px 0}
+.rm-f .label{margin-right:6px}
+.rm-pr{white-space:pre-wrap;font-size:12px;background:var(--w-card);padding:8px;border-radius:8px}
+.rm-tag{margin:4px 4px 0 0;display:inline-flex;gap:4px;text-decoration:none}
+.rm-tag small{opacity:.7}
