@@ -140,42 +140,56 @@
       '<div class="stats"><div><b>'+(on?1:0)+'</b><span>處理程式上線</span></div><div><b>'+queued+'</b><span>排隊中</span></div><div><b>'+failed+'</b><span>失敗</span></div><div><b>'+rate+'%</b><span>成功率（我的提問）</span></div></div></article></div>';
   }
 
-  /* 作品：研究路線圖（roadmap_nodes + research_node_links，資料來自 personal_artifacts.roadmap） */
+  /* 作品：研究路線圖 — 步驟條（設計參考 Ant Design Steps／Mantine Stepper，MIT；未複製程式碼） */
   function roadmapHtml(pa,sel){
     const rm=pa?.roadmap;const nodes=Array.isArray(rm?.nodes)?rm.nodes:[];if(!nodes.length)return '';
     const cur=pa?.current||null;const cands=(Array.isArray(pa?.candidates)?pa.candidates:(pa?.candidate?[pa.candidate]:[])).filter(Boolean);
     const works=[cur,...cands].filter(Boolean);
     const curMap=rm.current||{};
-    const stages=nodes.filter(n=>!n.parent_id&&!n.artifact_id);
+    const stages=nodes.filter(n=>!n.parent_id&&!n.artifact_id&&n.status!=='proposed');
+    const props=nodes.filter(n=>n.status==='proposed');
     const findings=Array.isArray(rm.findings)?rm.findings:[];
-    const work=works.find(w=>curMap[w.id])||works[0]||null;
+    const wsel=root.__gbRoadmapWork;
+    const work=works.find(w=>w.id===wsel)||works.find(w=>curMap[w.id])||works[0]||null;
     const curNode=work?curMap[work.id]:null;
+    const curIdx=stages.findIndex(n=>n.id===curNode);
     const open=sel&&nodes.some(n=>n.id===sel)?sel:(curNode||stages[0]?.id);
-    const cnt=id=>findings.filter(f=>f.node_id===id).length;
+    const subsOf=id=>nodes.filter(n=>n.parent_id===id);
+    const famIds=id=>[id,...subsOf(id).map(n=>n.id)];
+    const cnt=id=>{const f=famIds(id);return findings.filter(x=>f.includes(x.node_id)).length;};
     const safe=l=>/^https:\/\//.test(String(l||''))?String(l):'';
-    const bar='<ol class="rm-bar" role="list">'+stages.map((n,i)=>'<li><button type="button" class="rm-st'+(n.id===curNode?' cur':'')+(n.id===open?' open':'')+(n.status==='proposed'?' prop':'')+'" data-rm-node="'+esc(n.id)+'" aria-pressed="'+(n.id===open)+'"><span class="num">'+(i+1)+'</span><b>'+esc(n.name_zh)+'</b>'+(n.status==='proposed'?'<small>待你確認</small>':'<small>'+cnt(n.id)+' 則研究</small>')+'</button></li>').join('')+'</ol>';
-    const on=nodes.find(n=>n.id===open);
-    const subs=nodes.filter(n=>n.parent_id===open);
-    const list=findings.filter(f=>f.node_id===open).sort((a,b)=>String(b.occurred_at).localeCompare(String(a.occurred_at)));
     const arr=x=>Array.isArray(x)?x:(x?[x]:[]);
-    const rel={supports:'支持證據',sub_item:'子項',proposes_new_stage:'提議新站'};
-    const item=f=>{const u=f.usable||{};const srcs=arr(u.sources);const pr=arr(u.prompts);const st=arr(u.steps);
-      return '<li class="rm-f"><div class="tile-head"><b>'+esc(f.title)+'</b><span class="chip">'+esc(rel[f.relation]||'')+'</span></div>'+
+    const verdict=f=>{const v=String(f.usable?.verdict||'');if(v)return v;const m=String(f.title||'').match(/（(已驗證|待實測|存疑)）\s*$/);return m?m[1]:'未評';};
+    const vcls={'已驗證':'ok','待實測':'wait','存疑':'warn'};
+    const short=f=>{let t=String(f.title||'').replace(/（(已驗證|待實測|存疑)）\s*$/,'');t=t.split(/[：:]/)[0].trim()||String(f.usable?.method||'').trim()||'研究紀錄';return t.length>30?t.slice(0,30)+'…':t;};
+    const byDate=(a,b)=>String(a.occurred_at).localeCompare(String(b.occurred_at));
+    const state=i=>curIdx<0?'wait':i<curIdx?'done':i===curIdx?'now':'wait';
+    const bar='<ol class="rm-steps-bar" role="list"><li class="rm-start" aria-label="起點"><span class="dot">▶</span><b>起點</b></li>'+stages.map((n,i)=>{const s=state(i);
+      return '<li class="rm-step '+s+(n.id===open?' open':'')+'"><button type="button" data-rm-node="'+esc(n.id)+'" aria-pressed="'+(n.id===open)+'"'+(s==='now'?' aria-current="step"':'')+'><span class="dot">'+(s==='done'?'✓':s==='now'?'◉':(i+1))+'</span><b>'+esc(n.name_zh)+'</b><small>'+(s==='now'?'現在在這':s==='done'?'推定完成':'')+'</small><small class="n">'+cnt(n.id)+' 則研究</small></button></li>';}).join('')+'</ol>';
+    const on=nodes.find(n=>n.id===open);
+    const item=(f,i)=>{const u=f.usable||{};const srcs=arr(u.sources);const pr=arr(u.prompts);const st=arr(u.steps);const v=verdict(f);
+      return '<li class="rm-f"><details><summary><span class="i">'+(i+1)+'</span><span class="t">'+esc(short(f))+'</span><span class="vb '+(vcls[v]||'none')+'">'+esc(v)+'</span><time>'+esc(String(f.occurred_at||'').slice(5,10))+'</time></summary><div class="rm-fd">'+
+       '<p class="small"><b>'+esc(f.title)+'</b></p>'+
        (u.method?'<p><span class="label">做法</span>'+esc(u.method)+'</p>':(f.summary?'<p class="muted small">'+esc(f.summary)+'</p>':''))+
-       (st.length?'<ol class="rm-steps">'+st.map(x=>'<li>'+esc(x)+'</li>').join('')+'</ol>':'')+
+       (st.length?'<ol class="rm-ol">'+st.map(x=>'<li>'+esc(x)+'</li>').join('')+'</ol>':'')+
+       (u.doubt?'<p class="small"><span class="label">疑點</span>'+esc(u.doubt)+'</p>':'')+
+       (u.resolution?'<p class="small"><span class="label">解法</span>'+esc(u.resolution)+'</p>':'')+
        (pr.length?'<details><summary>提示詞 '+pr.length+'</summary>'+pr.map(x=>'<pre class="rm-pr">'+esc(x)+'</pre>').join('')+'</details>':'')+
-       '<p class="muted small">分類理由：'+esc(f.rationale)+'</p>'+
        (srcs.length||safe(f.link)?'<p class="small">來源：'+[...srcs.map(x=>typeof x==='string'?{url:x}:x),...(safe(f.link)?[{url:f.link,title:'研究紀錄'}]:[])].map(x=>safe(x.url)?'<a href="'+esc(safe(x.url))+'" target="_blank" rel="noopener">'+esc(x.title||'來源')+'</a>':esc(x.title||'')).join('・')+'</p>':'')+
-       '<time class="muted small">'+esc(String(f.occurred_at||'').slice(0,10))+'</time></li>';};
-    const panel=on?'<article class="card tile rm-panel" id="rm-panel"><div class="tile-head"><h3 class="tile-title">研究室結果・'+esc(on.name_zh)+'</h3><span class="muted small">'+list.length+' 則，新的在上面</span></div>'+
+       '<p class="muted small">分類理由：'+esc(f.rationale)+'・'+esc(String(f.occurred_at||'').slice(0,10))+'</p></div></details></li>';};
+    const group=(label,list)=>list.length?'<div class="rm-g"><h4>'+esc(label)+' <small>'+list.length+'</small></h4><ol class="rm-list">'+list.sort(byDate).map(item).join('')+'</ol></div>':'';
+    let panel='';
+    if(on){const subs=subsOf(on.id);const main=findings.filter(f=>f.node_id===on.id);const all=findings.filter(f=>famIds(on.id).includes(f.node_id));
+      const nextF=all.filter(f=>verdict(f)==='已驗證'&&f.usable?.method).sort(byDate).pop();
+      panel='<article class="card tile rm-panel" id="rm-panel"><div class="tile-head"><h3 class="tile-title">'+esc(on.name_zh)+'</h3><span class="muted small">'+all.length+' 則研究</span></div>'+
       (on.done_condition?'<p class="small"><span class="label">完成條件</span>'+esc(on.done_condition)+'</p>':'')+
+      (nextF?'<p class="small rm-next"><span class="label">下一步</span>'+esc(nextF.usable.method)+'</p>':'')+
       (on.status==='proposed'?'<div class="note">'+esc(on.proposed_reason||'研究室提議新增這一站')+'<div class="actions"><button class="btn btn-primary btn-sm" type="button" data-rm-decide="accept" data-node="'+esc(on.id)+'">同意加入</button><button class="btn btn-ghost btn-sm" type="button" data-rm-decide="reject" data-node="'+esc(on.id)+'">不要</button></div></div>':'')+
-      (subs.length?'<ul class="rm-subs">'+subs.map(x=>'<li>'+esc(x.name_zh)+(x.status==='proposed'?' <small>待你確認</small>':'')+'</li>').join('')+'</ul>':'')+
-      (list.length?'<ul class="rm-list">'+list.map(item).join('')+'</ul>':'<p class="muted small">這一站還沒有掛上研究結果。</p>')+'</article>':'';
-    const props=nodes.filter(n=>n.status==='proposed'&&n.id!==open);
-    return '<section class="w1p w1p-roadmap" data-rm-root><div class="tile-head"><h2 class="tile-title">'+icon('layers-3')+'作品路線圖</h2><span class="muted small">'+(work?esc(work.title)+'・目前在「'+esc((nodes.find(n=>n.id===curNode)||{}).name_zh||'未設定')+'」':'')+'</span></div>'+
-      (works.length>1?'<p class="muted small">'+works.map(w=>esc(w.title)+'：'+esc((nodes.find(n=>n.id===curMap[w.id])||{}).name_zh||'未設定')).join('　')+'</p>':'')+
-      bar+(props.length?'<p class="small">'+props.length+' 個新站待你確認</p>':'')+panel+'</section>';
+      (all.length?'<details class="rm-prog"><summary>研究進程（由舊到新，點標題看詳細）</summary>'+group('主線',main)+subs.map(s=>group(s.name_zh+(s.status==='proposed'?'（待你確認）':''),findings.filter(f=>f.node_id===s.id))).join('')+'</details>':'<p class="muted small">這一站還沒有掛上研究結果。</p>')+'</article>';}
+    const switcher=works.length>1?'<label class="rm-work small">作品 <select data-rm-work>'+works.map(w=>'<option value="'+esc(w.id)+'"'+(w===work?' selected':'')+'>'+esc(w.title)+'</option>').join('')+'</select></label>':(work?'<span class="muted small">'+esc(work.title)+'</span>':'');
+    return '<section class="w1p w1p-roadmap" data-rm-root><div class="tile-head"><h2 class="tile-title">'+icon('layers-3')+'作品路線圖</h2>'+switcher+'</div>'+
+      '<p class="muted small">'+(curIdx>=0?'現在在第 '+(curIdx+1)+' 站「'+esc(stages[curIdx].name_zh)+'」・✓ 為依目前位置推定，不是逐站完成紀錄':'這個作品還沒設定目前在哪一站')+'</p>'+
+      bar+panel+(props.length?'<div class="rm-props"><h4>待你確認的新站</h4>'+props.map(n=>'<button type="button" class="chip" data-rm-node="'+esc(n.id)+'">'+esc(n.name_zh)+'</button>').join(' ')+'</div>':'')+'</section>';
   }
   /* 側欄：我的作品 */
   function sideWorksHtml(pa){

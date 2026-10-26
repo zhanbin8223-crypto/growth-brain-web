@@ -345,3 +345,36 @@ body:has(.view.active .w1p) .nav5-desc{display:none}
 .rm-pr{white-space:pre-wrap;font-size:12px;background:var(--w-card);padding:8px;border-radius:8px}
 .rm-tag{margin:4px 4px 0 0;display:inline-flex;gap:4px;text-decoration:none}
 .rm-tag small{opacity:.7}
+/* 作品路線圖 v2：步驟條（設計參考 Ant Design Steps／Mantine Stepper，MIT） */
+.rm-steps-bar{list-style:none;margin:0;padding:4px 0;display:flex;align-items:flex-start;overflow-x:auto;gap:0}
+.rm-steps-bar>li{flex:1 0 88px;position:relative;display:flex;flex-direction:column;align-items:center;text-align:center}
+.rm-steps-bar>li:not(:last-child)::after{content:"";position:absolute;top:17px;left:calc(50% + 18px);right:calc(-50% + 18px);height:2px;background:var(--w-line)}
+.rm-steps-bar>li.done::after,.rm-start::after{background:var(--w-or)!important}
+.rm-steps-bar button{all:unset;cursor:pointer;display:flex;flex-direction:column;align-items:center;gap:3px;padding:0 4px;border-radius:10px}
+.rm-steps-bar button:focus-visible{outline:2px solid var(--w-or)}
+.rm-steps-bar .dot{width:34px;height:34px;border-radius:50%;display:grid;place-items:center;font-size:14px;font-weight:700;border:2px solid var(--w-line);background:var(--w-card);color:var(--w-ink-3)}
+.rm-start .dot{background:var(--w-ink);color:var(--w-card);border-color:var(--w-ink);font-size:12px}
+.rm-step.done .dot{background:var(--w-or-soft);border-color:var(--w-or);color:var(--w-or-text)}
+.rm-step.now .dot{background:var(--w-or);border-color:var(--w-or);color:#fff;box-shadow:0 0 0 5px var(--w-or-soft)}
+.rm-step.now b{color:var(--w-or-text)}
+.rm-steps-bar b{font-size:13px}
+.rm-steps-bar small{font-size:11px;color:var(--w-ink-3);min-height:14px}
+.rm-step.now small:not(.n){color:var(--w-or-text);font-weight:700}
+.rm-step.open button{background:var(--w-or-soft)}
+.rm-work select{margin-left:4px;max-width:60vw}
+.rm-next{background:var(--w-or-soft);padding:8px 10px;border-radius:8px}
+.rm-prog>summary{cursor:pointer;font-weight:600}
+.rm-g h4{margin:10px 0 6px;font-size:13px}
+.rm-list{list-style:none;margin:0;padding:0;display:grid;gap:6px}
+.rm-f{padding:0}
+.rm-f>details>summary{display:flex;gap:8px;align-items:center;padding:8px 10px;cursor:pointer;list-style:none}
+.rm-f>details>summary::-webkit-details-marker{display:none}
+.rm-f .i{font-size:11px;color:var(--w-ink-3);min-width:16px}
+.rm-f .t{flex:1;font-size:14px}
+.rm-f time{font-size:11px;color:var(--w-ink-3)}
+.rm-fd{padding:0 12px 10px}
+.vb{font-size:11px;padding:1px 7px;border-radius:99px;white-space:nowrap;background:var(--w-line)}
+.vb.ok{background:#dcf5e3;color:#17663a}.vb.wait{background:#fff1d6;color:#8a5a00}.vb.warn{background:#fde2e2;color:#9b1c1c}
+.rm-props{border:1px dashed var(--w-line);border-radius:var(--w-r-lg);padding:8px 12px}
+.rm-props h4{margin:0 0 6px;font-size:13px}
+@media (max-width:640px){.rm-steps-bar>li{flex:0 0 76px}.rm-f time{display:none}}
