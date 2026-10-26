@@ -2343,6 +2343,7 @@ async function init(){
 /* 作品路線圖：點站展開、提議新站同意／拒絕（綁在區塊本身） */
 function bindRoadmap(sec){
   if(!sec||!sec.addEventListener)return;
+  sec.addEventListener('change',e=>{const w=e.target.closest('[data-rm-work]');if(!w||!window.GROWTH_BRAIN_W1P)return;window.__gbRoadmapWork=w.value;window.__gbRoadmapNode=null;A.getPersonalArtifacts().then(pa=>{const tmp=document.createElement('div');tmp.innerHTML=window.GROWTH_BRAIN_W1P.roadmapHtml(pa,null);const fresh=tmp.firstElementChild;if(fresh){sec.replaceWith(fresh);bindRoadmap(fresh);}}).catch(err=>alert('路線圖操作失敗：'+(err.message||err)));});
   sec.addEventListener('click',async e=>{
     const st=e.target.closest('[data-rm-node]');const dc=e.target.closest('[data-rm-decide]');
     if((!st&&!dc)||!window.GROWTH_BRAIN_W1P)return;
